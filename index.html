@@ -660,12 +660,20 @@ function normalizeRows(json) {
   return filled;
 }
 function detectType(fname, headers) {
-  const n=fname.toLowerCase(), h=headers.join('|');
-  if (n.includes('cs관리')||h.includes('A/S증상')||h.includes('접수번호')||h.includes('A/S유형')) return 'cs';
-  if (n.includes('교환')||h.includes('교환유형')) return 'exchange';
-  if (n.includes('환불')||h.includes('환불유형')) return 'refund';
-  if (n.includes('review')||h.includes('구매자평점')) return 'review';
-  if (n.includes('chat')||h.includes('mediumType')||h.includes('summarizedMessage')) return 'channel';
+  const n = fname.toLowerCase().replace(/\s/g,'');
+  const h = headers.join('|');
+  // 파일명 우선 — 헤더보다 먼저 체크해야 교차 오류 방지
+  if (n.includes('교환')) return 'exchange';
+  if (n.includes('환불')) return 'refund';
+  if (n.includes('cs관리') || n.startsWith('cs') || n.includes('cs_')) return 'cs';
+  if (n.includes('review') || n.includes('리뷰')) return 'review';
+  if (n.includes('chat') || n.includes('채널') || n.includes('user_chat')) return 'channel';
+  // 헤더 기반 폴백 (파일명으로 못 잡은 경우)
+  if (h.includes('교환유형')) return 'exchange';
+  if (h.includes('환불유형')) return 'refund';
+  if (h.includes('A/S증상') || h.includes('접수번호')) return 'cs';
+  if (h.includes('구매자평점')) return 'review';
+  if (h.includes('mediumType') || h.includes('summarizedMessage')) return 'channel';
   return 'unknown';
 }
 function topN(obj,n=5){return Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([name,value])=>({name,value}));}
