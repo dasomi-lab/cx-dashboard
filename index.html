@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CX Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#eef2f8;
+  --sidebar:#ffffff;
+  --card:#ffffff;
+  --border:#e8ecf4;
+  --text:#1e293b;
+  --text2:#64748b;
+  --text3:#94a3b8;
+  --r:16px;
+  --sh:0 1px 3px rgba(0,0,0,0.05),0 4px 16px rgba(0,0,0,0.06);
+  --kpi1-top:linear-gradient(135deg,#f5f3ff,#ede9fe);
+  --kpi2-top:linear-gradient(135deg,#eff6ff,#dbeafe);
+  --kpi3-top:linear-gradient(135deg,#f0fdf4,#dcfce7);
+  --kpi4-top:linear-gradient(135deg,#fffbeb,#fef3c7);
+  --kpi5-top:linear-gradient(135deg,#fdf2f8,#fce7f3);
+  --ico1:#8b5cf6; --ico2:#3b82f6; --ico3:#22c55e; --ico4:#f59e0b; --ico5:#ec4899;
+  --violet:#6366f1;
+  --violet-light:#ede9fe;
+}
+html,body{height:100%;font-family:'Pretendard',-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;font-weight:400;}
+
+/* ── LOADER ── */
+#ldr{display:none;position:fixed;inset:0;background:rgba(238,242,248,0.85);z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+#ldr.on{display:flex;}
+.spin{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--violet);border-radius:50%;animation:sp .7s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+
+/* ── UPLOAD SHEET ── */
+.ub{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.25);z-index:500;align-items:flex-end;justify-content:center;}
+.ub.on{display:flex;}
+.us{background:#fff;border-radius:24px 24px 0 0;padding:24px 24px 36px;width:100%;max-width:520px;box-shadow:0 -8px 40px rgba(0,0,0,0.1);animation:shu .22s ease;}
+@keyframes shu{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.handle{width:40px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 18px;}
+.us-title{font-size:20px;font-weight:600;margin-bottom:14px;}
+.dz{border:2px dashed #cbd5e1;border-radius:14px;padding:26px;text-align:center;cursor:pointer;transition:all .18s;margin-bottom:12px;background:#f8fafc;}
+.dz:hover,.dz.ov{border-color:var(--violet);background:#f5f3ff;}
+.dz-ico{font-size:32px;margin-bottom:8px;}
+.dz-t{font-size:15px;font-weight:500;margin-bottom:3px;}
+.dz-s{font-size:13px;color:var(--text3);}
+.dz-s em{color:var(--violet);font-style:normal;font-weight:600;}
+#ulist{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+.uf{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;border-radius:10px;font-size:13px;font-weight:500;background:#f8fafc;border:1px solid var(--border);}
+.uf.ok{color:#15803d;background:#f0fdf4;border-color:#bbf7d0;}
+.uf.er{color:#92400e;background:#fffbeb;border-color:#fde68a;}
+.uf-x{background:none;border:none;cursor:pointer;color:#94a3b8;font-size:15px;line-height:1;padding:0 0 0 8px;}
+.uf-x:hover{color:#ef4444;}
+.btn-done{width:100%;background:var(--violet);color:#fff;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;}
+#fi{display:none;}
+
+/* ── APP ── */
+.app{display:flex;height:100vh;overflow:hidden;}
+
+/* ── SIDEBAR ── */
+.sb{
+  width:230px;flex-shrink:0;background:var(--sidebar);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;padding:0;overflow-y:auto;
+}
+.sb-logo-wrap{padding:24px 20px 20px;border-bottom:1px solid var(--border);}
+.sb-logo{display:flex;align-items:center;gap:12px;}
+.sb-logo-icon{
+  width:42px;height:42px;border-radius:12px;
+  background:linear-gradient(135deg,#6366f1,#8b5cf6);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:600;color:#fff;flex-shrink:0;letter-spacing:-.5px;
+}
+.sb-logo-text{font-size:15px;font-weight:600;color:var(--text);line-height:1.2;}
+.sb-logo-sub{font-size:11px;color:var(--text3);font-weight:500;}
+.sb-nav{padding:16px 12px;flex:1;}
+.sb-section-label{font-size:10.5px;font-weight:500;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;padding:0 8px;margin:16px 0 6px;}
+.sb-section-label:first-child{margin-top:0;}
+.nv{
+  display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;
+  border-radius:10px;border:none;background:transparent;
+  color:var(--text2);font-size:13.5px;font-weight:500;cursor:pointer;
+  font-family:inherit;text-align:left;transition:all .15s;margin-bottom:2px;
+}
+.nv:hover:not(.on){background:#f1f5f9;color:var(--text);}
+.nv.on{background:var(--violet);color:#fff;font-weight:600;}
+.nv-ico{font-size:15px;width:18px;text-align:center;flex-shrink:0;}
+
+/* ── MAIN ── */
+.main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ── TOPBAR ── */
+.topbar{
+  background:#fff;border-bottom:1px solid var(--border);
+  padding:16px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  flex-shrink:0;
+}
+.topbar-l .page-label{font-size:12px;font-weight:600;color:var(--text3);margin-bottom:3px;}
+.topbar-l .page-title{font-size:21px;font-weight:600;letter-spacing:-.04em;color:var(--text);}
+.topbar-r{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.chip-group{display:flex;flex-wrap:wrap;gap:5px;}
+.chip{display:flex;align-items:center;gap:4px;background:var(--violet-light);border-radius:999px;padding:4px 8px 4px 12px;font-size:12px;font-weight:500;color:var(--violet);}
+.chip-x{background:none;border:none;cursor:pointer;color:#a5b4fc;font-size:13px;padding:0;line-height:1;}
+.chip-x:hover{color:#ef4444;}
+.btn{border:none;cursor:pointer;font-family:inherit;border-radius:10px;font-weight:500;font-size:13px;padding:9px 16px;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:6px;}
+.btn-outline{background:#f1f5f9;color:var(--text);border:1px solid var(--border);}
+.btn-outline:hover{background:#e2e8f0;}
+.btn-primary{background:var(--violet);color:#fff;box-shadow:0 4px 12px rgba(99,102,241,0.3);}
+.btn-primary:hover{background:#4f46e5;}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+
+/* ── CONTENT ── */
+.content{flex:1;overflow-y:auto;padding:26px 28px 32px;}
+.content::-webkit-scrollbar{width:5px;}
+.content::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px;}
+
+/* ── PANE ── */
+.pane{display:none;}
+.pane.on{display:block;}
+
+/* ── PAGE HEADER ── */
+.pg-hdr{text-align:center;margin-bottom:26px;}
+.pg-hdr-title{
+  font-size:32px;font-weight:500;letter-spacing:-.05em;
+  background:linear-gradient(135deg,#6366f1,#8b5cf6,#ec4899);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:6px;
+}
+.pg-hdr-sub{font-size:14px;color:var(--text3);}
+
+/* ── KPI GRID ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:24px;}
+@media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:860px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
+
+.kc{background:#fff;border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;border:1px solid var(--border);}
+.kc-top{height:72px;position:relative;display:flex;align-items:flex-start;justify-content:flex-end;padding:14px;}
+.kc-icon-wrap{
+  width:40px;height:40px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;background:rgba(255,255,255,0.6);
+}
+.kc-body{padding:14px 18px 18px;}
+.kc-label{font-size:12.5px;font-weight:500;color:var(--text2);margin-bottom:6px;}
+.kc-value{font-size:34px;font-weight:600;letter-spacing:-.06em;line-height:1;color:var(--text);margin-bottom:5px;}
+.kc-value.sm{font-size:20px;letter-spacing:-.02em;font-weight:600;}
+.kc-trend{font-size:12px;font-weight:500;display:flex;align-items:center;gap:4px;}
+.pos{color:#16a34a;} .neg{color:#dc2626;} .neu{color:var(--text3);}
+
+/* ── MAIN GRID ── */
+.two-col{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;margin-bottom:20px;}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;}
+@media(max-width:900px){.two-col,.three-col{grid-template-columns:1fr;}}
+
+/* ── CARD ── */
+.card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:22px 24px;border:1px solid var(--border);}
+.card-hdr{display:flex;align-items:center;gap:10px;margin-bottom:18px;}
+.card-hdr-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.card-title{font-size:16px;font-weight:600;letter-spacing:-.02em;color:var(--text);}
+
+/* ── MINI BARS ── */
+.blist{display:flex;flex-direction:column;gap:12px;}
+.bi-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;}
+.bi-name{font-weight:500;color:var(--text2);}
+.bi-num{font-weight:600;color:var(--text);}
+.btrack{height:8px;background:#f1f5f9;border-radius:999px;overflow:hidden;}
+.bfill{height:8px;border-radius:999px;transition:width 1s cubic-bezier(.25,.46,.45,.94);}
+.empty-msg{font-size:13px;color:var(--text3);padding:6px 0;}
+
+/* ── INSIGHT ITEMS ── */
+.ins-list{display:flex;flex-direction:column;gap:10px;}
+.ins-item{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border);}
+.ins-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+.ins-txt{font-size:13px;line-height:1.7;color:#475569;}
+.ins-txt strong{color:var(--text);font-weight:600;}
+
+/* ── DETAIL STATS ── */
+.dstats{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+.ds{background:#fff;border-radius:12px;box-shadow:var(--sh);padding:14px 18px;flex:1;min-width:100px;text-align:center;border:1px solid var(--border);border-top:3px solid;}
+.ds-v{font-size:28px;font-weight:600;letter-spacing:-.04em;line-height:1.1;}
+.ds-l{font-size:12px;font-weight:500;color:var(--text3);margin-top:4px;}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);}
+.tbl-wrap.scroll{max-height:360px;overflow-y:auto;}
+.tbl-wrap::-webkit-scrollbar{width:4px;height:4px;}
+.tbl-wrap::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:2px;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{background:#f8fafc;padding:10px 14px;text-align:left;font-size:12px;font-weight:500;color:var(--text3);border-bottom:1px solid var(--border);position:sticky;top:0;}
+td{padding:11px 14px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#f8fafc;}
+.badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:500;}
+.bg{background:#dcfce7;color:#15803d;}
+.br{background:#fee2e2;color:#b91c1c;}
+.bo{background:#fef3c7;color:#92400e;}
+.bb{background:#dbeafe;color:#1d4ed8;}
+.bv{background:#ede9fe;color:#6d28d9;}
+.bx{background:#f1f5f9;color:#64748b;}
+
+/* ── PROGRESS ── */
+.prog{margin-bottom:14px;}
+.prog-hd{display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:6px;}
+.prog-bg{background:#f1f5f9;border-radius:999px;height:8px;overflow:hidden;}
+.prog-fill{height:8px;border-radius:999px;transition:width 1s ease;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:860px){
+  .sb{display:none;}
+  html,body{height:auto;}
+  .app{height:auto;}
+  .main{height:auto;}
+  .content{overflow:visible;}
+}
+</style>
+</head>
+<body>
+
+<div id="ldr"><div class="spin"></div><div style="font-size:13px;font-weight:600;color:#64748b">파일 분석 중...</div></div>
+
+<!-- Upload Sheet -->
+<div class="ub" id="ub" onclick="bgClose(event)">
+  <div class="us">
+    <div class="handle"></div>
+    <div class="us-title">데이터 파일 업로드</div>
+    <div class="dz" id="dz" onclick="document.getElementById('fi').click()"
+         ondragover="dzOv(event)" ondragleave="dzLv()" ondrop="dzDp(event)">
+      <div class="dz-ico">📁</div>
+      <div class="dz-t">파일을 드래그하거나 클릭하여 선택</div>
+      <div class="dz-s">XLSX · XLS · CSV — <em>유형 자동 인식 · 중복 시 자동 교체</em></div>
+    </div>
+    <input type="file" id="fi" multiple accept=".xlsx,.xls,.csv" onchange="handleFiles(this.files)">
+    <div id="ulist"></div>
+    <button class="btn-done" onclick="closeUB()">완료</button>
+  </div>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sb">
+    <div class="sb-logo-wrap">
+      <div class="sb-logo">
+        <div class="sb-logo-icon">CX</div>
+        <div>
+          <div class="sb-logo-text">CX Dashboard</div>
+          <div class="sb-logo-sub">주간 CS 리포트</div>
+        </div>
+      </div>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-section-label">Dashboard</div>
+      <button class="nv on" id="nv-overview" onclick="goTab('overview')"><span class="nv-ico">🏠</span>개요 (Overview)</button>
+
+      <div class="sb-section-label">CS Management</div>
+      <button class="nv" id="nv-cs"       onclick="goTab('cs')"><span class="nv-ico">📩</span>CS 상세</button>
+      <button class="nv" id="nv-exchange" onclick="goTab('exchange')"><span class="nv-ico">🔄</span>교환 관리</button>
+      <button class="nv" id="nv-refund"   onclick="goTab('refund')"><span class="nv-ico">💰</span>환불 관리</button>
+
+      <div class="sb-section-label">Analysis</div>
+      <button class="nv" id="nv-review"  onclick="goTab('review')"><span class="nv-ico">⭐</span>리뷰 분석</button>
+      <button class="nv" id="nv-channel" onclick="goTab('channel')"><span class="nv-ico">💬</span>채널톡</button>
+      <button class="nv" id="nv-weekly"  onclick="goTab('weekly')"><span class="nv-ico">📄</span>Weekly Issue</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-l">
+        <div class="page-label">Weekly Report</div>
+        <div class="page-title" id="topTitle">주간 CS 대시보드</div>
+      </div>
+      <div class="topbar-r">
+        <div class="chip-group" id="fileChips"></div>
+        <button class="btn btn-outline" onclick="openUB()">📂 업로드</button>
+        <button class="btn btn-outline" onclick="exportJSON()" title="데이터 JSON으로 내보내기">💾 내보내기</button>
+        <label class="btn btn-outline" style="cursor:pointer" title="저장된 JSON 가져오기">📥 가져오기<input type="file" accept=".json" style="display:none" onchange="importJSON(this)"></label>
+        <button class="btn btn-primary" id="pdfBtn" onclick="dlPDF()">⬇ PDF 저장</button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content" id="mainContent">
+
+      <!-- OVERVIEW -->
+      <div id="pane-overview" class="pane on">
+        <div class="pg-hdr">
+          <div class="pg-hdr-title" id="periodTitle">CX Weekly Dashboard</div>
+          <div class="pg-hdr-sub" id="periodSub">파일을 업로드하면 해당 주차 데이터로 자동 업데이트됩니다</div>
+        </div>
+
+        <!-- KPI 5개 -->
+        <div class="kpi-grid" id="kpiGrid"></div>
+
+        <!-- 2열 메인 -->
+        <div class="two-col">
+          <div class="card">
+            <div class="card-hdr">
+              <div class="card-hdr-icon" style="background:#ede9fe">📊</div>
+              <div class="card-title">모델별 CS 분포</div>
+            </div>
+            <div id="modelBars"><div class="empty-msg">파일을 업로드하면 표시됩니다</div></div>
+          </div>
+          <div class="card">
+            <div class="card-hdr">
+              <div class="card-hdr-icon" style="background:#fef3c7">💡</div>
+              <div class="card-title">자동 인사이트</div>
+            </div>
+            <div id="insightList"><div class="empty-msg">파일 업로드 후 자동 생성됩니다</div></div>
+          </div>
+        </div>
+
+        <!-- 3열 하단 -->
+        <div class="three-col">
+          <div class="card">
+            <div class="card-hdr"><div class="card-hdr-icon" style="background:#fee2e2">🔧</div><div class="card-title">AS 증상 TOP 10</div></div>
+            <div id="symptomBars"><div class="empty-msg">—</div></div>
+          </div>
+          <div class="card">
+            <div class="card-hdr"><div class="card-hdr-icon" style="background:#fef3c7">💰</div><div class="card-title">환불 모델별</div></div>
+            <div id="refundBars"><div class="empty-msg">—</div></div>
+          </div>
+          <div class="card">
+            <div class="card-hdr"><div class="card-hdr-icon" style="background:#f1f5f9">👎</div><div class="card-title">저평점 모델별</div></div>
+            <div id="lowRvBars"><div class="empty-msg">—</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CS DETAIL -->
+      <div id="pane-cs" class="pane">
+        <div class="pg-hdr" style="text-align:left"><div class="pg-hdr-title" style="font-size:24px">CS 상세</div></div>
+        <div class="dstats" id="cs-stats"></div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-hdr"><div class="card-hdr-icon" style="background:#ede9fe">🔁</div><div class="card-title">AS 재인입 — 모델별 TOP 5</div></div>
+            <div id="reinBars"><div class="empty-msg">—</div></div>
+          </div>
+          <div class="card">
+            <div class="card-hdr"><div class="card-hdr-icon" style="background:#dbeafe">📋</div><div class="card-title">처리상태 분포</div></div>
+            <div id="statusBars"><div class="empty-msg">—</div></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-hdr"><div class="card-hdr-icon" style="background:#ede9fe">📊</div><div class="card-title">A/S 유형별 모델 분포</div></div>
+          <div class="tbl-wrap" id="asTypeTbl"></div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-hdr"><div class="card-hdr-icon" style="background:#f1f5f9">📂</div><div class="card-title">CS 접수 내역 <span style="font-size:12px;font-weight:500;color:var(--text3);margin-left:6px">최근 30건</span></div></div>
+          <div class="tbl-wrap scroll" id="csTbl"></div>
+        </div>
+      </div>
+
+      <!-- EXCHANGE -->
+      <div id="pane-exchange" class="pane">
+        <div class="pg-hdr" style="text-align:left"><div class="pg-hdr-title" style="font-size:24px">교환 관리</div></div>
+        <div class="dstats" id="ex-stats"></div>
+        <div class="two-col" style="margin-bottom:16px">
+          <div class="card">
+            <div class="card-hdr"><div class="card-hdr-icon" style="background:#dcfce7">📦</div><div class="card-title">모델별 교환 집중도 TOP5</div></div>
+            <div id="exModelBars"><div class="empty-msg">—</div></div>
+          </div>
+          <div class="card">
+            <div class="card-hdr"><div class="card-hdr-icon" style="background:#fef3c7">🔍</div><div class="card-title">교환 사유 TOP5</div></div>
+            <div id="exSymBars"><div class="empty-msg">—</div></div>
+          </div>
+        </div>
+        <div class="two-col" style="margin-bottom:16px">
+          <div class="card">
+            <div class="card-hdr"><div class="card-hdr-icon" style="background:#eff6ff">🏪</div><div class="card-title">구매처별 교환 비율</div></div>
+            <div id="exStoreBars"><div class="empty-msg">—</div></div>
+          </div>
+          <div class="card">
+            <div class="card-hdr"><div class="card-hdr-icon" style="background:#fee2e2">⚠️</div><div class="card-title">동일 증상 반복 교환</div></div>
+            <div id="exRepeat"><div class="empty-msg">—</div></div>
+          </div>
+        </div>
+        <div id="ex-insight" style="margin-bottom:16px"></div>
+        <div class="card">
+          <div class="card-hdr"><div class="card-hdr-icon" style="background:#dcfce7">🔄</div><div class="card-title">교환 처리 내역</div></div>
+          <div class="tbl-wrap scroll" id="exTbl"></div>
+        </div>
+      </div>
+
+      <!-- REFUND -->
+      <div id="pane-refund" class="pane">
+        <div class="pg-hdr" style="text-align:left"><div class="pg-hdr-title" style="font-size:24px">환불 관리</div></div>
+        <div class="dstats" id="rf-stats"></div>
+        <div class="two-col" style="margin-bottom:16px">
+          <div class="card">
+            <div class="card-hdr"><div class="card-hdr-icon" style="background:#fee2e2">📦</div><div class="card-title">모델별 환불 집중도</div></div>
+            <div id="rfModelBars"><div class="empty-msg">—</div></div>
+          </div>
+          <div class="card">
+            <div class="card-hdr"><div class="card-hdr-icon" style="background:#fef3c7">🔍</div><div class="card-title">환불 사유 TOP5</div></div>
+            <div id="rfSymBars"><div class="empty-msg">—</div></div>
+          </div>
+        </div>
+        <div class="two-col" style="margin-bottom:16px">
+          <div class="card">
+            <div class="card-hdr"><div class="card-hdr-icon" style="background:#eff6ff">📊</div><div class="card-title">환불 유형 비율</div></div>
+            <div id="rfTypeBars"><div class="empty-msg">—</div></div>
+          </div>
+          <div class="card">
+            <div class="card-hdr"><div class="card-hdr-icon" style="background:#fee2e2">🚨</div><div class="card-title">특정 모델 급증 알림</div></div>
+            <div id="rfAlert"><div class="empty-msg">—</div></div>
+          </div>
+        </div>
+        <div id="rf-insight" style="margin-bottom:16px"></div>
+        <div class="card">
+          <div class="card-hdr"><div class="card-hdr-icon" style="background:#fee2e2">💰</div><div class="card-title">환불 처리 내역</div></div>
+          <div class="tbl-wrap scroll" id="rfTbl"></div>
+        </div>
+      </div>
+
+      <!-- REVIEW -->
+      <div id="pane-review" class="pane">
+        <div class="pg-hdr" style="text-align:left"><div class="pg-hdr-title" style="font-size:24px">리뷰 분석</div></div>
+        <div class="dstats" id="rv-stats"></div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-hdr"><div class="card-hdr-icon" style="background:#fef3c7">📦</div><div class="card-title">상품군별 리뷰 분포</div></div>
+            <div id="rvProdBars"><div class="empty-msg">—</div></div>
+          </div>
+          <div class="card">
+            <div class="card-hdr"><div class="card-hdr-icon" style="background:#fee2e2">👎</div><div class="card-title">저평점 모델 TOP5</div></div>
+            <div id="rvLowBars"><div class="empty-msg">—</div></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-hdr"><div class="card-hdr-icon" style="background:#f1f5f9">🔍</div><div class="card-title">저평점 키워드 TOP10</div></div>
+          <div id="rvKeywords"><div class="empty-msg">—</div></div>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-hdr"><div class="card-hdr-icon" style="background:#dcfce7">👍</div><div class="card-title">대표 긍정 리뷰</div></div>
+            <div id="repPosReviews"><div class="empty-msg">—</div></div>
+          </div>
+          <div class="card">
+            <div class="card-hdr"><div class="card-hdr-icon" style="background:#fee2e2">👎</div><div class="card-title">대표 부정 리뷰</div></div>
+            <div id="repNegReviews"><div class="empty-msg">—</div></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-hdr"><div class="card-hdr-icon" style="background:#eff6ff">💬</div><div class="card-title">사용법 문의성 리뷰</div></div>
+          <div id="usageFaqReviews"><div class="empty-msg">—</div></div>
+        </div>
+        <div id="rv-insight"></div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-hdr"><div class="card-hdr-icon" style="background:#fee2e2">📋</div><div class="card-title">저평점 리뷰 목록 (3점↓)</div></div>
+          <div class="tbl-wrap scroll" id="rvTbl"></div>
+        </div>
+      </div>
+
+      <!-- CHANNEL -->
+      <div id="pane-channel" class="pane">
+        <div class="pg-hdr" style="text-align:left"><div class="pg-hdr-title" style="font-size:24px">채널톡 분석</div></div>
+        <div class="dstats" id="ch-stats"></div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-hdr"><div class="card-hdr-icon" style="background:#ede9fe">💬</div><div class="card-title">채널별 건수</div></div>
+            <div id="chBars"><div class="empty-msg">—</div></div>
+          </div>
+          <div class="card">
+            <div class="card-hdr"><div class="card-hdr-icon" style="background:#dcfce7">📈</div><div class="card-title">처리 진행률</div></div>
+            <div id="progBars"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WEEKLY ISSUE -->
+      <div id="pane-weekly" class="pane">
+        <div class="pg-hdr" style="text-align:left"><div class="pg-hdr-title" style="font-size:24px">📄 Weekly Issue</div></div>
+        <!-- 업로드 드롭존 -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-hdr"><div class="card-hdr-icon" style="background:#ede9fe">📁</div><div class="card-title">주간 보고 파일 업로드</div></div>
+          <div class="dz" id="wdz" onclick="document.getElementById('wfi').click()"
+               ondragover="dzOv2(event)" ondragleave="dzLv2()" ondrop="dzDp2(event)"
+               style="margin-bottom:0">
+            <div class="dz-ico">📄</div>
+            <div class="dz-t">PPTX · XLSX · DOCX · TXT 파일을 드래그하거나 클릭</div>
+            <div class="dz-s">업로드 시 HTML 보고서로 자동 변환됩니다</div>
+          </div>
+          <input type="file" id="wfi" accept=".pptx,.xlsx,.xls,.docx,.txt" style="display:none" onchange="handleWeeklyFile(this.files[0])">
+          <div id="wFileInfo" style="margin-top:10px;font-size:13px;color:var(--text3)"></div>
+        </div>
+        <!-- 보고서 본문 -->
+        <div id="weeklyReport">
+          <!-- 기본값으로 채워짐 -->
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════════════════
+// 색상 팔레트
+// ═══════════════════════════════════════════
+const COLORS = ['#8b5cf6','#3b82f6','#22c55e','#f59e0b','#ef4444','#64748b'];
+const KPI_TOPS = ['var(--kpi1-top)','var(--kpi2-top)','var(--kpi3-top)','var(--kpi4-top)','var(--kpi5-top)'];
+const KPI_ICONS = ['var(--ico1)','var(--ico2)','var(--ico3)','var(--ico4)','var(--ico5)'];
+
+// ═══════════════════════════════════════════
+// 기본 데이터 (3월 5주차 보고서 기준)
+// ═══════════════════════════════════════════
+const DEFAULT = {
+  period: '2026년 3월 5주차 (3/29 ~ 4/4)',
+  csTotal: 883, completed: 377, complRate: 42.7,
+  // AS 재인입: PPT Slide5 기준 프라임 32 + 그래비티 24 = 56건
+  asRein: 56, asReinRate: 6.3,
+  exTotal: 5, rfTotal: 5,
+  // 3월 누적 (Slide 11)
+  exMonthTotal: 45, rfMonthTotal: 119,
+  rvTotal: 584, avgRating: 4.85, negReviews: 19, negRate: 3.3,
+  topModel: '프라임', topModelCnt: 388, topModelPct: 43.9,
+  // PPT Slide6 원문 증상명
+  topSym: '소음', topSymCnt: 138,
+  topLow: '소모품',
+  // AS 재인입 PPT Slide5: 프라임32, 그래비티24
+  asReinByModel:[
+    {name:'프라임',value:32},{name:'그래비티',value:24},
+  ],
+  modelDist:[
+    {name:'프라임',value:388},{name:'그래비티',value:183},{name:'RC-02',value:138},{name:'그래비티W',value:101},{name:'이지',value:33}
+  ],
+  // AS 증상 PPT Slide6 원문 그대로
+  symptomTop:[
+    {name:'소음',value:138},{name:'교반봉멈춤',value:128},{name:'자동열림불량',value:63},
+    {name:'내외부부품손상',value:51},{name:'미생물',value:39},
+  ],
+  symptomAll:[
+    {name:'소음',value:138},{name:'교반봉멈춤',value:128},{name:'자동열림불량',value:63},
+    {name:'내외부부품손상',value:51},{name:'미생물',value:39},{name:'제습불량',value:38},
+    {name:'챔버벗겨짐',value:35},{name:'교반봉멈춤+소음',value:34},{name:'전원무',value:27},{name:'전원부 점멸경고',value:26},
+  ],
+  // A/S 유형별 모델 분포 (PPT Slide5)
+  asTypeTable:[
+    {model:'RC-02',    유상수리:83,  단순문의:27, 방문점검:0,  AS:0,  재인입:0,  추가발송:0},
+    {model:'프라임',   유상수리:207, 단순문의:65, 방문점검:46, AS:0,  재인입:32, 추가발송:0},
+    {model:'그래비티', 유상수리:67,  단순문의:32, 방문점검:0,  AS:0,  재인입:24, 추가발송:0},
+    {model:'그래비티W',유상수리:0,   단순문의:0,  방문점검:0,  AS:46, 재인입:0,  추가발송:0},
+    {model:'이지',     유상수리:0,   단순문의:0,  방문점검:0,  AS:0,  재인입:0,  추가발송:0},
+  ],
+  rfModelDist:[
+    {name:'그래비티W',value:3},{name:'그래비티',value:1},{name:'이지',value:1}
+  ],
+  rvProdDist:[
+    {name:'소모품',value:192},{name:'이지',value:150},{name:'프라임',value:96},
+    {name:'그래비티',value:76},{name:'그래비티W',value:47},{name:'RC-02',value:18},{name:'기타',value:5}
+  ],
+  lowRvDist:[
+    {name:'소모품',value:15},{name:'프라임',value:2},{name:'그래비티W',value:1},{name:'기타',value:1}
+  ],
+  statusDist:[
+    {name:'처리완료',value:377},{name:'처리중',value:256},{name:'접수대기',value:180},{name:'보류',value:70}
+  ],
+  // 채널 PPT Slide10: 카카오78%, 인콜15%, 네이버7% / 총 2,717건
+  chDist:[
+    {name:'카카오톡(채널톡)',value:2119},{name:'인콜(I/C)',value:408},{name:'네이버 스마트스토어',value:190}
+  ],
+  chTotal: 2717,
+  exchangeList:[
+    {product:'RC-Easy100(이지)',  status:'교환완료',type:'—',store:'—',symptom:'—'},
+    {product:'RC-Easy100(이지)',  status:'교환완료',type:'—',store:'—',symptom:'—'},
+    {product:'RC-GT500(프라임)', status:'교환완료',type:'—',store:'—',symptom:'—'},
+    {product:'RC-GT500(프라임)', status:'교환완료',type:'—',store:'—',symptom:'—'},
+    {product:'RC-GT500(그래비티)',status:'교환완료',type:'—',store:'—',symptom:'—'},
+  ],
+  refundList:[
+    {product:'RC-GT500(그래비티W)',status:'환불완료',type:'—',cost:'—',symptom:'—'},
+    {product:'RC-GT500(그래비티W)',status:'환불완료',type:'—',cost:'—',symptom:'—'},
+    {product:'RC-GT500(그래비티W)',status:'환불완료',type:'—',cost:'—',symptom:'—'},
+    {product:'RC-GT500(그래비티)', status:'환불완료',type:'—',cost:'—',symptom:'—'},
+    {product:'RC-Easy100(이지)',   status:'환불완료',type:'—',cost:'—',symptom:'—'},
+  ],
+  csList:[
+    {product:'RC-GT500(프라임)',  date:'2026-03-29',asType:'AS(재)',      symptom:'소음',        status:'처리완료'},
+    {product:'RC-GT500(프라임)',  date:'2026-03-30',asType:'AS(재/동일)', symptom:'교반봉멈춤',  status:'처리완료'},
+    {product:'RC-GT500(그래비티)',date:'2026-03-31',asType:'유상수리',    symptom:'자동열림불량',status:'처리중'},
+    {product:'RC-GT500(그래비티W)',date:'2026-04-01',asType:'단순문의',   symptom:'사용법 문의', status:'처리완료'},
+    {product:'RC-Easy100(이지)', date:'2026-04-02',asType:'AS(재/타증상)',symptom:'미생물',       status:'접수대기'},
+    {product:'RC-GT500(프라임)', date:'2026-04-03',asType:'AS(재)',       symptom:'소음',         status:'처리완료'},
+    {product:'RC-02',            date:'2026-04-04',asType:'유상수리',     symptom:'제습불량',     status:'처리중'},
+    {product:'RC-GT500(그래비티)',date:'2026-04-01',asType:'AS(재/동일)', symptom:'교반봉멈춤',   status:'처리완료'},
+    {product:'RC-GT500(그래비티W)',date:'2026-04-02',asType:'방문점검',   symptom:'챔버벗겨짐',   status:'보류'},
+    {product:'RC-GT500(프라임)', date:'2026-04-03',asType:'AS(재)',       symptom:'소음',         status:'접수대기'},
+  ],
+  lowRvList:[
+    {product:'소모품(미생물 푸드클리너)',rating:1,content:'처음에 딱딱하게 굳어서 물 넣었더니 곰팡이 피다가 다시 굳어요'},
+    {product:'소모품(미생물 푸드클리너)',rating:3,content:'효과가 기대에 못 미쳐요'},
+    {product:'소모품(미생물 푸드클리너)',rating:3,content:'향이 너무 강함'},
+    {product:'소모품(미생물 푸드클리너)',rating:3,content:'용량 대비 가격이 비쌈'},
+    {product:'RC-GT500(프라임)',rating:3,content:'소음이 예상보다 큼'},
+    {product:'RC-GT500(프라임)',rating:3,content:'교반봉 자꾸 멈춤'},
+    {product:'RC-GT500(그래비티W)',rating:3,content:'챔버 코팅 벗겨짐'},
+  ],
+  // PPT Slide11 Action Items 원문
+  actions:[
+    {c:'#ef4444',txt:'소음·교반봉 증상 최다 접수 (소음 138건, 교반봉멈춤 128건) → 원인 파악 및 대응 매뉴얼 점검 필요'},
+    {c:'#f59e0b',txt:'그래비티W 환불 3건 집중 → 특이 불량 패턴 확인 필요'},
+    {c:'#8b5cf6',txt:'소모품(미생물 푸드클리너) 3점↓ 리뷰 15건 → 사용법 안내 콘텐츠 강화 검토'},
+    {c:'#3b82f6',txt:'채널톡 5주차 내보내기 업데이트 요청 필요 (현재 ~3/28 기준)'},
+    {c:'#22c55e',txt:'프라임 AS 재인입 32건 · 그래비티 24건 → 수리 품질 및 동일 증상 재발 여부 확인'},
+  ],
+  // 대표 리뷰 (PPT Slide9)
+  repReviews:{
+    pos:[
+      {product:'그래비티', rating:5, content:'냄새가 많이 날까 걱정했는데 생각만큼 심하지 않아요. 음식물 버리러 나가는 게 귀찮았는데 삶의 질이 올라갔어요!'},
+      {product:'이지',     rating:5, content:'사기 전으로 못 돌아갈 것 같아요. 한 달 동안 너무 잘 사용했어요. 대만족입니다.'},
+    ],
+    neg:[
+      {product:'소모품(미생물 푸드클리너)', rating:1, content:'처음에 딱딱하게 굳어서 물을 넣었더니 곰팡이 피다가 다시 굳어요. 몇 주 지났는데도 이상해요.'},
+    ],
+  },
+};
+
+// ═══════════════════════════════════════════
+// 현재 데이터 (기본값 = DEFAULT, 파일 업로드 시 덮어씀)
+// ═══════════════════════════════════════════
+let D = JSON.parse(JSON.stringify(DEFAULT));
+const FILES = new Map();
+let curTab = 'overview';
+
+// ═══════════════════════════════════════════
+// 파싱 헬퍼
+// ═══════════════════════════════════════════
+function modelAlias(v) {
+  const t = String(v||'').toUpperCase().replace(/\s/g,'');
+  if (t.includes('EASY')||t.includes('이지')||t.includes('EASY100')) return '이지';
+  if (t.includes('(W)')||t.includes('GRAVITYW')||t.includes('그래비티W')||t.includes('GT500W')) return '그래비티W';
+  if (t.includes('PRIME')||t.includes('프라임')) return '프라임';
+  if (t.includes('GT500')||t.includes('GRAVITY')||t.includes('그래비티')) return '그래비티';
+  if (t.includes('RC-02')||t.includes('RC02')) return 'RC-02';
+  if (t.includes('소모품')||t.includes('푸드클리너')||t.includes('미생물')||t.includes('FOOD')) return '소모품';
+  const s = String(v||'').trim(); return s.length>14?s.slice(0,13)+'…':s||'기타';
+}
+function pickCol(row, keys) {
+  for (const k of keys) if (k in row && row[k]!==null && row[k]!==undefined && String(row[k]).trim()!=='') return row[k];
+  return null;
+}
+function normalizeRows(json) {
+  const filled = json.filter(r=>Object.values(r).some(v=>v!==null&&v!==undefined&&String(v).trim()!==''));
+  if (!filled.length) return [];
+  const first = filled[0];
+  const ugly = Object.keys(first).filter(k=>/^__EMPTY|^Unnamed/i.test(k)).length;
+  if (ugly >= Math.max(3, Object.keys(first).length/3) && filled.length >= 2) {
+    const hRow = filled[0];
+    return filled.slice(1).map(row=>{const out={};Object.keys(row).forEach(k=>{const h=String(hRow[k]??'').trim();if(h)out[h]=row[k];});return out;}).filter(r=>Object.keys(r).length);
+  }
+  return filled;
+}
+function detectType(fname, headers) {
+  const n=fname.toLowerCase(), h=headers.join('|');
+  if (n.includes('cs관리')||h.includes('A/S증상')||h.includes('접수번호')||h.includes('A/S유형')) return 'cs';
+  if (n.includes('교환')||h.includes('교환유형')) return 'exchange';
+  if (n.includes('환불')||h.includes('환불유형')) return 'refund';
+  if (n.includes('review')||h.includes('구매자평점')) return 'review';
+  if (n.includes('chat')||h.includes('mediumType')||h.includes('summarizedMessage')) return 'channel';
+  return 'unknown';
+}
+function topN(obj,n=5){return Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([name,value])=>({name,value}));}
+function fmtN(v){if(v===null||v===undefined||isNaN(v))return '-';return Number(v).toLocaleString('ko-KR');}
+
+// ═══════════════════════════════════════════
+// 파일 파싱 → D 갱신
+// ═══════════════════════════════════════════
+function applyFiles() {
+  const csR = FILES.get('cs')?.rows||[];
+  const exR = FILES.get('exchange')?.rows||[];
+  const rfR = FILES.get('refund')?.rows||[];
+  const rvR = FILES.get('review')?.rows||[];
+  const chR = FILES.get('channel')?.rows||[];
+
+  if (csR.length) {
+    const modelMap={},symMap={},reinMap={},statusMap={};
+    let completed=0,asRein=0;
+    csR.forEach(r=>{
+      const model=modelAlias(pickCol(r,['품명','상품명','모델명']));
+      modelMap[model]=(modelMap[model]||0)+1;
+      const st=String(pickCol(r,['처리상태','접수상태'])||'');
+      statusMap[st||'미분류']=(statusMap[st||'미분류']||0)+1;
+      if(st.includes('처리완료'))completed++;
+      const asType=String(pickCol(r,['A/S유형','AS유형','구분'])||'').trim();
+      if(/^AS\(재/.test(asType)||asType==='AS(재)'){asRein++;reinMap[model]=(reinMap[model]||0)+1;}
+      const sym=String(pickCol(r,['A/S증상','증상','문의유형'])||'미분류');
+      sym.split(/[,/+]/).map(s=>s.trim()).filter(Boolean).forEach(s=>{symMap[s]=(symMap[s]||0)+1;});
+    });
+    D.csTotal=csR.length; D.completed=completed; D.complRate=+((completed/csR.length)*100).toFixed(1);
+    D.asRein=asRein; D.asReinRate=+((asRein/csR.length)*100).toFixed(1);
+    D.asReinByModel=topN(reinMap,5);
+    D.modelDist=topN(modelMap,6);
+    D.symptomTop=topN(symMap,5);
+    D.statusDist=topN(statusMap,5);
+    const topM=topN(modelMap,1)[0]; if(topM){D.topModel=topM.name;D.topModelCnt=topM.value;D.topModelPct=+((topM.value/csR.length)*100).toFixed(1);}
+    const topS=topN(symMap,1)[0]; if(topS){D.topSym=topS.name;D.topSymCnt=topS.value;}
+    D.csList=csR.slice(0,30).map(r=>({
+      product:String(pickCol(r,['품명','상품명'])||'—'),
+      date:String(pickCol(r,['접수일','등록일'])||'—'),
+      asType:String(pickCol(r,['A/S유형','AS유형'])||'—'),
+      symptom:String(pickCol(r,['A/S증상','증상'])||'—').slice(0,22),
+      status:String(pickCol(r,['처리상태','접수상태'])||'—'),
+    }));
+    // rebuild actions
+    D.actions=[];
+    const topSym2=topN(symMap,1)[0],topRein=topN(reinMap,1)[0];
+    if(topSym2) D.actions.push({c:'#ef4444',txt:`<strong>${topSym2.name}</strong> 이슈 <strong>${topSym2.value}건</strong>으로 최다 접수 — 점검 기준 재정비 필요`});
+    if(topRein) D.actions.push({c:'#f59e0b',txt:`<strong>${topRein.name}</strong> AS 재인입 <strong>${topRein.value}건</strong> 발생 — 수리 품질 및 재발 여부 확인 필요`});
+  }
+  if (exR.length) {
+    D.exTotal=exR.length;
+    D.exchangeList=exR.slice(0,20).map(r=>({
+      product:String(pickCol(r,['품명','상품명'])||'—'),
+      status:String(pickCol(r,['처리상태'])||'처리중'),
+      type:String(pickCol(r,['교환유형','A/S유형'])||'—'),
+      store:String(pickCol(r,['구매처'])||'—'),
+      symptom:String(pickCol(r,['A/S증상','증상기준'])||'—').slice(0,20),
+    }));
+  }
+  if (rfR.length) {
+    D.rfTotal=rfR.length;
+    const rfMap={};
+    rfR.forEach(r=>{const m=modelAlias(pickCol(r,['품명','상품명','모델명']));rfMap[m]=(rfMap[m]||0)+1;});
+    D.rfModelDist=topN(rfMap,5);
+    const topRf=topN(rfMap,1)[0]; if(topRf){
+      const existing=D.actions.find(a=>a.txt.includes('환불'));
+      if(!existing&&topRf.value>=2) D.actions.push({c:'#f59e0b',txt:`<strong>${topRf.name}</strong> 환불 <strong>${topRf.value}건</strong> 집중 — 초기 불량 패턴 분석 필요`});
+    }
+    D.refundList=rfR.slice(0,20).map(r=>({
+      product:String(pickCol(r,['품명','상품명'])||'—'),
+      status:String(pickCol(r,['처리상태'])||'처리중'),
+      type:String(pickCol(r,['환불유형','A/S유형'])||'—'),
+      cost:r['비용']?fmtN(Number(r['비용']))+'원':'—',
+      symptom:String(pickCol(r,['A/S증상','증상기준'])||'—').slice(0,20),
+    }));
+  }
+  if (rvR.length) {
+    const rvPM={},lowRM={};let rs=0,rc=0;
+    rvR.forEach(r=>{
+      const m=modelAlias(pickCol(r,['상품명','품명','모델명']));
+      rvPM[m]=(rvPM[m]||0)+1;
+      const rt=Number(pickCol(r,['구매자평점','평점'])||0);
+      if(!isNaN(rt)&&rt>0){rs+=rt;rc++;if(rt<=3)lowRM[m]=(lowRM[m]||0)+1;}
+    });
+    D.rvTotal=rvR.length; D.avgRating=rc?+(rs/rc).toFixed(2):0;
+    D.negReviews=Object.values(lowRM).reduce((a,b)=>a+b,0);
+    D.rvProdDist=topN(rvPM,7); D.lowRvDist=topN(lowRM,5);
+    const topLR=topN(lowRM,1)[0]; if(topLR){D.topLow=topLR.name;}
+    D.lowRvList=rvR.filter(r=>{const rt=Number(pickCol(r,['구매자평점','평점'])||0);return rt>0&&rt<=3;})
+      .slice(0,15).map(r=>({
+        product:String(pickCol(r,['상품명','품명'])||'—').slice(0,16),
+        rating:Number(pickCol(r,['구매자평점','평점'])||0),
+        content:String(pickCol(r,['리뷰상세내용','리뷰내용'])||'—').slice(0,40),
+      }));
+  }
+  if (chR.length) {
+    const chMap={};
+    chR.forEach(r=>{const m=String(pickCol(r,['mediumType','mediumName','채널'])||'기타').trim()||'기타';chMap[m]=(chMap[m]||0)+1;});
+    D.chDist=topN(chMap,6); D.chTotal=chR.length;
+  }
+}
+
+// ═══════════════════════════════════════════
+// 렌더
+// ═══════════════════════════════════════════
+function renderAll() {
+  renderKPI();
+  renderOverview();
+  if(curTab==='cs') renderCS();
+  else if(curTab==='exchange') renderEx();
+  else if(curTab==='refund') renderRf();
+  else if(curTab==='review') renderRv();
+  else if(curTab==='channel') renderCh();
+  else if(curTab==='weekly') renderWeekly();
+}
+
+function renderKPI() {
+  const reinCompRate = D.completed ? +(D.asRein/D.completed*100).toFixed(1) : 0;
+  const cards = [
+    {top:'var(--kpi1-top)',icoColor:'var(--ico1)',ico:'📩',label:'총 CS 인입',val:fmtN(D.csTotal)+'건',trend:`완료 ${fmtN(D.completed)}건 (${D.complRate}%)`,tCls:'neu'},
+    {top:'var(--kpi2-top)',icoColor:'var(--ico2)',ico:'🔁',label:'AS 재인입',val:fmtN(D.asRein)+'건',trend:`전체 대비 ${D.asReinRate}%`,tCls:'neg'},
+    {top:'var(--kpi3-top)',icoColor:'var(--ico3)',ico:'⚠️',label:'교환 / 환불',val:`${D.exTotal} / ${D.rfTotal}`,trend:`교환 ${D.exTotal}건 · 환불 ${D.rfTotal}건`,tCls:'neu'},
+    {top:'var(--kpi4-top)',icoColor:'var(--ico4)',ico:'⭐',label:'평균 평점',val:D.avgRating?D.avgRating.toFixed(2)+'점':'-',trend:`리뷰 ${fmtN(D.rvTotal)}건`,tCls:'pos'},
+    {top:'var(--kpi5-top)',icoColor:'var(--ico5)',ico:'🏆',label:'최다 / 최다 증상',val:D.topModel,isText:true,trend:D.topSym+' '+D.topSymCnt+'건',tCls:'neu'},
+  ];
+  document.getElementById('kpiGrid').innerHTML = cards.map(c=>`
+    <div class="kc">
+      <div class="kc-top" style="background:${c.top}">
+        <div class="kc-icon-wrap" style="background:rgba(255,255,255,0.55)">
+          <span style="font-size:18px">${c.ico}</span>
+        </div>
+      </div>
+      <div class="kc-body">
+        <div class="kc-label">${c.label}</div>
+        <div class="kc-value${c.isText?' sm':''}">${c.val}</div>
+        <div class="kc-trend ${c.tCls}">${c.trend}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderOverview() {
+  bars(D.modelDist,'modelBars');
+  // insight
+  const il=document.getElementById('insightList');
+  if(D.actions&&D.actions.length){
+    il.innerHTML=`<div class="ins-list">${D.actions.map(a=>`
+      <div class="ins-item">
+        <div class="ins-dot" style="background:${a.c}"></div>
+        <div class="ins-txt">${a.txt}</div>
+      </div>`).join('')}</div>`;
+  } else {
+    il.innerHTML='<div class="empty-msg">파일 업로드 후 자동 생성됩니다</div>';
+  }
+  bars(D.symptomAll||D.symptomTop,'symptomBars');
+  bars(D.rfModelDist,'refundBars');
+  bars(D.lowRvDist,'lowRvBars');
+}
+
+function renderCS() {
+  dstats('cs-stats',[
+    {v:fmtN(D.csTotal)+'건',l:'총 접수',c:'#6366f1'},
+    {v:fmtN(D.asRein)+'건',l:'AS 재인입',c:'#ef4444'},
+    {v:fmtN(D.completed)+'건',l:'처리완료',c:'#22c55e'},
+    {v:D.complRate+'%',l:'완료율',c:'#3b82f6'},
+    {v:fmtN(D.exMonthTotal)+'건',l:'3월 누적 교환',c:'#f59e0b'},
+    {v:fmtN(D.rfMonthTotal)+'건',l:'3월 누적 환불',c:'#8b5cf6'},
+  ]);
+  bars(D.asReinByModel,'reinBars');
+  bars(D.statusDist,'statusBars');
+  // A/S 유형별 모델 분포 테이블
+  const at=D.asTypeTable||[];
+  document.getElementById('asTypeTbl').innerHTML = at.length ? tbl(
+    ['모델','유상수리','단순문의','방문점검','AS','재인입','추가발송'],
+    at.map(r=>[r.model,fmtN(r.유상수리)||0,fmtN(r.단순문의)||0,fmtN(r.방문점검)||0,fmtN(r.AS)||0,
+      r.재인입>0?`<span class="badge br">${r.재인입}</span>`:'0',fmtN(r.추가발송)||0])
+  ) : '<div class="empty-msg" style="padding:14px">데이터 없음</div>';
+  document.getElementById('csTbl').innerHTML = tbl(
+    ['제품','접수일','A/S 유형','주요 증상','처리상태'],
+    D.csList.map(r=>[r.product,r.date,bdg(r.asType),r.symptom,bdg(r.status,'st')]),
+    'CS 파일을 업로드해 주세요'
+  );
+}
+
+function renderEx() {
+  const list=D.exchangeList||[];
+  const done=list.filter(r=>r.status.includes('완료')).length;
+  dstats('ex-stats',[
+    {v:fmtN(D.exTotal)+'건',l:'이번 주 교환',c:'#3b82f6'},
+    {v:fmtN(done)+'건',l:'교환완료',c:'#22c55e'},
+    {v:fmtN(D.exTotal-done)+'건',l:'처리중',c:'#f59e0b'},
+    {v:fmtN(D.exMonthTotal)+'건',l:'3월 누적',c:'#8b5cf6'},
+  ]);
+  // 모델별 교환 집중도
+  const exModelMap={};list.forEach(r=>{const m=modelAlias(r.product);exModelMap[m]=(exModelMap[m]||0)+1;});
+  bars(topN(exModelMap,5),'exModelBars');
+  // 교환 사유 TOP5
+  const exSymMap={};list.forEach(r=>{const s=r.symptom||'미분류';exSymMap[s]=(exSymMap[s]||0)+1;});
+  bars(topN(exSymMap,5),'exSymBars');
+  // 구매처별
+  const exStoreMap={};list.forEach(r=>{const s=r.store||'미분류';exStoreMap[s]=(exStoreMap[s]||0)+1;});
+  bars(topN(exStoreMap,5),'exStoreBars');
+  // 동일 증상 반복 감지
+  const repeatMap={};
+  list.forEach(r=>{const k=modelAlias(r.product)+'|'+(r.symptom||'');repeatMap[k]=(repeatMap[k]||0)+1;});
+  const repeats=Object.entries(repeatMap).filter(([,v])=>v>=2).sort((a,b)=>b[1]-a[1]);
+  const repeatEl=document.getElementById('exRepeat');
+  if(repeats.length){
+    repeatEl.innerHTML=`<div class="blist">${repeats.map(([k,v])=>{const[m,s]=k.split('|');return `<div style="padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px"><span style="color:var(--text)">${m}</span> <span style="color:var(--text3)">— ${s||'증상미기재'}</span> <span class="badge br" style="float:right">${v}건 반복</span></div>`;}).join('')}</div>`;
+  } else {
+    repeatEl.innerHTML='<div class="empty-msg">반복 패턴 없음</div>';
+  }
+  // Insight Card
+  const topExModel=topN(exModelMap,1)[0];
+  const topExSym=topN(exSymMap,1)[0];
+  const insightEl=document.getElementById('ex-insight');
+  insightEl.innerHTML=`<div class="card"><div class="card-hdr"><div class="card-hdr-icon" style="background:#fef3c7">💡</div><div class="card-title">교환 분석 Insight</div></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      <div style="background:#fef2f2;border-radius:12px;padding:16px;border-left:3px solid #ef4444">
+        <div style="font-size:11px;color:#ef4444;font-weight:600;margin-bottom:6px">핵심 이슈</div>
+        <div style="font-size:13px;color:#1e293b">${topExModel?`<strong>${topExModel.name}</strong> ${topExModel.value}건으로 교환 집중`:'교환 데이터 분석 중'}</div>
+      </div>
+      <div style="background:#fffbeb;border-radius:12px;padding:16px;border-left:3px solid #f59e0b">
+        <div style="font-size:11px;color:#f59e0b;font-weight:600;margin-bottom:6px">원인 추정</div>
+        <div style="font-size:13px;color:#1e293b">${repeats.length?`동일 증상 반복 교환 ${repeats.length}건 감지 — 수리 품질 점검 필요`:'반복 교환 패턴 없음'}</div>
+      </div>
+      <div style="background:#f0fdf4;border-radius:12px;padding:16px;border-left:3px solid #22c55e">
+        <div style="font-size:11px;color:#22c55e;font-weight:600;margin-bottom:6px">우선 액션</div>
+        <div style="font-size:13px;color:#1e293b">${topExSym?`최다 사유 <strong>${topExSym.name}</strong> 관련 교환 기준 재점검`:'—'}</div>
+      </div>
+    </div></div>`;
+  document.getElementById('exTbl').innerHTML = tbl(
+    ['제품명','처리상태','유형','구매처','증상'],
+    list.map(r=>[r.product,bdg(r.status,'st'),r.type,r.store,r.symptom]),
+    '교환 파일을 업로드해 주세요'
+  );
+}
+
+function renderRf() {
+  const list=D.refundList||[];
+  const done=list.filter(r=>r.status.includes('완료')).length;
+  const tot=list.reduce((s,r)=>{const n=parseInt(String(r.cost||0).replace(/[^0-9]/g,''));return s+(isNaN(n)?0:n);},0);
+  const avg=list.length&&tot?Math.round(tot/list.length):0;
+  dstats('rf-stats',[
+    {v:fmtN(D.rfTotal)+'건',l:'이번 주 환불',c:'#ef4444'},
+    {v:fmtN(done)+'건',l:'환불완료',c:'#22c55e'},
+    {v:fmtN(D.rfTotal-done)+'건',l:'처리중',c:'#f59e0b'},
+    {v:tot?fmtN(tot)+'원':'-',l:'총 환불액',c:'#6366f1'},
+    {v:avg?fmtN(avg)+'원':'-',l:'평균 환불액',c:'#3b82f6'},
+    {v:fmtN(D.rfMonthTotal)+'건',l:'3월 누적',c:'#8b5cf6'},
+  ]);
+  // 모델별 환불
+  bars(D.rfModelDist,'rfModelBars');
+  // 환불 사유 TOP5
+  const rfSymMap={};list.forEach(r=>{const s=r.symptom||'미분류';rfSymMap[s]=(rfSymMap[s]||0)+1;});
+  bars(topN(rfSymMap,5),'rfSymBars');
+  // 환불 유형 분류
+  const typeMap={'초기불량':0,'고객변심':0,'기능불만':0,'기타':0};
+  list.forEach(r=>{
+    const t=String(r.type||'');
+    if(t.includes('초기')||t.includes('불량')) typeMap['초기불량']++;
+    else if(t.includes('변심')) typeMap['고객변심']++;
+    else if(t.includes('기능')||t.includes('불만')) typeMap['기능불만']++;
+    else typeMap['기타']++;
+  });
+  bars(Object.entries(typeMap).map(([name,value])=>({name,value})).filter(d=>d.value>0),'rfTypeBars');
+  // 급증 알림
+  const rfModelMap={};list.forEach(r=>{const m=modelAlias(r.product);rfModelMap[m]=(rfModelMap[m]||0)+1;});
+  const surgeModels=Object.entries(rfModelMap).filter(([,v])=>v>=3).sort((a,b)=>b[1]-a[1]);
+  const alertEl=document.getElementById('rfAlert');
+  if(surgeModels.length){
+    alertEl.innerHTML=surgeModels.map(([m,v])=>`
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;background:#fef2f2;border-radius:10px;margin-bottom:8px;border:1px solid #fecaca">
+        <span style="font-size:20px">🚨</span>
+        <div><div style="font-size:13px;color:#1e293b"><strong>${m}</strong> 환불 ${v}건 집중</div>
+        <div style="font-size:12px;color:#ef4444;margin-top:2px">초기 불량 패턴 확인 필요</div></div>
+      </div>`).join('');
+  } else {
+    alertEl.innerHTML='<div class="empty-msg">급증 모델 없음 (3건 미만)</div>';
+  }
+  // Insight Card
+  const topRfModel=topN(rfModelMap,1)[0];
+  const topRfSym=topN(rfSymMap,1)[0];
+  document.getElementById('rf-insight').innerHTML=`<div class="card"><div class="card-hdr"><div class="card-hdr-icon" style="background:#fef3c7">💡</div><div class="card-title">환불 분석 Insight</div></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      <div style="background:#fef2f2;border-radius:12px;padding:16px;border-left:3px solid #ef4444">
+        <div style="font-size:11px;color:#ef4444;font-weight:600;margin-bottom:6px">핵심 이슈</div>
+        <div style="font-size:13px;color:#1e293b">${topRfModel?`<strong>${topRfModel.name}</strong> ${topRfModel.value}건으로 환불 집중${surgeModels.length?' — 급증 알림':''}`:'-'}</div>
+      </div>
+      <div style="background:#fffbeb;border-radius:12px;padding:16px;border-left:3px solid #f59e0b">
+        <div style="font-size:11px;color:#f59e0b;font-weight:600;margin-bottom:6px">원인 추정</div>
+        <div style="font-size:13px;color:#1e293b">${topRfSym&&topRfSym.name!=='미분류'?`주요 사유: <strong>${topRfSym.name}</strong> — 제품 설계/QC 검토 필요`:'환불 사유 데이터 부족'}</div>
+      </div>
+      <div style="background:#f0fdf4;border-radius:12px;padding:16px;border-left:3px solid #22c55e">
+        <div style="font-size:11px;color:#22c55e;font-weight:600;margin-bottom:6px">우선 액션</div>
+        <div style="font-size:13px;color:#1e293b">${surgeModels.length?`${surgeModels[0][0]} 불량 패턴 분석 후 CS팀 공유`:avg>50000?'고액 환불 다수 — 환불 정책 점검 검토':'환불 현황 모니터링 유지'}</div>
+      </div>
+    </div></div>`;
+  document.getElementById('rfTbl').innerHTML = tbl(
+    ['제품명','처리상태','유형','비용','증상'],
+    list.map(r=>[r.product,bdg(r.status,'st'),r.type,r.cost,r.symptom]),
+    '환불 파일을 업로드해 주세요'
+  );
+}
+
+function renderRv() {
+  const negRate=D.rvTotal?+(D.negReviews/D.rvTotal*100).toFixed(1):0;
+  dstats('rv-stats',[
+    {v:fmtN(D.rvTotal)+'건',l:'총 리뷰',c:'#3b82f6'},
+    {v:D.avgRating?(D.avgRating.toFixed(2)+'점'):'-',l:'평균 평점',c:'#f59e0b'},
+    {v:fmtN(D.negReviews)+'건',l:'3점↓',c:'#ef4444'},
+    {v:negRate+'%',l:'저평점 비율',c:'#ef4444'},
+    {v:(100-negRate).toFixed(1)+'%',l:'긍정 비율',c:'#22c55e'},
+  ]);
+  // 소모품/본품 분리 분포
+  const somoMap={소모품:0,본품:0};
+  (D.rvProdDist||[]).forEach(d=>{if(d.name==='소모품')somoMap['소모품']+=d.value;else somoMap['본품']+=d.value;});
+  const prodWithGroup=(D.rvProdDist||[]).map(d=>({name:d.name+(d.name==='소모품'?' (소모품)':' (본품)'),value:d.value}));
+  bars(prodWithGroup,'rvProdBars');
+  bars(D.lowRvDist,'rvLowBars');
+  // 저평점 키워드 TOP10
+  const STOPWORDS=new Set(['이','가','은','는','을','를','의','에','도','로','와','과','그','저','제','것','수','있','없','더','너무','정말','진짜','좀','좋','나쁜','별로','아직','그냥','같아요','같습니다','해요','했어요','인데','인지','겠','에서']);
+  const kwMap={};
+  (D.lowRvList||[]).forEach(r=>{
+    String(r.content||'').split(/\s+/).forEach(w=>{
+      const c=w.replace(/[^\uAC00-\uD7A3a-z0-9]/gi,'');
+      if(c.length>=2&&!STOPWORDS.has(c)){kwMap[c]=(kwMap[c]||0)+1;}
+    });
+  });
+  const kwTop=topN(kwMap,10);
+  const kwEl=document.getElementById('rvKeywords');
+  if(kwTop.length){
+    kwEl.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0">${kwTop.map((k,i)=>`
+      <span style="background:${i<3?'#fee2e2':i<6?'#fef3c7':'#f1f5f9'};color:${i<3?'#b91c1c':i<6?'#92400e':'#475569'};padding:5px 12px;border-radius:999px;font-size:13px">
+        ${k.name} <span style="font-size:11px;opacity:.7">${k.value}</span>
+      </span>`).join('')}</div>`;
+  } else {
+    kwEl.innerHTML='<div class="empty-msg">데이터 없음</div>';
+  }
+  // 대표 긍정 리뷰
+  const posRvs=D.repReviews?.pos||[];
+  document.getElementById('repPosReviews').innerHTML=posRvs.length?posRvs.map(r=>`
+    <div style="background:#f0fdf4;border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid #bbf7d0">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:12px;color:#15803d">${r.product}</span>
+        <span style="color:#f59e0b;font-size:13px">${'★'.repeat(r.rating)}</span>
+      </div>
+      <div style="font-size:13px;color:#166534;line-height:1.6">"${r.content}"</div>
+    </div>`).join(''):'<div class="empty-msg">—</div>';
+  // 대표 부정 리뷰
+  const negRvs=D.repReviews?.neg||[];
+  document.getElementById('repNegReviews').innerHTML=negRvs.length?negRvs.map(r=>`
+    <div style="background:#fef2f2;border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid #fecaca">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:12px;color:#b91c1c">${r.product}</span>
+        <span style="color:#f59e0b;font-size:13px">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span>
+      </div>
+      <div style="font-size:13px;color:#7f1d1d;line-height:1.6">"${r.content}"</div>
+    </div>`).join(''):'<div class="empty-msg">—</div>';
+  // 사용법 문의성 리뷰
+  const faqKws=['사용법','어떻게','방법','모르겠','설명','사용 방법','이용 방법','어디'];
+  const faqList=(D.lowRvList||[]).filter(r=>faqKws.some(k=>String(r.content||'').includes(k)));
+  const faqEl=document.getElementById('usageFaqReviews');
+  faqEl.innerHTML=`<div style="font-size:13px;color:var(--text3);margin-bottom:10px">총 <strong style="color:var(--text)">${faqList.length}건</strong> 사용법 관련 리뷰 감지</div>`;
+  if(faqList.length){
+    faqEl.innerHTML+=faqList.slice(0,3).map(r=>`
+      <div style="background:#eff6ff;border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid #bfdbfe;font-size:13px;color:#1e40af;line-height:1.6">"${r.content}"</div>`).join('');
+  }
+  // Insight Card
+  const topLowM=D.lowRvDist?.[0];
+  document.getElementById('rv-insight').innerHTML=`<div class="card" style="margin-bottom:16px"><div class="card-hdr"><div class="card-hdr-icon" style="background:#fef3c7">💡</div><div class="card-title">리뷰 분석 Insight</div></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      <div style="background:#fef2f2;border-radius:12px;padding:16px;border-left:3px solid #ef4444">
+        <div style="font-size:11px;color:#ef4444;font-weight:600;margin-bottom:6px">핵심 이슈</div>
+        <div style="font-size:13px;color:#1e293b">${topLowM?`<strong>${topLowM.name}</strong> 저평점 ${topLowM.value}건 집중`:'-'}</div>
+      </div>
+      <div style="background:#fffbeb;border-radius:12px;padding:16px;border-left:3px solid #f59e0b">
+        <div style="font-size:11px;color:#f59e0b;font-weight:600;margin-bottom:6px">원인 추정</div>
+        <div style="font-size:13px;color:#1e293b">${faqList.length>0?`사용법 문의성 리뷰 ${faqList.length}건 — 제품 안내 콘텐츠 보강 필요`:'품질 불만 위주'}</div>
+      </div>
+      <div style="background:#f0fdf4;border-radius:12px;padding:16px;border-left:3px solid #22c55e">
+        <div style="font-size:11px;color:#22c55e;font-weight:600;margin-bottom:6px">우선 액션</div>
+        <div style="font-size:13px;color:#1e293b">${topLowM?`${topLowM.name} 관련 FAQ/사용 가이드 콘텐츠 강화`:'-'}</div>
+      </div>
+    </div></div>`;
+  document.getElementById('rvTbl').innerHTML = tbl(
+    ['제품','평점','리뷰 내용'],
+    (D.lowRvList||[]).map(r=>[r.product,`<span style="color:#f59e0b">${'★'.repeat(r.rating)+'☆'.repeat(5-r.rating)}</span> ${r.rating}점`,r.content]),
+    '리뷰 파일을 업로드해 주세요'
+  );
+}
+
+function renderCh() {
+  dstats('ch-stats',[
+    {v:fmtN(D.chTotal)+'건',l:'총 상담',c:'#6366f1'},
+    ...(D.chDist||[]).slice(0,3).map(d=>({v:fmtN(d.value)+'건',l:d.name,c:'#3b82f6'})),
+  ]);
+  bars(D.chDist,'chBars');
+  const done_ex=D.exchangeList.filter(r=>r.status.includes('완료')).length;
+  const done_rf=D.refundList.filter(r=>r.status.includes('완료')).length;
+  const negRate=D.rvTotal?+(D.negReviews/D.rvTotal*100).toFixed(1):0;
+  document.getElementById('progBars').innerHTML=[
+    {l:'CS 처리완료율',p:D.complRate,c:'#6366f1'},
+    {l:'교환 완료율',p:D.exTotal?Math.round(done_ex/D.exTotal*100):0,c:'#22c55e'},
+    {l:'환불 완료율',p:D.rfTotal?Math.round(done_rf/D.rfTotal*100):0,c:'#ef4444'},
+    {l:'긍정 리뷰 비율',p:+(100-negRate).toFixed(1),c:'#f59e0b'},
+  ].map(p=>`<div class="prog">
+    <div class="prog-hd"><span>${p.l}</span><span style="color:${p.c};font-weight:600">${p.p}%</span></div>
+    <div class="prog-bg"><div class="prog-fill" style="width:${p.p}%;background:${p.c}"></div></div>
+  </div>`).join('');
+}
+
+// ═══════════════════════════════════════════
+// Weekly Issue
+// ═══════════════════════════════════════════
+let WEEKLY_TEXT = '';
+
+function renderWeekly(text) {
+  if(text) WEEKLY_TEXT = text;
+  const src = WEEKLY_TEXT;
+  const el = document.getElementById('weeklyReport');
+  // 기본값 (DEFAULT 데이터 기반)
+  const kpiCards = [
+    {label:'총 CS 인입', value:fmtN(D.csTotal)+'건', sub:'완료 '+fmtN(D.completed)+'건 ('+D.complRate+'%)', c:'#6366f1'},
+    {label:'AS 재인입', value:fmtN(D.asRein)+'건', sub:'전체 대비 '+D.asReinRate+'%', c:'#ef4444'},
+    {label:'교환 / 환불', value:D.exTotal+' / '+D.rfTotal+'건', sub:'3월 누적 교환 '+D.exMonthTotal+'건 · 환불 '+D.rfMonthTotal+'건', c:'#f59e0b'},
+    {label:'평균 평점', value:(D.avgRating||0).toFixed(2)+'점', sub:'리뷰 '+fmtN(D.rvTotal)+'건 · 3점↓ '+fmtN(D.negReviews)+'건', c:'#22c55e'},
+  ];
+
+  // 텍스트에서 섹션 추출
+  function extractSection(txt, keywords, maxLen=300) {
+    if(!txt) return [];
+    const lines = txt.split(/\n/).map(l=>l.trim()).filter(Boolean);
+    const result = [];
+    let capture = false;
+    for(const line of lines) {
+      if(keywords.some(k=>line.includes(k))) { capture=true; continue; }
+      if(capture && line.length>4 && result.length<6) result.push(line);
+      if(capture && result.length>=6) break;
+    }
+    return result;
+  }
+
+  const issues = src ? extractSection(src,['핵심 이슈','주요 이슈','이슈','문제']) : D.actions.map(a=>a.txt.replace(/<[^>]+>/g,''));
+  const actions_w = src ? extractSection(src,['Action','액션','조치','개선']) : D.actions.map(a=>a.txt.replace(/<[^>]+>/g,''));
+  const nextWeek = src ? extractSection(src,['다음 주','점검 항목','차주']) : ['프라임 AS 재인입 수리 품질 재점검','소모품 리뷰 대응 콘텐츠 강화','그래비티W 환불 패턴 모니터링 지속'];
+  const modelNotes = src ? extractSection(src,['모델별','프라임','그래비티','이지','RC']) : [
+    '프라임: CS 388건(43.9%) 최다, AS 재인입 32건',
+    '그래비티: CS 183건, AS 재인입 24건',
+    'RC-02: CS 138건, 유상수리 83건',
+    '그래비티W: CS 101건, 환불 3건 집중',
+    '이지: CS 33건, 소음/교반봉 증상 낮음',
+  ];
+
+  el.innerHTML = `
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
+    ${kpiCards.map(c=>`<div style="background:#fff;border-radius:14px;padding:16px 18px;box-shadow:var(--sh);border-top:3px solid ${c.c};border:1px solid var(--border);border-top:3px solid ${c.c}">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">${c.label}</div>
+      <div style="font-size:22px;font-weight:600;color:${c.c};letter-spacing:-.03em">${c.value}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">${c.sub}</div>
+    </div>`).join('')}
+  </div>
+  <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="card">
+      <div class="card-hdr"><div class="card-hdr-icon" style="background:#fee2e2">🔥</div><div class="card-title">핵심 이슈 TOP${Math.min(issues.length,5)}</div></div>
+      <div class="ins-list">${(issues.slice(0,5)).map((t,i)=>`<div class="ins-item"><div class="ins-dot" style="background:${['#ef4444','#f59e0b','#8b5cf6','#3b82f6','#22c55e'][i%5]}"></div><div class="ins-txt">${t}</div></div>`).join('')}</div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-hdr-icon" style="background:#dcfce7">✅</div><div class="card-title">이번 주 Action Item</div></div>
+      <div class="ins-list">${(actions_w.slice(0,5)).map((t,i)=>`<div class="ins-item"><div class="ins-dot" style="background:${['#22c55e','#3b82f6','#8b5cf6','#f59e0b','#ef4444'][i%5]}"></div><div class="ins-txt">${t}</div></div>`).join('')}</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="card">
+      <div class="card-hdr"><div class="card-hdr-icon" style="background:#ede9fe">📦</div><div class="card-title">모델별 특이사항</div></div>
+      <div class="ins-list">${modelNotes.slice(0,5).map(t=>`<div class="ins-item"><div class="ins-dot" style="background:#8b5cf6"></div><div class="ins-txt">${t}</div></div>`).join('')}</div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-hdr-icon" style="background:#fef3c7">📋</div><div class="card-title">다음 주 우선 점검 항목</div></div>
+      <div class="ins-list">${nextWeek.slice(0,5).map((t,i)=>`<div class="ins-item"><div class="ins-dot" style="background:${['#f59e0b','#3b82f6','#22c55e','#ef4444','#8b5cf6'][i%5]}"></div><div class="ins-txt">${t}</div></div>`).join('')}</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card">
+      <div class="card-hdr"><div class="card-hdr-icon" style="background:#fee2e2">🔧</div><div class="card-title">AS 증상 TOP10</div></div>
+      <div id="wSymBars"></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-hdr-icon" style="background:#fef3c7">⭐</div><div class="card-title">리뷰 / VOC 특이 패턴</div></div>
+      <div class="ins-list">${[
+        `평균 평점 ${(D.avgRating||0).toFixed(2)}점 — 긍정 리뷰 ${(100-(D.rvTotal?+(D.negReviews/D.rvTotal*100).toFixed(1):0)).toFixed(1)}%`,
+        `소모품(미생물 푸드클리너) 저평점 집중 — 사용법 안내 강화 필요`,
+        `프라임 소음/교반봉 관련 리뷰 지속 유입`,
+      ].map(t=>`<div class="ins-item"><div class="ins-dot" style="background:#f59e0b"></div><div class="ins-txt">${t}</div></div>`).join('')}</div>
+    </div>
+  </div>`;
+  bars(D.symptomAll||D.symptomTop,'wSymBars');
+  document.getElementById('wFileInfo').textContent = src ? '파일 파싱 완료' : '3월 5주차 기본 데이터 표시 중 · 파일 업로드 시 자동 갱신';
+}
+
+async function parseWeeklyFile(file) {
+  const n = file.name.toLowerCase();
+  document.getElementById('ldr').classList.add('on');
+  try {
+    if(n.endsWith('.txt')) {
+      const text = await file.text();
+      renderWeekly(text);
+    } else if(n.endsWith('.xlsx')||n.endsWith('.xls')) {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf,{type:'array'});
+      let text = '';
+      wb.SheetNames.forEach(s=>{
+        const ws = wb.Sheets[s];
+        const json = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        json.forEach(row=>{ text += row.filter(Boolean).join(' ') + '\n'; });
+      });
+      renderWeekly(text);
+    } else if(n.endsWith('.pptx')||n.endsWith('.docx')) {
+      const buf = await file.arrayBuffer();
+      const zip = await JSZip.loadAsync(buf);
+      let text = '';
+      const prefix = n.endsWith('.pptx') ? 'ppt/slides/slide' : 'word/document';
+      const files = Object.keys(zip.files).filter(f=>f.startsWith(n.endsWith('.pptx')?'ppt/slides/slide':'word/document'));
+      for(const f of files.sort()) {
+        const xml = await zip.files[f].async('string');
+        text += xml.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ') + '\n';
+      }
+      renderWeekly(text||'내용 추출 완료');
+    }
+  } catch(e) { alert('파일 파싱 오류: '+e.message); }
+  document.getElementById('ldr').classList.remove('on');
+  document.getElementById('wFileInfo').textContent = '✅ '+file.name+' 파싱 완료';
+}
+
+function handleWeeklyFile(file){ if(file) parseWeeklyFile(file); }
+function dzOv2(e){e.preventDefault();document.getElementById('wdz').classList.add('ov');}
+function dzLv2(){document.getElementById('wdz').classList.remove('ov');}
+function dzDp2(e){e.preventDefault();dzLv2();const f=e.dataTransfer.files[0];if(f)parseWeeklyFile(f);}
+
+// ═══════════════════════════════════════════
+// UI 헬퍼
+// ═══════════════════════════════════════════
+function bars(data, id) {
+  const el=document.getElementById(id); if(!el)return;
+  if(!data||!data.length){el.innerHTML='<div class="empty-msg">데이터 없음</div>';return;}
+  const max=Math.max(...data.map(d=>d.value),1);
+  el.innerHTML=`<div class="blist">${data.map((item,i)=>`
+    <div>
+      <div class="bi-row"><span class="bi-name">${item.name}</span><span class="bi-num">${fmtN(item.value)}</span></div>
+      <div class="btrack"><div class="bfill" data-w="${(item.value/max*100).toFixed(1)}" style="width:0%;background:${COLORS[i%COLORS.length]}"></div></div>
+    </div>`).join('')}
+  </div>`;
+  requestAnimationFrame(()=>{el.querySelectorAll('.bfill').forEach(b=>{setTimeout(()=>{b.style.width=b.dataset.w+'%';},30);});});
+}
+
+function dstats(id, items) {
+  document.getElementById(id).innerHTML=items.map(it=>`
+    <div class="ds" style="border-top-color:${it.c}">
+      <div class="ds-v" style="color:${it.c};font-size:${String(it.v).length>9?'18px':'28px'}">${it.v}</div>
+      <div class="ds-l">${it.l}</div>
+    </div>`).join('');
+}
+
+function bdg(s, type) {
+  const t=String(s||'');
+  if(type==='st'){
+    if(t.includes('처리완료')||t.includes('교환완료')||t.includes('환불완료')) return `<span class="badge bg">${t}</span>`;
+    if(t.includes('대기')||t.includes('접수')) return `<span class="badge bo">${t}</span>`;
+    if(t.includes('보류')) return `<span class="badge bx">${t}</span>`;
+    if(t.includes('중')||t.includes('진행')) return `<span class="badge bb">${t}</span>`;
+    return `<span class="badge bx">${t}</span>`;
+  }
+  if(/^AS\(재/.test(t)) return `<span class="badge br">${t}</span>`;
+  if(t.includes('유상')) return `<span class="badge bo">${t}</span>`;
+  if(t.includes('단순')) return `<span class="badge bx">${t}</span>`;
+  return `<span class="badge bb">${t}</span>`;
+}
+
+function tbl(cols, rows, empty='데이터가 없습니다') {
+  if(!rows||!rows.length) return `<div class="empty-msg" style="padding:18px">${empty}</div>`;
+  return `<table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c??'—'}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+
+// ═══════════════════════════════════════════
+// 탭 전환
+// ═══════════════════════════════════════════
+const TABS=['overview','cs','exchange','refund','review','channel','weekly'];
+function goTab(name) {
+  curTab=name;
+  TABS.forEach(t=>{document.getElementById('pane-'+t)?.classList.remove('on');document.getElementById('nv-'+t)?.classList.remove('on');});
+  document.getElementById('pane-'+name)?.classList.add('on');
+  document.getElementById('nv-'+name)?.classList.add('on');
+  document.querySelector('.content').scrollTop=0;
+  if(name==='overview') renderOverview();
+  else if(name==='cs') renderCS();
+  else if(name==='exchange') renderEx();
+  else if(name==='refund') renderRf();
+  else if(name==='review') renderRv();
+  else if(name==='channel') renderCh();
+  else if(name==='weekly') renderWeekly();
+}
+
+// ═══════════════════════════════════════════
+// 파일 처리
+// ═══════════════════════════════════════════
+function openUB(){document.getElementById('ub').classList.add('on');rebuildUList();}
+function closeUB(){document.getElementById('ub').classList.remove('on');}
+function bgClose(e){if(e.target===document.getElementById('ub'))closeUB();}
+function dzOv(e){e.preventDefault();document.getElementById('dz').classList.add('ov');}
+function dzLv(){document.getElementById('dz').classList.remove('ov');}
+function dzDp(e){e.preventDefault();dzLv();handleFiles(e.dataTransfer.files);}
+
+async function handleFiles(fileList) {
+  const files=Array.from(fileList||[]); if(!files.length)return;
+  document.getElementById('ldr').classList.add('on');
+  for(const file of files){
+    const n=file.name.toLowerCase();
+    if(!n.endsWith('.xlsx')&&!n.endsWith('.xls')&&!n.endsWith('.csv')) continue;
+    try{
+      const buf=await file.arrayBuffer();
+      const wb=XLSX.read(buf,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const json=XLSX.utils.sheet_to_json(ws,{defval:null});
+      const rows=normalizeRows(json);
+      const headers=rows.length?Object.keys(rows[0]):[];
+      const type=detectType(file.name,headers);
+      if(type!=='unknown') FILES.set(type,{name:file.name,rows,headers});
+    }catch(e){console.error(e);}
+  }
+  document.getElementById('fi').value='';
+  document.getElementById('ldr').classList.remove('on');
+  applyFiles();
+  saveToLS();
+  updateChips();
+  rebuildUList();
+  renderAll();
+}
+
+function deleteFile(type){FILES.delete(type);D=JSON.parse(JSON.stringify(DEFAULT));applyFiles();saveToLS();updateChips();rebuildUList();renderAll();}
+
+function rebuildUList(){
+  const ul=document.getElementById('ulist'); ul.innerHTML='';
+  const lbl={cs:'CS관리',exchange:'교환관리',refund:'환불관리',review:'리뷰',channel:'채널톡'};
+  FILES.forEach((f,type)=>{
+    const el=document.createElement('div');el.className='uf ok';
+    el.innerHTML=`<span>✅ ${f.name} <span style="color:#94a3b8;font-weight:400">[${lbl[type]||type}]</span></span><button class="uf-x" onclick="deleteFile('${type}')">×</button>`;
+    ul.appendChild(el);
+  });
+}
+
+function updateChips(){
+  const lbl={cs:'CS',exchange:'교환',refund:'환불',review:'리뷰',channel:'채널톡'};
+  document.getElementById('fileChips').innerHTML=Array.from(FILES.entries()).map(([type])=>`
+    <div class="chip"><span>${lbl[type]||type}</span><button class="chip-x" onclick="deleteFile('${type}')">×</button></div>`).join('');
+  // 기간 텍스트 갱신
+  if(FILES.has('cs')){
+    const fname=FILES.get('cs').name;
+    const m=fname.match(/(\d{6})/);
+    if(m){
+      const d=m[1];
+      const txt=`${d.slice(0,4)}년 ${parseInt(d.slice(4,6))}월 주간 CS 대시보드`;
+      document.getElementById('topTitle').textContent=txt;
+      document.getElementById('periodTitle').textContent=txt;
+      document.getElementById('periodSub').textContent=`${FILES.size}개 파일 로드 완료 · 실제 데이터 표시 중`;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════
+// PDF
+// ═══════════════════════════════════════════
+async function dlPDF(){
+  const btn=document.getElementById('pdfBtn');
+  btn.textContent='⏳...';btn.disabled=true;
+  try{
+    const {jsPDF}=window.jspdf;
+    const prev=curTab; if(curTab!=='overview')goTab('overview');
+    await new Promise(r=>setTimeout(r,400));
+    const el=document.getElementById('mainContent');
+    const cv=await html2canvas(el,{scale:1.5,useCORS:true,backgroundColor:'#eef2f8',logging:false});
+    const doc=new jsPDF('l','mm','a4');
+    const pw=doc.internal.pageSize.getWidth(),ph=doc.internal.pageSize.getHeight(),m=10;
+    const iw=pw-m*2,ih=cv.height*iw/cv.width;
+    doc.addImage(cv.toDataURL('image/jpeg',0.9),'JPEG',m,m,iw,Math.min(ih,ph-m*2));
+    doc.setFontSize(7);doc.setTextColor(170);
+    doc.text(`CX Weekly Report · ${new Date().toLocaleDateString('ko-KR')}`,m,ph-4);
+    const d=new Date();
+    doc.save(`주간CS보고서_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.pdf`);
+    if(prev!=='overview')goTab(prev);
+  }catch(e){alert('PDF 오류: '+e.message);}
+  btn.innerHTML='⬇ PDF 저장';btn.disabled=false;
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+// localStorage 저장/불러오기
+// ═══════════════════════════════════════════
+const LS_KEY = 'cx_dashboard_data_v1';
+
+function saveToLS() {
+  try {
+    // FILES Map은 rows가 크므로 헤더+파일명만 저장, D 전체 저장
+    const toSave = {
+      D,
+      filesInfo: Array.from(FILES.entries()).map(([type,f])=>({type,name:f.name,headers:f.headers})),
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(toSave));
+  } catch(e) { console.warn('localStorage 저장 실패:', e.message); }
+}
+
+function loadFromLS() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return false;
+    const saved = JSON.parse(raw);
+    if(!saved.D) return false;
+    D = saved.D;
+    return true;
+  } catch(e) { return false; }
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify({D, savedAt: new Date().toISOString()}, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const d = new Date();
+  a.download = `cx_dashboard_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importJSON(input) {
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if(parsed.D) {
+        D = parsed.D;
+        saveToLS();
+        updateChips();
+        renderAll();
+        renderWeekly();
+        alert('가져오기 완료: ' + (parsed.savedAt ? new Date(parsed.savedAt).toLocaleString('ko-KR') : ''));
+      } else { alert('올바른 CX Dashboard JSON 파일이 아닙니다.'); }
+    } catch(err) { alert('JSON 파싱 오류: ' + err.message); }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const restored = loadFromLS();
+  document.getElementById('periodTitle').textContent = D.period;
+  if(restored) {
+    document.getElementById('periodSub').textContent = '저장된 데이터 불러옴 · 파일 업로드 시 자동 갱신';
+  } else {
+    document.getElementById('periodSub').textContent = '3월 5주차 기본 데이터 · 파일 업로드 시 자동 갱신';
+  }
+  document.getElementById('topTitle').textContent = '주간 CS 대시보드 — ' + D.period;
+  renderAll();
+  renderWeekly();
+});
+</script>
+</body>
+</html>
