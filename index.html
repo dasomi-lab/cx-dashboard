@@ -1400,7 +1400,8 @@ async function loadFromCloud() {
       .select('data, updated_at')
       .eq('id', 1)
       .single();
-    if(error || !data?.data) return false;
+    // 빈 객체({}) 또는 핵심 필드 없는 경우 무시
+    if(error || !data?.data || !data.data.csTotal) return false;
     D = data.data;
     // localStorage 동기화
     localStorage.setItem(LS_KEY, JSON.stringify({ D, savedAt: data.updated_at }));
