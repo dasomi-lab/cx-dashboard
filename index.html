@@ -401,9 +401,9 @@ tr:hover td{background:var(--bg-alt);}
          ondragover="dzOv(event)" ondragleave="dzLv()" ondrop="dzDp(event)">
       <div class="dz-ico"><i data-lucide="folder-open" class="icon-lg"></i></div>
       <div class="dz-t">파일을 드래그하거나 클릭하여 선택</div>
-      <div class="dz-s">XLSX · XLS · CSV — <em>분석 데이터 전용 업로드</em></div>
+      <div class="dz-s">XLSX · XLS · CSV · PPTX · DOCX · TXT — <em>분석 데이터와 공유 자료를 한 번에 업로드</em></div>
     </div>
-    <input type="file" id="fi" multiple accept=".xlsx,.xls,.csv" onchange="handleFiles(this.files)">
+    <input type="file" id="fi" multiple accept=".xlsx,.xls,.csv,.pptx,.docx,.txt" onchange="handleFiles(this.files)">
     <div id="ulist"></div>
     <button class="btn-done" onclick="closeUB()">완료</button>
   </div>
@@ -605,18 +605,10 @@ tr:hover td{background:var(--bg-alt);}
             <i data-lucide="files" class="icon card-hdr-icon-lc"></i>
             <div class="card-title">공유 자료 리딩 탭</div>
           </div>
-          <div style="font-size:13px;line-height:1.7;color:var(--text-secondary);margin-bottom:12px">
-            Weekly 이슈 자료는 여기서 별도로 업로드하며, 분석 데이터와 분리 저장됩니다.
+          <div style="font-size:13px;line-height:1.7;color:var(--text-secondary)">
+            상단 업로드에서 분석 데이터와 공유 자료를 함께 올리면 Weekly 이슈에 자동 반영됩니다.
             지원 형식은 PPT · PPTX · XLSX · XLS · CSV · DOCX · TXT 입니다.
           </div>
-          <div class="dz" id="weeklyDz" onclick="document.getElementById('weeklyFi').click()"
-               ondragover="dzOv2(event)" ondragleave="dzLv2()" ondrop="dzDp2(event)"
-               style="margin-bottom:0">
-            <div class="dz-ico"><i data-lucide="files" class="icon-lg"></i></div>
-            <div class="dz-t">공유 자료 파일을 드래그하거나 클릭하여 선택</div>
-            <div class="dz-s">PPT · PPTX · XLSX · XLS · CSV · DOCX · TXT</div>
-          </div>
-          <input type="file" id="weeklyFi" multiple accept=".ppt,.pptx,.xlsx,.xls,.csv,.docx,.txt" style="display:none" onchange="handleWeeklyFiles(this.files)">
           <div id="wFileInfo" style="margin-top:10px;font-size:13px;color:var(--text-tertiary)"></div>
         </div>
         <div id="weeklyReport"></div>
@@ -632,7 +624,7 @@ const COLORS = ['#5D86F7','#47A786','#826AF1','#D9A514','#C24646','#5F6673'];
 // 기본 데이터 (3월 5주차 보고서 기준)
 // ═══════════════════════════════════════════
 const DEFAULT = {
-  period: '기간 없음',
+  period: '2026년 3월 5주차 (3/29 ~ 4/4)',
   csTotal: 883, completed: 377, complRate: 42.7,
   asRein: 56, asReinRate: 6.3,
   exTotal: 5, rfTotal: 5,
@@ -805,25 +797,11 @@ function parseMonthDay(raw) {
   if(m) return `${Number(m[1])}/${Number(m[2])}`;
   return null;
 }
-function parseDateInfo(raw){
-  const s = String(raw || '').trim();
-  if(!s) return null;
-  let m = s.match(/(20\d{2})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
-  if(m) return {year:Number(m[1]), month:Number(m[2]), day:Number(m[3]), label:`${Number(m[2])}/${Number(m[3])}`};
-  m = s.match(/(\d{1,2})[\/\-.](\d{1,2})(?:\s|$)/);
-  if(m) return {year:2026, month:Number(m[1]), day:Number(m[2]), label:`${Number(m[1])}/${Number(m[2])}`};
-  return null;
-}
 function updateDerivedPeriod() {
   const ds = D.dailyStats || [];
   if(!ds.length) return;
   const start = ds[0].date, end = ds[ds.length-1].date;
-  const meta = D._periodMeta || {};
-  const year = meta.year || 2026;
-  const month = meta.month || Number(String(start).split('/')[0]) || 1;
-  const endDay = meta.endDay || Number(String(end).split('/')[1]) || 1;
-  const week = Math.ceil(endDay / 7);
-  D.period = `${year}년 ${month}월 ${week}주차 · ${start} ~ ${end}`;
+  D.period = `${start} ~ ${end}`;
 }
 
 // ═══════════════════════════════════════════
@@ -837,124 +815,43 @@ function applyFiles() {
   const chR = FILES.get('channel')?.rows||[];
 
   if (csR.length) {
-    const modelMap = {};
-    const symMap = {};
-    const reinMap = {};
-    const statusMap = {};
-    const byModel = {};
-    const dailyMap = {};
-    const dateInfos = [];
-
-    let completed = 0;
-    let asRein = 0;
-
-    csR.forEach(r => {
-      const model = modelAlias(pickCol(r,['품명','상품명','모델명']));
-      const status = String(pickCol(r,['처리상태','접수상태']) || '').trim();
-      const asType = String(pickCol(r,['A/S유형','AS유형','구분']) || '미분류').trim() || '미분류';
-      const rawSymptom = String(pickCol(r,['A/S증상','증상','문의유형']) || '미분류').trim() || '미분류';
-      const dateInfo = parseDateInfo(pickCol(r,['접수일','등록일','처리일','문의일시']));
-
-      modelMap[model] = (modelMap[model] || 0) + 1;
-      statusMap[status || '미분류'] = (statusMap[status || '미분류'] || 0) + 1;
-      if (status.includes('처리완료')) completed++;
-
-      if (/^AS\(재/.test(asType) || asType === 'AS(재)') {
-        asRein++;
-        reinMap[model] = (reinMap[model] || 0) + 1;
-      }
-
-      const symptomParts = rawSymptom.split(/[,+/
-]/).map(v=>v.trim()).filter(Boolean);
-      (symptomParts.length ? symptomParts : ['미분류']).forEach(sym => {
-        symMap[sym] = (symMap[sym] || 0) + 1;
-      });
-
-      if (dateInfo) {
-        dailyMap[dateInfo.label] = dailyMap[dateInfo.label] || { date: dateInfo.label, cs: 0, done: 0, ch: 0, month: dateInfo.month, day: dateInfo.day, year: dateInfo.year };
-        dailyMap[dateInfo.label].cs += 1;
-        if (status.includes('처리완료')) dailyMap[dateInfo.label].done += 1;
-        dateInfos.push(dateInfo);
-      }
-
-      if (!byModel[model]) {
-        byModel[model] = {
-          model,
-          total: 0,
-          rein: 0,
-          typeMap: {},
-          symptomMap: {}
-        };
-      }
-      byModel[model].total += 1;
-      if (/^AS\(재/.test(asType) || asType === 'AS(재)') byModel[model].rein += 1;
-      byModel[model].typeMap[asType] = (byModel[model].typeMap[asType] || 0) + 1;
-      (symptomParts.length ? symptomParts : ['미분류']).forEach(sym => {
-        byModel[model].symptomMap[sym] = (byModel[model].symptomMap[sym] || 0) + 1;
+    const modelMap={},symMap={},reinMap={},statusMap={},modelSymMap={};
+    let completed=0,asRein=0;
+    csR.forEach(r=>{
+      const model=modelAlias(pickCol(r,['품명','상품명','모델명']));
+      modelMap[model]=(modelMap[model]||0)+1;
+      const st=String(pickCol(r,['처리상태','접수상태'])||'');
+      statusMap[st||'미분류']=(statusMap[st||'미분류']||0)+1;
+      if(st.includes('처리완료'))completed++;
+      const asType=String(pickCol(r,['A/S유형','AS유형','구분'])||'').trim();
+      if(/^AS\(재/.test(asType)||asType==='AS(재)'){asRein++;reinMap[model]=(reinMap[model]||0)+1;}
+      const sym=String(pickCol(r,['A/S증상','증상','문의유형'])||'미분류');
+      const symParts = sym.split(/[,+\n]/).map(s=>s.trim()).filter(Boolean);
+      symParts.forEach(s=>{
+        symMap[s]=(symMap[s]||0)+1;
+        modelSymMap[model]=modelSymMap[model]||{};
+        modelSymMap[model][s]=(modelSymMap[model][s]||0)+1;
       });
     });
-
-    D.csTotal = csR.length;
-    D.completed = completed;
-    D.complRate = +((completed / csR.length) * 100).toFixed(1);
-    D.asRein = asRein;
-    D.asReinRate = +((asRein / csR.length) * 100).toFixed(1);
-
-    D.asReinByModel = topN(reinMap,5);
-    D.modelDist = topN(modelMap,6);
-    D.symptomTop = topN(symMap,5);
-    D.symptomAll = topN(symMap,10);
-    D.statusDist = topN(statusMap,5);
-    D.modelSymptomTopByModel = Object.fromEntries(
-      Object.values(byModel).map(x => [x.model, topN(x.symptomMap,5)])
-    );
-
-    const orderedModels = ['프라임','그래비티','이지','RC-02','기타'];
-    D.asTypeTable = Object.values(byModel)
-      .map(x => ({
-        model: x.model,
-        total: x.total,
-        rein: x.rein,
-        types: topN(x.typeMap,5),
-        symptoms: topN(x.symptomMap,5)
-      }))
-      .sort((a,b)=>{
-        const ai = orderedModels.indexOf(a.model) === -1 ? 999 : orderedModels.indexOf(a.model);
-        const bi = orderedModels.indexOf(b.model) === -1 ? 999 : orderedModels.indexOf(b.model);
-        return ai - bi;
-      });
-
-    const topM = topN(modelMap,1)[0];
-    if(topM){
-      D.topModel = topM.name;
-      D.topModelCnt = topM.value;
-      D.topModelPct = +((topM.value / csR.length) * 100).toFixed(1);
-    }
-    const topS = topN(symMap,1)[0];
-    if(topS){
-      D.topSym = topS.name;
-      D.topSymCnt = topS.value;
-    }
-
-    D.csList = csR.slice(0,30).map(r=>({
+    D.csTotal=csR.length; D.completed=completed; D.complRate=+((completed/csR.length)*100).toFixed(1);
+    D.asRein=asRein; D.asReinRate=+((asRein/csR.length)*100).toFixed(1);
+    D.asReinByModel=topN(reinMap,5);
+    D.modelDist=topN(modelMap,6);
+    D.symptomTop=topN(symMap,5);
+    D.symptomAll=topN(symMap,10);
+    D.statusDist=topN(statusMap,5);
+    D.modelSymptomTopByModel = Object.fromEntries(Object.entries(modelSymMap).map(([model, mp])=>[model, topN(mp,5)]));
+    const topM=topN(modelMap,1)[0]; if(topM){D.topModel=topM.name;D.topModelCnt=topM.value;D.topModelPct=+((topM.value/csR.length)*100).toFixed(1);}
+    const topS=topN(symMap,1)[0]; if(topS){D.topSym=topS.name;D.topSymCnt=topS.value;}
+    D.csList=csR.slice(0,30).map(r=>({
       product:String(pickCol(r,['품명','상품명'])||'—'),
       date:String(pickCol(r,['접수일','등록일'])||'—'),
       asType:String(pickCol(r,['A/S유형','AS유형'])||'—'),
       symptom:String(pickCol(r,['A/S증상','증상'])||'—').slice(0,22),
       status:String(pickCol(r,['처리상태','접수상태'])||'—'),
     }));
-
-    const dayList = Object.values(dailyMap).sort((a,b)=> a.month===b.month ? a.day-b.day : a.month-b.month);
-    if (dayList.length) {
-      D.dailyStats = dayList.map(({date,cs,done,ch})=>({date,cs,done,ch}));
-      const startInfo = dayList[0];
-      const endInfo = dayList[dayList.length - 1];
-      D._periodMeta = {year:startInfo.year || 2026, month:startInfo.month, startDay:startInfo.day, endDay:endInfo.day};
-      updateDerivedPeriod();
-    }
-
-    D.actions = [];
-    const topSym2 = topN(symMap,1)[0], topRein = topN(reinMap,1)[0];
+    D.actions=[];
+    const topSym2=topN(symMap,1)[0],topRein=topN(reinMap,1)[0];
     if(topSym2) D.actions.push({c:'#C24646',txt:`<strong>${topSym2.name}</strong> 이슈 <strong>${topSym2.value}건</strong>으로 최다 접수 — 점검 기준 재정비 필요`});
     if(topRein) D.actions.push({c:'#B26A12',txt:`<strong>${topRein.name}</strong> AS 재인입 <strong>${topRein.value}건</strong> 발생 — 수리 품질 및 재발 여부 확인 필요`});
   }
@@ -1383,96 +1280,94 @@ function renderReviews() {
 }
 
 
-function getModelColor(name){
-  if(name === '프라임') return {base:'#5D86F7', light:'#DDE7FF'};
-  if(name === '그래비티') return {base:'#C24646', light:'#F7D2D2'};
-  if(name === '이지') return {base:'#47A786', light:'#D8F0E7'};
-  if(name === 'RC-02') return {base:'#826AF1', light:'#E6E0FF'};
-  return {base:'#8B93A1', light:'#ECEFF3'};
-}
-
-function buildMiniDonut(items, color){
-  const total = items.reduce((s,v)=>s+(Number(v.value)||0),0);
-  if(!total) return {style:'background:#EEF0F4;', total:0};
-  let acc = 0;
-  const parts = items.map((item, idx)=>{
-    const pct = (Number(item.value)||0) / total * 100;
-    const start = acc;
-    const end = acc + pct;
-    acc = end;
-    const alpha = Math.max(0.25, 1 - idx * 0.14);
-    return `${color}${Math.round(alpha * 255).toString(16).padStart(2,'0')} ${start.toFixed(2)}% ${end.toFixed(2)}%`;
-  });
-  return {style:`background:conic-gradient(${parts.join(',')});`, total};
-}
-
 function renderByModel() {
+  const orderedNames = ['프라임','그래비티','이지','RC-02'];
+  const baseMap = {};
+  (D.modelDist || []).forEach(item=>{
+    const key = orderedNames.includes(item.name) ? item.name : '기타';
+    if(!baseMap[key]) baseMap[key] = {name:key, value:0};
+    baseMap[key].value += Number(item.value)||0;
+  });
+  const modelDist = orderedNames.map(name=>baseMap[name] || {name, value:0}).filter(item=>item.value>0);
+  if(baseMap['기타'] && baseMap['기타'].value>0) modelDist.push(baseMap['기타']);
+
+  const symptomMap = {};
+  Object.entries(D.modelSymptomTopByModel || {}).forEach(([name, list])=>{
+    const key = orderedNames.includes(name) ? name : '기타';
+    symptomMap[key] = symptomMap[key] || {};
+    (list || []).forEach(item=>{
+      symptomMap[key][item.name] = (symptomMap[key][item.name] || 0) + (Number(item.value)||0);
+    });
+  });
+
+  const reinMap = {};
+  (D.asReinByModel || []).forEach(item=>{
+    const key = orderedNames.includes(item.name) ? item.name : '기타';
+    reinMap[key] = (reinMap[key] || 0) + (Number(item.value)||0);
+  });
+
+  const typeMap = {};
+  (D.asTypeTable || []).forEach(item=>{
+    const key = orderedNames.includes(item.model) ? item.model : '기타';
+    if(!typeMap[key]) typeMap[key] = {model:key};
+    Object.entries(item).forEach(([k,v])=>{
+      if(k === 'model') return;
+      typeMap[key][k] = (Number(typeMap[key][k])||0) + (Number(v)||0);
+    });
+  });
+
   const grid = document.getElementById('modelCardGrid');
-  const rows = (D.asTypeTable || []).filter(x => x && x.model);
-  if(!rows.length){
+  if(!modelDist.length) {
     grid.className = 'model-symptom-grid';
     grid.innerHTML = '<div class="empty-msg">CS 파일을 업로드해 주세요</div>';
     return;
   }
 
-  const order = ['프라임','그래비티','이지','RC-02','기타'];
-  const sorted = rows.slice().sort((a,b)=>{
-    const ai = order.indexOf(a.model) === -1 ? 999 : order.indexOf(a.model);
-    const bi = order.indexOf(b.model) === -1 ? 999 : order.indexOf(b.model);
-    return ai - bi;
-  });
+  function convertSymptoms(name){
+    const items = Object.entries(symptomMap[name] || {}).map(([n,v])=>({name:n,value:v})).sort((a,b)=>b.value-a.value).slice(0,5);
+    const total = items.reduce((s,i)=>s+(Number(i.value)||0),0) || 1;
+    return items.map(item=>({...item, pct:+((item.value/total)*100).toFixed(1)}));
+  }
 
-  grid.className = 'model-symptom-grid';
-  grid.innerHTML = sorted.map(md => {
-    const palette = getModelColor(md.model);
-    const types = (md.types || []).slice(0,5);
-    const symptoms = (md.symptoms || []).slice(0,5);
-    const maxType = Math.max(...types.map(x => Number(x.value) || 0), 1);
+  function cardHtml(item){
+    const symptoms = convertSymptoms(item.name);
+    const palette = getModelColor(item.name);
+    const typeRow = typeMap[item.name] || null;
+    const typeEntries = typeRow ? Object.entries(typeRow).filter(([k])=>k!=='model').map(([k,v])=>({name:k, value:Number(v)||0})).filter(x=>x.value>0).sort((a,b)=>b.value-a.value).slice(0,5) : [];
+    const maxType = Math.max(...typeEntries.map(i=>i.value), 1);
     const donut = buildMiniDonut(symptoms, palette.base);
-
     return `<div class="model-symptom-card">
       <div class="model-top-meta">
         <div class="model-top-left">
-          <div class="model-top-name">${md.model}</div>
-          <div class="model-top-sub">CS ${fmtN(md.total || 0)}건 · AS 재인입 ${fmtN(md.rein || 0)}건</div>
+          <div class="model-top-name">${item.name}</div>
+          <div class="model-top-sub">CS ${fmtN(item.value)}건 · AS 재인입 ${fmtN(reinMap[item.name]||0)}건</div>
         </div>
         <div class="model-top-badge">TOP5</div>
       </div>
-
       <div class="model-section-title">AS 유형별</div>
-      ${types.length ? `<div class="type-bars">
-        ${types.map((row, idx) => `
-          <div class="type-row">
-            <div class="type-label">${row.name}</div>
-            <div class="type-track">
-              <div class="type-fill" style="width:${((Number(row.value)||0)/maxType*100).toFixed(1)}%;background:linear-gradient(90deg, ${palette.light} 0%, ${palette.base} 100%);opacity:${idx===0 ? 1 : Math.max(0.45, 0.95 - idx*0.12)};"></div>
-            </div>
-            <div class="type-num">${fmtN(row.value)}</div>
-          </div>`).join('')}
-      </div>` : `<div class="model-empty">집계된 AS 유형이 없습니다</div>`}
-
+      ${typeEntries.length ? `<div class="type-bars">${typeEntries.map((row,idx)=>`
+        <div class="type-row">
+          <div class="type-label">${row.name}</div>
+          <div class="type-track"><div class="type-fill" style="width:${(row.value/maxType*100).toFixed(1)}%;background:linear-gradient(90deg, ${palette.light} 0%, ${palette.base} 100%);opacity:${idx===0?1:(0.9 - idx*0.1)};"></div></div>
+          <div class="type-num">${fmtN(row.value)}</div>
+        </div>`).join('')}</div>` : `<div class="model-empty">집계된 AS 유형이 없습니다</div>`}
       <div class="model-section-title">AS 증상별</div>
       ${symptoms.length ? `<div class="symptom-split">
         <div class="mini-donut" style="${donut.style}">
-          <div class="mini-donut-center">
-            <strong>${fmtN(donut.total)}</strong>
-            <span>TOP5 합계</span>
-          </div>
+          <div class="mini-donut-center"><strong>${fmtN(donut.total)}</strong><span>TOP5 합계</span></div>
         </div>
-        <div class="rank-list">
-          ${symptoms.map((row, idx) => {
-            const total = donut.total || 1;
-            const pct = (((Number(row.value)||0) / total) * 100).toFixed(1);
-            return `<div class="rank-item">
-              <div class="rank-no">${idx + 1}</div>
-              <div class="rank-name">${row.name}</div>
-              <div class="rank-val">${pct}% · ${fmtN(row.value)}건</div>
-            </div>`;
-          }).join('')}
-        </div>
+        <div class="rank-list">${symptoms.map((row,idx)=>`
+          <div class="rank-item">
+            <div class="rank-no">${idx+1}</div>
+            <div class="rank-name">${row.name}</div>
+            <div class="rank-val">${row.pct}% · ${fmtN(row.value)}건</div>
+          </div>`).join('')}</div>
       </div>` : `<div class="model-empty">집계된 A/S 증상이 없습니다</div>`}
     </div>`;
-  }).join('');
+  }
+
+  grid.className = 'model-symptom-grid';
+  grid.innerHTML = modelDist.map(cardHtml).join('');
 }
 
 function renderExchangeRefund() {
@@ -1702,10 +1597,10 @@ function dzDp2(e){e.preventDefault();const files=e.dataTransfer.files;if(files?.
 // ═══════════════════════════════════════════
 function renderAll() {
   renderDashboard();
-  renderReviews();
-  renderByModel();
-  renderExchangeRefund();
-  renderWeekly();
+  if(curTab==='reviews') renderReviews();
+  else if(curTab==='bymodel') renderByModel();
+  else if(curTab==='exchange_refund') renderExchangeRefund();
+  else if(curTab==='weekly') renderWeekly();
   lucide.createIcons();
 }
 
@@ -1804,8 +1699,13 @@ async function handleFiles(fileList) {
   const files = Array.from(fileList || []);
   if(!files.length) return;
   document.getElementById('ldr').classList.add('on');
+  const weeklyFiles = [];
   for(const file of files){
     const n = file.name.toLowerCase();
+    if(n.endsWith('.pptx') || n.endsWith('.docx') || n.endsWith('.txt')) {
+      weeklyFiles.push(file);
+      continue;
+    }
     if(!n.endsWith('.xlsx') && !n.endsWith('.xls') && !n.endsWith('.csv')) continue;
     try{
       const buf = await file.arrayBuffer();
@@ -1816,8 +1716,10 @@ async function handleFiles(fileList) {
       const headers = rows.length ? Object.keys(rows[0]) : [];
       const type = detectType(file.name,headers);
       if(type !== 'unknown') FILES.set(type,{name:file.name,rows,headers});
+      else weeklyFiles.push(file);
     }catch(e){console.error(e);}
   }
+  if(weeklyFiles.length) await parseWeeklyFiles(weeklyFiles);
   document.getElementById('fi').value = '';
   document.getElementById('ldr').classList.remove('on');
   applyFiles();
@@ -1827,27 +1729,7 @@ async function handleFiles(fileList) {
   renderAll();
 }
 
-async function handleWeeklyFiles(fileList){
-  const files = Array.from(fileList || []);
-  if(!files.length) return;
-  await parseWeeklyFiles(files);
-  saveData();
-  updateChips();
-  rebuildUList();
-  renderAll();
-  const input = document.getElementById('weeklyFi');
-  if(input) input.value = '';
-}
-
-function dzOv2(e){ e.preventDefault(); document.getElementById('weeklyDz')?.classList.add('ov'); }
-function dzLv2(){ document.getElementById('weeklyDz')?.classList.remove('ov'); }
-function dzDp2(e){
-  e.preventDefault();
-  dzLv2();
-  handleWeeklyFiles(e.dataTransfer.files);
-}
-
-function deleteFile(type)(type){FILES.delete(type);D=JSON.parse(JSON.stringify(DEFAULT));applyFiles();saveData();updateChips();rebuildUList();renderAll();}
+function deleteFile(type){FILES.delete(type);D=JSON.parse(JSON.stringify(DEFAULT));applyFiles();saveData();updateChips();rebuildUList();renderAll();}
 
 function rebuildUList(){
   const ul=document.getElementById('ulist'); ul.innerHTML='';
@@ -1870,7 +1752,14 @@ function updateChips(){
     <div class="chip"><span>${lbl[type]||type}</span><button class="chip-x" onclick="deleteFile('${type}')">×</button></div>`).join('');
   const weekly = (WEEKLY_FILES||[]).length ? `<div class="chip"><span>공유 자료 ${WEEKLY_FILES.length}</span></div>` : '';
   document.getElementById('fileChips').innerHTML = base + weekly;
-  document.getElementById('sbPeriodBadge').textContent = D.period || '기간 없음';
+  if(FILES.has('cs')){
+    const fname=FILES.get('cs').name;
+    const m=fname.match(/(\d{6})/);
+    if(m){
+      const d=m[1];
+      document.getElementById('sbPeriodBadge').textContent=`${d.slice(0,4)}.${parseInt(d.slice(4,6))} 주간`;
+    }
+  }
 }
 
 // ═══════════════════════════════════════════
