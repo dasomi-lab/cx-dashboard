@@ -27,7 +27,7 @@
   --warning-bg:#FFF5E8; --warning-text:#B26A12; --warning-border:#F7DFC2;
   --danger-bg:#FDEEEE; --danger-text:#C24646; --danger-border:#F7D2D2;
   --special-bg:#F3F0FF; --special-text:#6A55D9; --special-border:#DDD5FF;
-  --mint-500:#47A786; --lavender-500:#826AF1; --yellow-500:#D9A514;
+  --mint-500:#47A786; --lavender-500:#826AF1; --yellow-500:#D9A514;sbPeriodBadge
   --r-xs:10px; --r-sm:14px; --r-md:20px; --r-lg:24px; --r-xl:28px;
   --sh-soft:0 4px 12px rgba(23,24,28,.04);
   --sh-card:0 10px 24px rgba(23,24,28,.06);
@@ -62,7 +62,11 @@ html,body{height:100%;font-family:var(--font-sans);background:var(--bg-page);col
 .btn-done{width:100%;background:var(--primary-500);color:#fff;border:none;border-radius:var(--r-sm);padding:13px;font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;transition:background .15s;}
 .btn-done:hover{background:var(--primary-600);}
 #fi{display:none;}
-
+#sbPeriodBadge{
+  white-space: normal !important;
+  line-height: 1.45;
+  text-align: center;
+}
 .app{display:flex;height:100vh;overflow:hidden;}
 .sb{width:240px;flex-shrink:0;background:var(--bg-sidebar);border-right:1px solid var(--border-subtle);display:flex;flex-direction:column;overflow-y:auto;transition:transform .25s ease;}
 .sb-logo-wrap{padding:22px 20px 18px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:12px;}
@@ -1006,7 +1010,7 @@ function renderWeekly(text){
           </div>
         </div>
         <div class="weekly-preview-box" style="padding:0;overflow:hidden">
-          <embed src="${asset.url}" type="application/pdf" width="100%" height="720px" />
+          <embed src="${asset.url}" type="application/pdf" width="100%" height="1000px" />
         </div>
       </div>`;
     }
@@ -1045,10 +1049,7 @@ function renderWeekly(text){
   if(window.lucide) lucide.createIcons();
 }
 
-async function clearWeeklyAsset(){
-  if (WEEKLY_ASSET?.path) {
-    await deleteWeeklyPdfFromStorage(WEEKLY_ASSET.path);
-  }
+function clearWeeklyAsset(){
   if (WEEKLY_ASSET && WEEKLY_ASSET.url && String(WEEKLY_ASSET.ext||'').toUpperCase() === 'PDF') {
     try { URL.revokeObjectURL(WEEKLY_ASSET.url); } catch(e) {}
   }
@@ -1241,7 +1242,7 @@ function applyFiles(){
   }
 }
 
-async async function parseWeeklyFiles(fileList){
+async function parseWeeklyFiles(fileList){
   const files = Array.from(fileList || []);
   if(!files.length) return;
 
@@ -1254,17 +1255,12 @@ async async function parseWeeklyFiles(fileList){
       name:file.name,
       ext:n.split('.').pop().toUpperCase(),
       uploadedAt:new Date().toLocaleString('ko-KR'),
-      preview:[], metrics:[], tableHeaders:[], tableRows:[], conclusion:'', url:'', path:''
+      preview:[], metrics:[], tableHeaders:[], tableRows:[], conclusion:'', url:''
     };
     let combined = `\n\n### ${file.name}\n`;
 
     if (n.endsWith('.pdf')) {
-      const uploaded = await uploadWeeklyPdfToStorage(file);
-      if (!uploaded || !uploaded.url) {
-        throw new Error('PDF를 Storage에 저장하지 못했습니다.');
-      }
-      asset.url = uploaded.url;
-      asset.path = uploaded.path;
+      asset.url = URL.createObjectURL(file);
       asset.conclusion = 'PDF 문서는 카드 내부 뷰어로 표시됩니다.';
     } else if (n.endsWith('.txt') || n.endsWith('.csv')) {
       const raw = await file.text();
@@ -1423,11 +1419,9 @@ function updateChips(){
   document.getElementById('fileChips').innerHTML = base + weekly;
 
   const badge = document.getElementById('sbPeriodBadge');
-  if (badge) {
-    const title = D.period || '—';
-    const range = D.periodRange || '';
-    badge.innerHTML = range ? `${title}<br>${range}` : title;
-  }
+if (badge) {
+  badge.innerHTML = `4월 2주차<br>2026-04-05 ~ 2026-04-11`;
+}
 }
 
 function openUB(){ document.getElementById('ub').classList.add('on'); }
