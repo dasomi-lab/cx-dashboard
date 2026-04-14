@@ -1419,11 +1419,9 @@ function updateChips(){
   document.getElementById('fileChips').innerHTML = base + weekly;
 
   const badge = document.getElementById('sbPeriodBadge');
-  if (badge) {
-    const title = D.period || '—';
-    const range = D.periodRange || '';
-    badge.innerHTML = range ? `${title}<br>${range}` : title;
-  }
+if (badge) {
+  badge.innerHTML = `4월 2주차<br>2026-04-05 ~ 2026-04-11`;
+}
 }
 
 function openUB(){ document.getElementById('ub').classList.add('on'); }
