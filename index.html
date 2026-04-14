@@ -290,7 +290,7 @@ tr:hover td{background:var(--bg-alt);}
     <div class="dz" id="dz" onclick="document.getElementById('fi').click()" ondragover="dzOv(event)" ondragleave="dzLv()" ondrop="dzDp(event)">
       <div class="dz-ico"><i data-lucide="folder-open" class="icon-lg"></i></div>
       <div class="dz-t">파일을 드래그하거나 클릭하여 선택</div>
-      <div class="dz-s">XLSX · XLS · CSV · PPT · PPTX · DOCX · TXT<br><em>분석 데이터와 공유 자료를 한 번에 업로드할 수 있습니다</em></div>
+      <div class="dz-s">PDF · XLSX · XLS · CSV · PPT · PPTX · DOCX · TXT<br><em>분석 데이터와 공유 자료를 한 번에 업로드할 수 있습니다</em></div>
     </div>
     <input type="file" id="fi" multiple accept=".pdf,.xlsx,.xls,.csv,.ppt,.pptx,.docx,.txt" onchange="handleFiles(this.files)">
     <div id="ulist"></div>
@@ -740,8 +740,8 @@ function bdg(s, type){
 }
 
 
-const SB_URL = 'https://wvyxzmcazsrhdvkykwkd.supabase.co';
-const SB_KEY = 'sb_publishable_C2vdOTNA1DAkAVZPk5sxsQ_j2E8WvBT';
+const SB_URL = 'https://iauawbrdkbghmvdcngxu.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWF3YnJka2JnaG12ZGNuZ3h1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5OTk1NjIsImV4cCI6MjA5MTU3NTU2Mn0.TO_3uI7h6nXNE3mHdmhdnJ_1tvFkB-29ri8J7knGn5I';
 let sbClient = null;
 
 function initSupabase(){
