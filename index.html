@@ -448,7 +448,7 @@ tr:hover td{background:var(--bg-alt);}
           </div>
           <div style="font-size:13px;line-height:1.7;color:var(--text-secondary)">
             상단 업로드 시 공유 자료는 Weekly 이슈 전용으로 1개만 별도 반영됩니다.<br>
-            분석 데이터 파일과 중첩되지 않도록 분리 관리되며, 지원 형식은 PDF · PPT · PPTX · XLSX · XLS · CSV · DOCX · TXT 입니다.
+            분석 데이터 파일과 중첩되지 않도록 분리 관리되며, 지원 형식은 PPT · PPTX · XLSX · XLS · CSV · DOCX · TXT 입니다.
           </div>
           <div id="wFileInfo" style="margin-top:10px;font-size:13px;color:var(--text-tertiary)"></div>
           <div style="margin-top:14px">
@@ -974,29 +974,6 @@ function renderWeekly(text){
   const asset = WEEKLY_ASSET || null;
 
   function renderAssetCard(asset){
-    const isPdf = String(asset.ext||'').toUpperCase() === 'PDF';
-    const deleteBtn = `<button class="btn btn-outline" style="margin-left:8px" onclick="clearWeeklyAsset()">
-      <i data-lucide="trash-2" class="icon"></i>삭제
-    </button>`;
-
-    if(isPdf && asset.url){
-      return `<div class="weekly-file-card" style="min-height:auto">
-        <div class="weekly-file-top">
-          <div>
-            <div class="weekly-file-name">${asset.name}</div>
-            <div class="weekly-file-meta">업로드 일시 ${asset.uploadedAt}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <div class="weekly-file-badge">PDF</div>
-            ${deleteBtn}
-          </div>
-        </div>
-        <div class="weekly-preview-box" style="padding:0;overflow:hidden">
-          <embed src="${asset.url}" type="application/pdf" width="100%" height="720px" />
-        </div>
-      </div>`;
-    }
-
     const lines = (asset.preview || []).slice(0,4);
     const headers = (asset.tableHeaders || []).slice(0,4);
     const rows = (asset.tableRows || []).slice(0,4);
@@ -1007,10 +984,7 @@ function renderWeekly(text){
           <div class="weekly-file-name">${asset.name}</div>
           <div class="weekly-file-meta">업로드 일시 ${asset.uploadedAt}</div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="weekly-file-badge">${asset.ext || 'FILE'}</div>
-          ${deleteBtn}
-        </div>
+        <div class="weekly-file-badge">${asset.ext || 'FILE'}</div>
       </div>
 
       <div class="weekly-preview-box">
@@ -1021,21 +995,30 @@ function renderWeekly(text){
             : `<div class="weekly-preview-lines">${lines.length ? lines.map(v=>`<div class="weekly-preview-line">${v}</div>`).join('') : '<div class="weekly-preview-line">미리보기 데이터 없음</div>'}</div>`
         }
       </div>
+
+      <div>
+        <div class="weekly-preview-title">핵심 수치 칩</div>
+        <div class="metric-chips">
+          ${
+            (asset.metrics || []).length
+              ? asset.metrics.slice(0,4).map((m, idx)=>`<span class="metric-chip ${idx===0?'danger':idx===1?'warning':idx===2?'special':''}">${m.label} ${m.value}</span>`).join('')
+              : '<span class="metric-chip">자동 추출 없음</span>'
+          }
+        </div>
+      </div>
+
+      <div class="weekly-conclusion">
+        <strong>결론 강조</strong>
+        <p>${asset.conclusion || '결론 문장을 자동 추출하지 못했습니다.'}</p>
+      </div>
     </div>`;
   }
 
   el.innerHTML = asset ? renderAssetCard(asset) : '';
+
   document.getElementById('wFileInfo').textContent = asset
     ? '공유 자료 1개가 Weekly 이슈에 별도 반영되었습니다'
     : '상단 업로드로 공유 자료 1개를 추가해 주세요';
-  if(window.lucide) lucide.createIcons();
-}
-
-function clearWeeklyAsset(){
-  WEEKLY_ASSET = null;
-  const chip = document.getElementById('weeklyChip');
-  if(chip) chip.remove();
-  renderWeekly();
 }
 
 function renderAll(){
