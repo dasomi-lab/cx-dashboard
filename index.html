@@ -11,6 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
 <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
@@ -164,6 +165,20 @@ html,body{height:100%;font-family:var(--font-sans);background:var(--bg-page);col
 .card-hdr-icon-lc{color:var(--text-tertiary);}
 .card-title{font-size:15px;font-weight:600;color:var(--text-primary);}
 
+
+/* ── DONUT PANEL ── */
+.donut-panel{display:grid;grid-template-columns:minmax(280px,360px) minmax(220px,1fr);align-items:center;gap:24px;}
+.donut-wrap{position:relative;width:100%;max-width:340px;aspect-ratio:1 / 1;margin:0 auto;}
+.legend-col{display:flex;flex-direction:column;gap:10px;}
+.legend-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 12px;border-radius:var(--r-xs);background:var(--bg-alt);border:1px solid var(--border-soft);}
+.legend-left{display:flex;align-items:center;gap:8px;min-width:0;}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.legend-label{font-size:13px;font-weight:500;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.legend-right{font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;}
+.legend-right span{font-size:11px;color:var(--text-tertiary);font-weight:500;margin-left:4px;}
+@media(max-width:1100px){.donut-panel{grid-template-columns:1fr;}.donut-wrap{max-width:300px;}.legend-col{margin-top:4px;}}
+@media(max-width:768px){.donut-wrap{max-width:260px;}}
+
 /* ── MINI BARS ── */
 .blist{display:flex;flex-direction:column;gap:11px;}
 .bi-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;}
@@ -198,7 +213,7 @@ html,body{height:100%;font-family:var(--font-sans);background:var(--bg-page);col
 
 /* ── STATS ROW (Reviews) ── */
 .stats-row{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
-.stat-pill{background:var(--bg-surface);border-radius:var(--r-sm);box-shadow:var(--sh-soft);padding:14px 18px;flex:1;min-width:90px;text-align:center;border:1px solid var(--border-soft);}
+.stat-pill{background:var(--bg-surface);border-radius:var(--r-sm);box-shadow:var(--sh-soft);padding:14px 18px;flex:1;min-width:90px;text-align:center;border:1px solid var(--border-soft);height:100%;display:flex;flex-direction:column;justify-content:center;}
 .stat-pill-value{font-size:24px;font-weight:600;letter-spacing:-.04em;line-height:1.1;color:var(--pill-color,var(--primary-500));}
 .stat-pill-label{font-size:12px;font-weight:500;color:var(--text-tertiary);margin-top:3px;}
 
@@ -215,6 +230,8 @@ html,body{height:100%;font-family:var(--font-sans);background:var(--bg-page);col
 .review-card.pos .review-content{color:var(--success-text);}
 .review-card.neg .review-content{color:var(--danger-text);}
 
+.review-content-full{font-size:13px;line-height:1.65;white-space:pre-wrap;word-break:break-word;}
+.summary-chips{display:flex;flex-wrap:wrap;gap:8px;}
 /* ── MODEL GRID ── */
 .model-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
 @media(max-width:768px){.model-grid{grid-template-columns:1fr;}}
@@ -256,6 +273,50 @@ tr:hover td{background:var(--bg-alt);}
 .ds{background:var(--bg-surface);border-radius:var(--r-sm);box-shadow:var(--sh-soft);padding:14px 18px;flex:1;min-width:100px;text-align:center;border:1px solid var(--border-soft);border-top:3px solid;}
 .ds-v{font-size:24px;font-weight:600;letter-spacing:-.04em;line-height:1.1;}
 .ds-l{font-size:12px;font-weight:500;color:var(--text-tertiary);margin-top:4px;}
+
+
+/* ── DAILY BAR SECTION ── */
+.daily-card{padding:22px 24px 24px;}
+.daily-title-wrap{display:flex;align-items:flex-start;gap:16px;margin-bottom:12px;}
+.daily-accent{width:14px;min-width:14px;height:72px;border-radius:4px;background:linear-gradient(180deg,#6C5CE7 0%, #5D86F7 100%);}
+.daily-main-title{font-size:22px;font-weight:700;letter-spacing:-.04em;color:#25306E;line-height:1.15;}
+.daily-sub-title{margin-top:8px;font-size:13px;font-weight:600;color:#6C7A96;}
+.daily-divider{height:1px;background:var(--border-subtle);margin:12px 0 18px;}
+.daily-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.daily-panel{background:var(--bg-alt);border:1px solid var(--border-subtle);border-radius:var(--r-sm);padding:16px 16px 18px;}
+.daily-panel-title{font-size:13px;font-weight:700;color:#25306E;margin-bottom:12px;}
+.daily-panel-title.accent{color:#6C5CE7;}
+.vbars{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;height:300px;padding:14px 8px 6px;border-left:2px solid #A7AFBC;border-bottom:2px solid #A7AFBC;background:
+  linear-gradient(to top, transparent 0, transparent calc(20% - 0.5px), #E5E9F2 calc(20% - 0.5px), #E5E9F2 20%, transparent 20%),
+  linear-gradient(to top, transparent 0, transparent calc(40% - 0.5px), #E5E9F2 calc(40% - 0.5px), #E5E9F2 40%, transparent 40%),
+  linear-gradient(to top, transparent 0, transparent calc(60% - 0.5px), #E5E9F2 calc(60% - 0.5px), #E5E9F2 60%, transparent 60%),
+  linear-gradient(to top, transparent 0, transparent calc(80% - 0.5px), #E5E9F2 calc(80% - 0.5px), #E5E9F2 80%, transparent 80%);
+}
+.vbar-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;}
+.vbar-value{font-size:11px;font-weight:700;color:#25306E;margin-bottom:8px;line-height:1;}
+.vbar-track{width:min(38px,100%);height:100%;display:flex;align-items:flex-end;justify-content:center;}
+.vbar-fill{width:100%;min-height:4px;border-radius:10px 10px 0 0;transition:height .7s ease;}
+.vbar-label{margin-top:10px;font-size:11px;font-weight:600;color:#6C7A96;writing-mode:vertical-rl;transform:rotate(180deg);height:66px;text-align:left;white-space:nowrap;}
+@media(max-width:960px){.daily-grid{grid-template-columns:1fr;}.vbars{height:240px;}}
+@media(max-width:768px){.daily-main-title{font-size:18px;}.daily-accent{height:60px;width:10px;min-width:10px;}.vbar-label{writing-mode:horizontal-tb;transform:none;height:auto;font-size:10px;line-height:1.3;text-align:center;}}
+
+
+#exrf-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:stretch;}
+#exrf-stats .stat-pill{min-width:0;}
+@media(max-width:1100px){#exrf-stats{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:640px){#exrf-stats{grid-template-columns:1fr;}}
+
+/* ── MODEL INSIGHT CARDS ── */
+.model-symptom-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+@media(max-width:900px){.model-symptom-grid{grid-template-columns:1fr;}}
+.model-symptom-card{background:var(--bg-surface);border-radius:var(--r-md);box-shadow:var(--sh-card);padding:20px 22px;border:1px solid var(--border-soft);}
+.model-top-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
+.model-top-left{display:flex;flex-direction:column;gap:4px;}
+.model-top-name{font-size:18px;font-weight:700;color:var(--text-primary);letter-spacing:-.03em;}
+.model-top-sub{font-size:12px;color:var(--text-tertiary);font-weight:500;}
+.model-top-badge{padding:6px 12px;border-radius:999px;background:var(--primary-50);color:var(--primary-600);font-size:12px;font-weight:700;border:1px solid var(--primary-100);}
+.model-section-title{font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:10px;}
+.model-empty{font-size:13px;color:var(--text-tertiary);padding:8px 0;}
 
 /* ── MOBILE ── */
 @media(max-width:768px){
@@ -319,6 +380,9 @@ tr:hover td{background:var(--bg-alt);}
       <button class="nv" id="nv-bymodel" onclick="goTab('bymodel')">
         <i data-lucide="box" class="icon"></i><span class="nv-label">By Model</span>
       </button>
+      <button class="nv" id="nv-exchange_refund" onclick="goTab('exchange_refund')">
+        <i data-lucide="repeat-2" class="icon"></i><span class="nv-label">교환 / 환불</span>
+      </button>
       <button class="nv" id="nv-weekly" onclick="goTab('weekly')">
         <i data-lucide="file-text" class="icon"></i><span class="nv-label">Weekly Report</span>
       </button>
@@ -366,14 +430,26 @@ tr:hover td{background:var(--bg-alt);}
         <!-- KPI 6개 -->
         <div class="kpi-grid" id="kpiGrid"></div>
 
-        <!-- 추이 선형 차트 (전체 너비) -->
-        <div class="card" style="margin-bottom:20px">
-          <div class="card-hdr">
-            <i data-lucide="trending-up" class="icon card-hdr-icon-lc"></i>
-            <div class="card-title">CS 처리 현황 · 채널톡 인입 추이</div>
-            <span id="trendPeriodBadge" style="margin-left:auto;font-size:12px;color:var(--text-tertiary)">—</span>
+        <!-- 일별 인입 현황 -->
+        <div class="card daily-card" style="margin-bottom:20px">
+          <div class="daily-title-wrap">
+            <div class="daily-accent"></div>
+            <div>
+              <div class="daily-main-title">인입 현황 — 일별 추이</div>
+              <div class="daily-sub-title" id="dailySummary">—</div>
+            </div>
           </div>
-          <div style="position:relative;height:200px"><canvas id="trendChart"></canvas></div>
+          <div class="daily-divider"></div>
+          <div class="daily-grid">
+            <div class="daily-panel">
+              <div class="daily-panel-title">CS 처리 현황</div>
+              <div id="dailyCsBars"></div>
+            </div>
+            <div class="daily-panel">
+              <div class="daily-panel-title accent">채널톡 인입 현황</div>
+              <div id="dailyChBars"></div>
+            </div>
+          </div>
         </div>
 
         <!-- 2열: 모델별 CS 도넛(좌) + AS증상 TOP10(우) -->
@@ -383,11 +459,11 @@ tr:hover td{background:var(--bg-alt);}
               <i data-lucide="pie-chart" class="icon card-hdr-icon-lc"></i>
               <div class="card-title">모델별 CS 분포</div>
             </div>
-            <div style="display:flex;align-items:center;gap:24px">
-              <div style="position:relative;width:160px;height:160px;flex-shrink:0">
+            <div class="donut-panel">
+              <div class="donut-wrap">
                 <canvas id="modelDonut"></canvas>
               </div>
-              <div id="modelLegend" style="flex:1;display:flex;flex-direction:column;gap:7px"></div>
+              <div id="modelLegend" class="legend-col"></div>
             </div>
           </div>
           <div class="card">
@@ -421,18 +497,18 @@ tr:hover td{background:var(--bg-alt);}
       <!-- REVIEWS -->
       <div id="pane-reviews" class="pane">
         <div class="stats-row" id="rv-stats"></div>
-        <div class="two-col">
+        <div class="two-col" style="margin-bottom:20px">
           <div class="card">
             <div class="card-hdr">
               <i data-lucide="thumbs-up" class="icon card-hdr-icon-lc"></i>
-              <div class="card-title">대표 긍정 리뷰</div>
+              <div class="card-title">대표 긍정 리뷰 TOP3</div>
             </div>
             <div id="repPosReviews"><div class="empty-msg">—</div></div>
           </div>
           <div class="card">
             <div class="card-hdr">
               <i data-lucide="thumbs-down" class="icon card-hdr-icon-lc"></i>
-              <div class="card-title">대표 부정 리뷰</div>
+              <div class="card-title">대표 부정 리뷰 TOP3</div>
             </div>
             <div id="repNegReviews"><div class="empty-msg">—</div></div>
           </div>
@@ -454,7 +530,7 @@ tr:hover td{background:var(--bg-alt);}
         <div class="card">
           <div class="card-hdr">
             <i data-lucide="list" class="icon card-hdr-icon-lc"></i>
-            <div class="card-title">저평점 리뷰 목록 (3점↓)</div>
+            <div class="card-title">저평점 리뷰 목록 (3점 이하 · 전체 내용)</div>
           </div>
           <div class="tbl-wrap scroll" id="rvTbl"></div>
         </div>
@@ -464,6 +540,29 @@ tr:hover td{background:var(--bg-alt);}
       <div id="pane-bymodel" class="pane">
         <div class="model-grid" id="modelCardGrid">
           <div class="empty-msg">CS 파일을 업로드해 주세요</div>
+        </div>
+      </div>
+
+      <!-- EXCHANGE / REFUND -->
+      <div id="pane-exchange_refund" class="pane">
+        <div class="stats-row" id="exrf-stats"></div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-hdr">
+              <i data-lucide="repeat" class="icon card-hdr-icon-lc"></i>
+              <div class="card-title">교환 상세 내역</div>
+            </div>
+            <div id="exchangeSummary" style="margin-bottom:12px"></div>
+            <div class="tbl-wrap scroll" id="exchangeTbl"></div>
+          </div>
+          <div class="card">
+            <div class="card-hdr">
+              <i data-lucide="undo-2" class="icon card-hdr-icon-lc"></i>
+              <div class="card-title">환불 상세 내역</div>
+            </div>
+            <div id="refundSummary" style="margin-bottom:12px"></div>
+            <div class="tbl-wrap scroll" id="refundTbl"></div>
+          </div>
         </div>
       </div>
 
@@ -478,10 +577,10 @@ tr:hover td{background:var(--bg-alt);}
                ondragover="dzOv2(event)" ondragleave="dzLv2()" ondrop="dzDp2(event)"
                style="margin-bottom:0">
             <div class="dz-ico"><i data-lucide="file-text" class="icon-lg"></i></div>
-            <div class="dz-t">PPTX · XLSX · DOCX · TXT 파일을 드래그하거나 클릭</div>
-            <div class="dz-s">업로드 시 HTML 보고서로 자동 변환됩니다</div>
+            <div class="dz-t">PPTX · XLSX · DOCX · TXT · CSV 파일 1개 이상을 드래그하거나 클릭</div>
+            <div class="dz-s">여러 파일을 한 번에 올리면 날짜와 핵심 이슈를 합쳐 자동 보고서로 정리합니다</div>
           </div>
-          <input type="file" id="wfi" accept=".pptx,.xlsx,.xls,.docx,.txt" style="display:none" onchange="handleWeeklyFile(this.files[0])">
+          <input type="file" id="wfi" multiple accept=".pptx,.xlsx,.xls,.docx,.txt,.csv" style="display:none" onchange="handleWeeklyFiles(this.files)">
           <div id="wFileInfo" style="margin-top:10px;font-size:13px;color:var(--text-tertiary)"></div>
         </div>
         <div id="weeklyReport"></div>
@@ -588,6 +687,7 @@ const DEFAULT = {
     {c:'#5D86F7',txt:'채널톡 5주차 내보내기 업데이트 요청 필요 (현재 ~3/28 기준)'},
     {c:'#2E7D50',txt:'프라임 AS 재인입 32건 · 그래비티 24건 → 수리 품질 및 동일 증상 재발 여부 확인'},
   ],
+  modelSymptomTopByModel:{},
   repReviews:{
     pos:[
       {product:'그래비티', rating:5, content:'냄새가 많이 날까 걱정했는데 생각만큼 심하지 않아요. 음식물 버리러 나가는 게 귀찮았는데 삶의 질이 올라갔어요!'},
@@ -621,9 +721,9 @@ let curTab = 'dashboard';
 // ═══════════════════════════════════════════
 function modelAlias(v) {
   const t = String(v||'').toUpperCase().replace(/\s/g,'');
-  if (t.includes('EASY')||t.includes('이지')||t.includes('EASY100')) return '이지';
-  if (t.includes('(W)')||t.includes('GRAVITYW')||t.includes('그래비티W')||t.includes('GT500W')) return '그래비티W';
-  if (t.includes('PRIME')||t.includes('프라임')) return '프라임';
+  if (t.includes('RCEASY100')||t.includes('EASY100')||t.includes('EASY')||t.includes('이지')) return '이지';
+  if (t.includes('GT500(W)')||t.includes('RC-GT500(W)')||t.includes('(W)')||t.includes('GRAVITYW')||t.includes('그래비티W')||t.includes('GT500W')) return '그래비티W';
+  if (t.includes('PRIME300')||t.includes('RCPRIME300')||t.includes('PRIME')||t.includes('프라임')) return '프라임';
   if (t.includes('GT500')||t.includes('GRAVITY')||t.includes('그래비티')) return '그래비티';
   if (t.includes('RC-02')||t.includes('RC02')) return 'RC-02';
   if (t.includes('소모품')||t.includes('푸드클리너')||t.includes('미생물')||t.includes('FOOD')) return '소모품';
@@ -661,6 +761,21 @@ function detectType(fname, headers) {
 }
 function topN(obj,n=5){return Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([name,value])=>({name,value}));}
 function fmtN(v){if(v===null||v===undefined||isNaN(v))return '-';return Number(v).toLocaleString('ko-KR');}
+function parseMonthDay(raw) {
+  const s = String(raw || '').trim();
+  if(!s) return null;
+  let m = s.match(/(20\d{2})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+  if(m) return `${Number(m[2])}/${Number(m[3])}`;
+  m = s.match(/(\d{1,2})[\/\-.](\d{1,2})(?:\s|$)/);
+  if(m) return `${Number(m[1])}/${Number(m[2])}`;
+  return null;
+}
+function updateDerivedPeriod() {
+  const ds = D.dailyStats || [];
+  if(!ds.length) return;
+  const start = ds[0].date, end = ds[ds.length-1].date;
+  D.period = `${start} ~ ${end}`;
+}
 
 // ═══════════════════════════════════════════
 // 파일 파싱 → D 갱신
@@ -673,7 +788,7 @@ function applyFiles() {
   const chR = FILES.get('channel')?.rows||[];
 
   if (csR.length) {
-    const modelMap={},symMap={},reinMap={},statusMap={};
+    const modelMap={},symMap={},reinMap={},statusMap={},modelSymMap={};
     let completed=0,asRein=0;
     csR.forEach(r=>{
       const model=modelAlias(pickCol(r,['품명','상품명','모델명']));
@@ -684,7 +799,12 @@ function applyFiles() {
       const asType=String(pickCol(r,['A/S유형','AS유형','구분'])||'').trim();
       if(/^AS\(재/.test(asType)||asType==='AS(재)'){asRein++;reinMap[model]=(reinMap[model]||0)+1;}
       const sym=String(pickCol(r,['A/S증상','증상','문의유형'])||'미분류');
-      sym.split(/[,/+]/).map(s=>s.trim()).filter(Boolean).forEach(s=>{symMap[s]=(symMap[s]||0)+1;});
+      const symParts = sym.split(/[,+\n]/).map(s=>s.trim()).filter(Boolean);
+      symParts.forEach(s=>{
+        symMap[s]=(symMap[s]||0)+1;
+        modelSymMap[model]=modelSymMap[model]||{};
+        modelSymMap[model][s]=(modelSymMap[model][s]||0)+1;
+      });
     });
     D.csTotal=csR.length; D.completed=completed; D.complRate=+((completed/csR.length)*100).toFixed(1);
     D.asRein=asRein; D.asReinRate=+((asRein/csR.length)*100).toFixed(1);
@@ -693,6 +813,7 @@ function applyFiles() {
     D.symptomTop=topN(symMap,5);
     D.symptomAll=topN(symMap,10);
     D.statusDist=topN(statusMap,5);
+    D.modelSymptomTopByModel = Object.fromEntries(Object.entries(modelSymMap).map(([model, mp])=>[model, topN(mp,5)]));
     const topM=topN(modelMap,1)[0]; if(topM){D.topModel=topM.name;D.topModelCnt=topM.value;D.topModelPct=+((topM.value/csR.length)*100).toFixed(1);}
     const topS=topN(symMap,1)[0]; if(topS){D.topSym=topS.name;D.topSymCnt=topS.value;}
     D.csList=csR.slice(0,30).map(r=>({
@@ -709,12 +830,15 @@ function applyFiles() {
   }
   if (exR.length) {
     D.exTotal=exR.length;
-    D.exchangeList=exR.slice(0,20).map(r=>({
+    D.exchangeList=exR.map(r=>({
       product:String(pickCol(r,['품명','상품명'])||'—'),
       status:String(pickCol(r,['처리상태'])||'처리중'),
       type:String(pickCol(r,['교환유형','A/S유형'])||'—'),
       store:String(pickCol(r,['구매처'])||'—'),
-      symptom:String(pickCol(r,['A/S증상','증상기준'])||'—').slice(0,20),
+      symptom:String(pickCol(r,['A/S증상','증상기준','AS접수 내용'])||'—'),
+      reason:String(pickCol(r,['원인','비고'])||'—'),
+      part:String(pickCol(r,['부품'])||'—'),
+      cost:String(pickCol(r,['고객부담비용','비용'])||'—'),
     }));
   }
   if (rfR.length) {
@@ -726,41 +850,55 @@ function applyFiles() {
       const existing=D.actions.find(a=>a.txt.includes('환불'));
       if(!existing&&topRf.value>=2) D.actions.push({c:'#B26A12',txt:`<strong>${topRf.name}</strong> 환불 <strong>${topRf.value}건</strong> 집중 — 초기 불량 패턴 분석 필요`});
     }
-    D.refundList=rfR.slice(0,20).map(r=>({
+    D.refundList=rfR.map(r=>({
       product:String(pickCol(r,['품명','상품명'])||'—'),
       status:String(pickCol(r,['처리상태'])||'처리중'),
       type:String(pickCol(r,['환불유형','A/S유형'])||'—'),
-      cost:r['비용']?fmtN(Number(r['비용']))+'원':'—',
-      symptom:String(pickCol(r,['A/S증상','증상기준'])||'—').slice(0,20),
+      cost:String(pickCol(r,['고객부담비용','비용'])||'—'),
+      symptom:String(pickCol(r,['A/S증상','증상기준','AS접수 내용'])||'—'),
+      reason:String(pickCol(r,['원인','비고'])||'—'),
+      part:String(pickCol(r,['부품'])||'—'),
+      store:String(pickCol(r,['구매처'])||'—'),
     }));
   }
   if (rvR.length) {
     const rvPM={},lowRM={};let rs=0,rc=0;
+    const allReviews = [];
     rvR.forEach(r=>{
       const m=modelAlias(pickCol(r,['상품명','품명','모델명']));
       rvPM[m]=(rvPM[m]||0)+1;
       const rt=Number(pickCol(r,['구매자평점','평점'])||0);
+      const content = String(pickCol(r,['리뷰상세내용','리뷰내용'])||'—').trim();
+      const item = {
+        product:String(pickCol(r,['상품명','품명'])||'—'),
+        rating:rt,
+        content,
+        type:String(pickCol(r,['리뷰구분'])||'일반'),
+        date:String(pickCol(r,['리뷰등록일'])||''),
+      };
+      allReviews.push(item);
       if(!isNaN(rt)&&rt>0){rs+=rt;rc++;if(rt<=3)lowRM[m]=(lowRM[m]||0)+1;}
     });
     D.rvTotal=rvR.length; D.avgRating=rc?+(rs/rc).toFixed(2):0;
     D.negReviews=Object.values(lowRM).reduce((a,b)=>a+b,0);
     D.rvProdDist=topN(rvPM,7); D.lowRvDist=topN(lowRM,5);
     const topLR=topN(lowRM,1)[0]; if(topLR){D.topLow=topLR.name;}
-    D.lowRvList=rvR.filter(r=>{const rt=Number(pickCol(r,['구매자평점','평점'])||0);return rt>0&&rt<=3;})
-      .slice(0,15).map(r=>({
-        product:String(pickCol(r,['상품명','품명'])||'—').slice(0,16),
-        rating:Number(pickCol(r,['구매자평점','평점'])||0),
-        content:String(pickCol(r,['리뷰상세내용','리뷰내용'])||'—').slice(0,40),
-      }));
+    D.reviewFullList = allReviews;
+    D.lowRvList = allReviews.filter(r=>r.rating>0&&r.rating<=3);
+    const byRich = (arr, n=3) => arr.sort((a,b)=>(b.content?.length||0)-(a.content?.length||0)).slice(0,n);
+    D.repReviews = {
+      pos: byRich(allReviews.filter(r=>r.rating>=5), 3),
+      neg: byRich(allReviews.filter(r=>r.rating<=2), 3),
+    };
   }
   if (chR.length) {
     const chMap={}, chDateMap={};
     chR.forEach(r=>{
       const m=String(pickCol(r,['mediumType','mediumName','채널'])||'기타').trim()||'기타';
       chMap[m]=(chMap[m]||0)+1;
-      const rawDate=String(pickCol(r,['date','createdAt','접수일','날짜','일자'])||'');
-      const dm=rawDate.match(/(\d{1,2})[\/\-.](\d{1,2})/);
-      if(dm){const k=dm[1]+'/'+dm[2];chDateMap[k]=(chDateMap[k]||0)+1;}
+      const rawDate = pickCol(r,['managedAt','createdAt','date','created_at','접수일','등록일','날짜','일자','상담일']);
+      const k = parseMonthDay(rawDate);
+      if(k){ chDateMap[k]=(chDateMap[k]||0)+1; }
     });
     D.chDist=topN(chMap,6); D.chTotal=chR.length;
     if(Object.keys(chDateMap).length>=2) D._chDateMap=chDateMap;
@@ -769,24 +907,32 @@ function applyFiles() {
   if (csR.length) {
     const csDateMap={}, doneDateMap={};
     csR.forEach(r=>{
-      const rawDate=String(pickCol(r,['접수일','등록일'])||'');
-      const dm=rawDate.match(/(\d{1,2})[\/\-.](\d{1,2})/)||rawDate.match(/\d{4}[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
-      if(dm){
-        const k=dm[1]+'/'+dm[2];
+      const rawDate = pickCol(r,['접수일','등록일','인입일','회수일자','출하일자']);
+      const k = parseMonthDay(rawDate);
+      if(k){
         csDateMap[k]=(csDateMap[k]||0)+1;
         const st=String(pickCol(r,['처리상태','접수상태'])||'');
         if(st.includes('처리완료')) doneDateMap[k]=(doneDateMap[k]||0)+1;
       }
     });
-    if(Object.keys(csDateMap).length>=2){
-      const dates=Object.keys(csDateMap).sort((a,b)=>{
+    if(Object.keys(csDateMap).length>=1){
+      const dateSet = new Set([...Object.keys(csDateMap), ...Object.keys(D._chDateMap||{})]);
+      const dates=[...dateSet].sort((a,b)=>{
         const [am,ad]=a.split('/').map(Number);
         const [bm,bd]=b.split('/').map(Number);
         return am!==bm?am-bm:ad-bd;
       });
       D.dailyStats=dates.map(d=>({date:d,cs:csDateMap[d]||0,done:doneDateMap[d]||0,ch:D._chDateMap?.[d]||0}));
     }
+  } else if (D._chDateMap && Object.keys(D._chDateMap).length) {
+    const dates=Object.keys(D._chDateMap).sort((a,b)=>{
+      const [am,ad]=a.split('/').map(Number);
+      const [bm,bd]=b.split('/').map(Number);
+      return am!==bm?am-bm:ad-bd;
+    });
+    D.dailyStats=dates.map(d=>({date:d,cs:0,done:0,ch:D._chDateMap[d]||0}));
   }
+  updateDerivedPeriod();
 }
 
 // ═══════════════════════════════════════════
@@ -827,7 +973,7 @@ function reviewCard(product, rating, content, type) {
       <span class="review-product">${product}</span>
       <span>${stars}</span>
     </div>
-    <div class="review-content">"${content}"</div>
+    <div class="review-content-full">${content}</div>
   </div>`;
 }
 
@@ -873,115 +1019,102 @@ function destroyChart(id) {
 // ═══════════════════════════════════════════
 // 렌더 함수
 // ═══════════════════════════════════════════
-function renderDashboard() {
-  // ── KPI 6개: 채널톡인입 / 전화문의 / AS재인입 / 교환 / 환불 / 평균평점 ──
-  const kakao = D.chDist?.find(d=>/카카오|채널톡/i.test(d.name));
-  const phone  = D.chDist?.find(d=>/인콜|전화|phone|I\/C/i.test(d.name));
-  document.getElementById('kpiGrid').innerHTML = [
-    kpiCard('message-circle', '채널톡 인입',  fmtN(kakao?.value ?? D.chTotal)+'건',  `총 인입 ${fmtN(D.chTotal)}건`, 'var(--text-tertiary)'),
-    kpiCard('phone',          '전화 문의',    fmtN(phone?.value ?? 0)+'건',           `인콜(I/C)`, 'var(--text-tertiary)'),
-    kpiCard('refresh-cw',     'AS 재인입',    fmtN(D.asRein)+'건',                    `전체 대비 ${D.asReinRate}%`, 'var(--danger-text)'),
-    kpiCard('repeat',         '교환',         fmtN(D.exTotal)+'건',                   `이번 주`, 'var(--text-tertiary)'),
-    kpiCard('undo-2',         '환불',         fmtN(D.rfTotal)+'건',                   `이번 주`, 'var(--text-tertiary)'),
-    kpiCard('star',           '평균 평점',    D.avgRating?(D.avgRating.toFixed(2)+'점'):'-', `리뷰 ${fmtN(D.rvTotal)}건`, 'var(--success-text)'),
-  ].join('');
 
-  // ── 선형 추이 차트 ──
-  const ds = D.dailyStats || [];
-  const trendBadge = document.getElementById('trendPeriodBadge');
-  if(trendBadge && ds.length) trendBadge.textContent = ds[0].date + ' ~ ' + ds[ds.length-1].date;
+const DonutValuePlugin = {
+  id: 'donutValuePlugin',
+  afterDatasetsDraw(chart) {
+    if (chart.config.type !== 'doughnut') return;
+    const {ctx} = chart;
+    const dataset = chart.data.datasets?.[0];
+    const meta = chart.getDatasetMeta(0);
+    if (!dataset || !meta || !meta.data) return;
+    const data = dataset.data || [];
+    const total = data.reduce((sum, value) => sum + Number(value || 0), 0);
+    meta.data.forEach((arc, index) => {
+      const value = Number(data[index] || 0);
+      if (!value) return;
+      const angle = (arc.startAngle + arc.endAngle) / 2;
+      const radius = arc.innerRadius + (arc.outerRadius - arc.innerRadius) * 0.58;
+      const x = arc.x + Math.cos(angle) * radius;
+      const y = arc.y + Math.sin(angle) * radius;
+      const pct = total ? (value / total) * 100 : 0;
 
-  destroyChart('trend');
-  const tCtx = document.getElementById('trendChart');
-  if(tCtx && ds.length) {
-    CHARTS.trend = new Chart(tCtx, {
-      type: 'line',
-      data: {
-        labels: ds.map(d=>d.date),
-        datasets: [
-          {
-            label: '채널톡 인입',
-            data: ds.map(d=>d.ch),
-            borderColor: '#5D86F7',
-            backgroundColor: 'rgba(93,134,247,.08)',
-            borderWidth: 2,
-            pointRadius: 4,
-            pointBackgroundColor: '#5D86F7',
-            tension: 0.35,
-            fill: true,
-            yAxisID: 'y',
-          },
-          {
-            label: 'CS 처리완료',
-            data: ds.map(d=>d.done),
-            borderColor: '#47A786',
-            backgroundColor: 'rgba(71,167,134,.06)',
-            borderWidth: 2,
-            pointRadius: 4,
-            pointBackgroundColor: '#47A786',
-            tension: 0.35,
-            fill: true,
-            yAxisID: 'y',
-          },
-          {
-            label: 'CS 인입',
-            data: ds.map(d=>d.cs),
-            borderColor: '#826AF1',
-            backgroundColor: 'transparent',
-            borderWidth: 2,
-            borderDash: [5,3],
-            pointRadius: 3,
-            pointBackgroundColor: '#826AF1',
-            tension: 0.35,
-            fill: false,
-            yAxisID: 'y',
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {mode:'index', intersect:false},
-        plugins: {
-          legend: {
-            position: 'top',
-            align: 'end',
-            labels: {
-              boxWidth: 10, boxHeight: 10, borderRadius: 3,
-              font: {family:'Pretendard', size:12},
-              color: '#5F6673',
-              padding: 16,
-            },
-          },
-          tooltip: {
-            backgroundColor: '#17181C',
-            titleFont: {family:'Pretendard', size:12},
-            bodyFont:  {family:'Pretendard', size:12},
-            padding: 10,
-            cornerRadius: 8,
-          },
-        },
-        scales: {
-          x: {
-            grid: {display:false},
-            ticks: {font:{family:'Pretendard',size:12}, color:'#8B93A1'},
-            border: {color:'#E7E9EE'},
-          },
-          y: {
-            grid: {color:'#EEF0F4', drawBorder:false},
-            ticks: {font:{family:'Pretendard',size:11}, color:'#8B93A1', maxTicksLimit:5},
-            border: {display:false},
-          },
-        },
-      },
+      ctx.save();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(23,24,28,.18)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetY = 2;
+      ctx.font = '700 14px Pretendard';
+      ctx.fillText(String(value), x, y - 7);
+      ctx.shadowColor = 'transparent';
+      ctx.font = '600 10px Pretendard';
+      ctx.fillText(pct.toFixed(1) + '%', x, y + 9);
+      ctx.restore();
     });
   }
+};
 
-  // ── 모델별 CS 도넛 ──
+
+function buildVerticalBars(data, color) {
+  if(!data || !data.length) return '<div class="empty-msg">데이터 없음</div>';
+  const max = Math.max(...data.map(d=>Number(d.value)||0), 1);
+  return `<div class="vbars">${data.map(item=>{
+    const value = Number(item.value)||0;
+    const height = Math.max(4, (value / max) * 100);
+    return `<div class="vbar-item">
+      <div class="vbar-value">${fmtN(value)}</div>
+      <div class="vbar-track">
+        <div class="vbar-fill" style="height:${height}%;background:${color}"></div>
+      </div>
+      <div class="vbar-label">${item.label || item.date || item.name}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function modelSymptomCard(modelName, total, symptoms, reinCnt) {
+  return `<div class="model-symptom-card">
+    <div class="model-top-meta">
+      <div class="model-top-left">
+        <div class="model-top-name">${modelName}</div>
+        <div class="model-top-sub">CS ${fmtN(total)}건 · AS 재인입 ${fmtN(reinCnt||0)}건</div>
+      </div>
+      <div class="model-top-badge">증상 TOP ${Math.min(5, (symptoms||[]).length || 0)}</div>
+    </div>
+    <div class="model-section-title">주요 A/S 증상 분포</div>
+    <div>${symptoms && symptoms.length ? `<div class="blist">${symptoms.map((item,i)=>`
+      <div>
+        <div class="bi-row"><span class="bi-name">${item.name}</span><span class="bi-num">${fmtN(item.value)}건</span></div>
+        <div class="btrack"><div class="bfill" data-w="${(item.value/Math.max(...symptoms.map(s=>s.value),1)*100).toFixed(1)}" style="width:0%;background:${COLORS[i%COLORS.length]}"></div></div>
+      </div>`).join('')}</div>` : `<div class="model-empty">집계된 A/S 증상이 없습니다</div>`}</div>
+  </div>`;
+}
+
+function renderDashboard() {
+  const kakao = D.chDist?.find(d=>/카카오|채널톡/i.test(d.name));
+  const phone = D.chDist?.find(d=>/인콜|전화|phone|I\/C/i.test(d.name));
+  document.getElementById('kpiGrid').innerHTML = [
+    kpiCard('message-circle', '채널톡 인입', fmtN(kakao?.value ?? D.chTotal)+'건', `총 인입 ${fmtN(D.chTotal)}건`, 'var(--text-tertiary)'),
+    kpiCard('phone', '전화 문의', fmtN(phone?.value ?? 0)+'건', '인콜(I/C)', 'var(--text-tertiary)'),
+    kpiCard('refresh-cw', 'AS 재인입', fmtN(D.asRein)+'건', `전체 대비 ${D.asReinRate}%`, 'var(--danger-text)'),
+    kpiCard('repeat', '교환', fmtN(D.exTotal)+'건', '이번 주', 'var(--text-tertiary)'),
+    kpiCard('undo-2', '환불', fmtN(D.rfTotal)+'건', '이번 주', 'var(--text-tertiary)'),
+    kpiCard('star', '평균 평점', D.avgRating ? (D.avgRating.toFixed(2)+'점') : '-', `리뷰 ${fmtN(D.rvTotal)}건`, 'var(--success-text)'),
+  ].join('');
+
+  const ds = D.dailyStats || [];
+  const periodText = D.period || (ds.length ? `${ds[0].date}~${ds[ds.length-1].date}` : '기간 정보 없음');
+  const csTotal = ds.reduce((sum, item)=>sum + (Number(item.cs)||0), 0);
+  const chTotal = ds.reduce((sum, item)=>sum + (Number(item.ch)||0), 0);
+  document.getElementById('dailySummary').textContent = `${periodText} | CS ${fmtN(csTotal)}건 / 채널톡 ${fmtN(chTotal)}건`;
+  document.getElementById('dailyCsBars').innerHTML = buildVerticalBars(ds.map(d=>({label:d.date, value:d.cs})), '#6C5CE7');
+  document.getElementById('dailyChBars').innerHTML = buildVerticalBars(ds.map(d=>({label:d.date, value:d.ch})), '#1E88E5');
+
   destroyChart('donut');
   const modelData = D.modelDist || [];
   const dCtx = document.getElementById('modelDonut');
-  if(dCtx && modelData.length) {
+  if (dCtx && modelData.length) {
     const donutColors = ['#5D86F7','#47A786','#826AF1','#D9A514','#C24646','#5F6673'];
     CHARTS.donut = new Chart(dCtx, {
       type: 'doughnut',
@@ -992,47 +1125,45 @@ function renderDashboard() {
           backgroundColor: donutColors,
           borderWidth: 0,
           hoverOffset: 6,
+          spacing: 2,
         }],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '68%',
+        cutout: '42%',
+        layout: {padding: 12},
         plugins: {
           legend: {display:false},
           tooltip: {
             backgroundColor:'#17181C',
             titleFont:{family:'Pretendard',size:12},
-            bodyFont: {family:'Pretendard',size:12},
-            padding:10, cornerRadius:8,
+            bodyFont:{family:'Pretendard',size:12},
+            padding:10,
+            cornerRadius:8,
             callbacks:{label:ctx=>' '+ctx.label+': '+fmtN(ctx.raw)+'건'},
           },
         },
       },
+      plugins:[DonutValuePlugin],
     });
-    // 레전드
     const total = modelData.reduce((s,d)=>s+d.value,0);
     document.getElementById('modelLegend').innerHTML = modelData.map((d,i)=>`
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-        <div style="display:flex;align-items:center;gap:7px">
-          <span style="width:9px;height:9px;border-radius:50%;background:${donutColors[i]};flex-shrink:0"></span>
-          <span style="font-size:13px;font-weight:500;color:var(--text-secondary)">${d.name}</span>
+      <div class="legend-row">
+        <div class="legend-left">
+          <span class="legend-dot" style="background:${donutColors[i]}"></span>
+          <span class="legend-label">${d.name}</span>
         </div>
-        <span style="font-size:13px;font-weight:600;color:var(--text-primary)">${fmtN(d.value)}<span style="font-size:11px;color:var(--text-tertiary);font-weight:400;margin-left:4px">${total?+(d.value/total*100).toFixed(1):0}%</span></span>
+        <span class="legend-right">${fmtN(d.value)}<span>${total?+(d.value/total*100).toFixed(1):0}%</span></span>
       </div>`).join('');
   }
 
-  // ── AS 증상 바 ──
   bars(D.symptomAll||D.symptomTop, 'symptomBars');
 
-  // ── 주요 인사이트 ──
   const acts = D.actions || [];
   const strip = s => String(s||'').replace(/<[^>]+>/g,'');
-  document.getElementById('actionInsightGrid').innerHTML = insightCard(
-    strip(acts[0]?.txt), strip(acts[1]?.txt), strip(acts[2]?.txt)
-  );
+  document.getElementById('actionInsightGrid').innerHTML = insightCard(strip(acts[0]?.txt), strip(acts[1]?.txt), strip(acts[2]?.txt));
 
-  // ── VOC 주요 액션 ──
   const vocEl = document.getElementById('vocActionList');
   if(D.actions && D.actions.length) {
     vocEl.innerHTML = `<div class="ins-list">${D.actions.map(a=>`
@@ -1043,6 +1174,7 @@ function renderDashboard() {
   } else {
     vocEl.innerHTML = '<div class="empty-msg">파일 업로드 후 자동 생성됩니다</div>';
   }
+  requestAnimationFrame(()=>{document.querySelectorAll('#modelCardGrid .bfill').forEach(b=>{b.style.width=b.dataset.w+'%';});});
 }
 
 function renderReviews() {
@@ -1056,68 +1188,92 @@ function renderReviews() {
   ].join('');
 
   const posRvs = D.repReviews?.pos||[];
-  document.getElementById('repPosReviews').innerHTML = posRvs.length ?
-    posRvs.map(r=>reviewCard(r.product,r.rating,r.content,'pos')).join('') :
-    '<div class="empty-msg">—</div>';
+  document.getElementById('repPosReviews').innerHTML = posRvs.length ? posRvs.map(r=>reviewCard(r.product,r.rating,r.content,'pos')).join('') : '<div class="empty-msg">—</div>';
 
   const negRvs = D.repReviews?.neg||[];
-  document.getElementById('repNegReviews').innerHTML = negRvs.length ?
-    negRvs.map(r=>reviewCard(r.product,r.rating,r.content,'neg')).join('') :
-    '<div class="empty-msg">—</div>';
+  document.getElementById('repNegReviews').innerHTML = negRvs.length ? negRvs.map(r=>reviewCard(r.product,r.rating,r.content,'neg')).join('') : '<div class="empty-msg">—</div>';
 
-  const faqKws = ['사용법','어떻게','방법','모르겠','설명','이용 방법','어디'];
-  const faqList = (D.lowRvList||[]).filter(r=>faqKws.some(k=>String(r.content||'').includes(k)));
+  const faqKws = ['사용법','어떻게','방법','모르겠','설명','이용 방법','조립','설치'];
+  const faqList = (D.reviewFullList||[]).filter(r=>faqKws.some(k=>String(r.content||'').includes(k)));
   const faqEl = document.getElementById('usageFaqReviews');
   faqEl.innerHTML = `<div style="font-size:13px;color:var(--text-tertiary);margin-bottom:10px">총 <strong style="color:var(--text-primary)">${faqList.length}건</strong> 사용법 관련 리뷰 감지</div>`;
-  if(faqList.length) {
-    faqEl.innerHTML += faqList.slice(0,3).map(r=>`
-      <div style="background:var(--primary-50);border-radius:var(--r-xs);padding:12px;margin-bottom:8px;border:1px solid var(--primary-100);font-size:13px;color:var(--primary-700);line-height:1.6">"${r.content}"</div>`).join('');
-  }
+  if(faqList.length) faqEl.innerHTML += faqList.slice(0,5).map(r=>`<div style="background:var(--primary-50);border-radius:var(--r-xs);padding:12px;margin-bottom:8px;border:1px solid var(--primary-100);font-size:13px;color:var(--primary-700);line-height:1.6;white-space:pre-wrap;word-break:break-word">${r.content}</div>`).join('');
 
   const STOPWORDS = new Set(['이','가','은','는','을','를','의','에','도','로','와','과','그','저','제','것','수','있','없','더','너무','정말','진짜','좀','좋','나쁜','별로','아직','그냥','같아요','같습니다','해요','했어요','인데','인지','겠','에서']);
   const kwMap={};
   (D.lowRvList||[]).forEach(r=>{
     String(r.content||'').split(/\s+/).forEach(w=>{
       const c=w.replace(/[^\uAC00-\uD7A3a-z0-9]/gi,'');
-      if(c.length>=2&&!STOPWORDS.has(c)){kwMap[c]=(kwMap[c]||0)+1;}
+      if(c.length>=2&&!STOPWORDS.has(c)) kwMap[c]=(kwMap[c]||0)+1;
     });
   });
   const kwTop = topN(kwMap,10);
   const kwEl = document.getElementById('rvKeywords');
-  if(kwTop.length) {
-    kwEl.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0">${kwTop.map((k,i)=>`
-      <span style="background:${i<3?'var(--danger-bg)':i<6?'var(--warning-bg)':'var(--bg-alt)'};color:${i<3?'var(--danger-text)':i<6?'var(--warning-text)':'var(--text-secondary)'};padding:5px 12px;border-radius:999px;font-size:13px;border:1px solid ${i<3?'var(--danger-border)':i<6?'var(--warning-border)':'var(--border-subtle)'}">
-        ${k.name} <span style="font-size:11px;opacity:.7">${k.value}</span>
-      </span>`).join('')}</div>`;
-  } else {
-    kwEl.innerHTML = '<div class="empty-msg">데이터 없음</div>';
-  }
+  kwEl.innerHTML = kwTop.length ? `<div style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0">${kwTop.map((k,i)=>`<span style="background:${i<3?'var(--danger-bg)':i<6?'var(--warning-bg)':'var(--bg-alt)'};color:${i<3?'var(--danger-text)':i<6?'var(--warning-text)':'var(--text-secondary)'};padding:5px 12px;border-radius:999px;font-size:13px;border:1px solid ${i<3?'var(--danger-border)':i<6?'var(--warning-border)':'var(--border-subtle)'}">${k.name} <span style="font-size:11px;opacity:.7">${k.value}</span></span>`).join('')}</div>` : '<div class="empty-msg">데이터 없음</div>';
 
   document.getElementById('rvTbl').innerHTML = tbl(
     ['제품','평점','리뷰 내용'],
-    (D.lowRvList||[]).map(r=>[r.product,
-      `<span style="color:var(--yellow-500)">${'★'.repeat(r.rating)+'☆'.repeat(5-r.rating)}</span> ${r.rating}점`,
-      r.content]),
+    (D.lowRvList||[]).map(r=>[r.product, `<span style="color:var(--yellow-500)">${'★'.repeat(r.rating)+'☆'.repeat(5-r.rating)}</span> ${r.rating}점`, `<div class="review-content-full">${r.content}</div>`]),
     '리뷰 파일을 업로드해 주세요'
   );
 }
 
 function renderByModel() {
-  const at = D.asTypeTable||[];
-  if(!at.length) {
-    document.getElementById('modelCardGrid').innerHTML = '<div class="empty-msg">CS 파일을 업로드해 주세요</div>';
+  const modelDist = [...(D.modelDist || [])].sort((a,b)=>{
+    if(a.name==='기타') return 1;
+    if(b.name==='기타') return -1;
+    return 0;
+  });
+  const symptomMap = D.modelSymptomTopByModel || {};
+  const reinMap = Object.fromEntries((D.asReinByModel||[]).map(item=>[item.name, item.value]));
+  const grid = document.getElementById('modelCardGrid');
+  if(!modelDist.length) {
+    grid.innerHTML = '<div class="empty-msg">CS 파일을 업로드해 주세요</div>';
     return;
   }
-  document.getElementById('modelCardGrid').innerHTML = at.map(md=>modelCard(md)).join('');
+  grid.className = 'model-symptom-grid';
+  grid.innerHTML = modelDist.map(item=>modelSymptomCard(item.name, item.value, symptomMap[item.name] || [], reinMap[item.name] || 0)).join('');
+  requestAnimationFrame(()=>{grid.querySelectorAll('.bfill').forEach(b=>{b.style.width=b.dataset.w+'%';});});
+}
+
+function renderExchangeRefund() {
+  const exList = D.exchangeList || [];
+  const rfList = D.refundList || [];
+  document.getElementById('exrf-stats').innerHTML = [
+    statPill(fmtN(exList.length)+'건', '교환', 'var(--warning-text)'),
+    statPill(fmtN(rfList.length)+'건', '환불', 'var(--danger-text)'),
+    statPill(topN(exList.reduce((m,r)=>(m[r.product]=(m[r.product]||0)+1,m),{}),1)[0]?.name || '-', '교환 집중 모델', 'var(--primary-500)'),
+    statPill(topN(rfList.reduce((m,r)=>(m[r.product]=(m[r.product]||0)+1,m),{}),1)[0]?.name || '-', '환불 집중 모델', 'var(--danger-text)'),
+  ].join('');
+
+  const exSym = {};
+  exList.forEach(r=>{ const k=(r.symptom||'미분류').slice(0,24); exSym[k]=(exSym[k]||0)+1; });
+  const rfSym = {};
+  rfList.forEach(r=>{ const k=(r.symptom||'미분류').slice(0,24); rfSym[k]=(rfSym[k]||0)+1; });
+
+  document.getElementById('exchangeSummary').innerHTML = topN(exSym,5).length ? `<div class="summary-chips">${topN(exSym,5).map(i=>`<span class="badge bo">${i.name} ${i.value}</span>`).join('')}</div>` : '<div class="empty-msg">교환 데이터 없음</div>';
+  document.getElementById('refundSummary').innerHTML = topN(rfSym,5).length ? `<div class="summary-chips">${topN(rfSym,5).map(i=>`<span class="badge br">${i.name} ${i.value}</span>`).join('')}</div>` : '<div class="empty-msg">환불 데이터 없음</div>';
+
+  document.getElementById('exchangeTbl').innerHTML = tbl(
+    ['제품','처리상태','유형','증상/사유','원인','구매처'],
+    exList.map(r=>[r.product,r.status,r.type,`<div class="review-content-full">${r.symptom||'—'}</div>`,`<div class="review-content-full">${r.reason||'—'}</div>`,r.store||'—']),
+    '교환 파일을 업로드해 주세요'
+  );
+  document.getElementById('refundTbl').innerHTML = tbl(
+    ['제품','처리상태','유형','증상/사유','원인','구매처'],
+    rfList.map(r=>[r.product,r.status,r.type,`<div class="review-content-full">${r.symptom||'—'}</div>`,`<div class="review-content-full">${r.reason||'—'}</div>`,r.store||'—']),
+    '환불 파일을 업로드해 주세요'
+  );
 }
 
 // ═══════════════════════════════════════════
 // Weekly Issue
 // ═══════════════════════════════════════════
 let WEEKLY_TEXT = '';
+let WEEKLY_FILES = [];
 
 function renderWeekly(text) {
-  if(text) WEEKLY_TEXT = text;
+  if(text!==undefined && text!==null) WEEKLY_TEXT = text;
   const src = WEEKLY_TEXT;
   const el = document.getElementById('weeklyReport');
   const kpiCards = [
@@ -1194,47 +1350,51 @@ function renderWeekly(text) {
     </div>
   </div>`;
   bars(D.symptomAll||D.symptomTop,'wSymBars');
-  document.getElementById('wFileInfo').textContent = src ? '파일 파싱 완료' : '3월 5주차 기본 데이터 표시 중 · 파일 업로드 시 자동 갱신';
+  document.getElementById('wFileInfo').textContent = WEEKLY_FILES.length ? `${WEEKLY_FILES.length}개 파일 결합 완료` : (src ? '파일 파싱 완료' : '업로드된 원본 데이터 기준 자동 보고서 생성 중');
   lucide.createIcons();
 }
 
-async function parseWeeklyFile(file) {
-  const n = file.name.toLowerCase();
+async function parseWeeklyFiles(fileList) {
+  const files = Array.from(fileList || []);
+  if(!files.length) return;
+  WEEKLY_FILES = files.map(f=>f.name);
   document.getElementById('ldr').classList.add('on');
   try {
-    if(n.endsWith('.txt')) {
-      const text = await file.text();
-      renderWeekly(text);
-    } else if(n.endsWith('.xlsx')||n.endsWith('.xls')) {
-      const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf,{type:'array'});
-      let text = '';
-      wb.SheetNames.forEach(s=>{
-        const ws = wb.Sheets[s];
-        const json = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-        json.forEach(row=>{ text += row.filter(Boolean).join(' ') + '\n'; });
-      });
-      renderWeekly(text);
-    } else if(n.endsWith('.pptx')||n.endsWith('.docx')) {
-      const buf = await file.arrayBuffer();
-      const zip = await JSZip.loadAsync(buf);
-      let text = '';
-      const files = Object.keys(zip.files).filter(f=>f.startsWith(n.endsWith('.pptx')?'ppt/slides/slide':'word/document'));
-      for(const f of files.sort()) {
-        const xml = await zip.files[f].async('string');
-        text += xml.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ') + '\n';
+    let combined = '';
+    for(const file of files) {
+      const n = file.name.toLowerCase();
+      if(n.endsWith('.txt') || n.endsWith('.csv')) {
+        combined += `\n\n### ${file.name}\n` + await file.text();
+      } else if(n.endsWith('.xlsx')||n.endsWith('.xls')) {
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf,{type:'array'});
+        combined += `\n\n### ${file.name}\n`;
+        wb.SheetNames.forEach(s=>{
+          const ws = wb.Sheets[s];
+          const json = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+          json.forEach(row=>{ combined += row.filter(Boolean).join(' ') + '\n'; });
+        });
+      } else if(n.endsWith('.pptx')||n.endsWith('.docx')) {
+        const buf = await file.arrayBuffer();
+        const zip = await JSZip.loadAsync(buf);
+        combined += `\n\n### ${file.name}\n`;
+        const xmlFiles = Object.keys(zip.files).filter(f=>f.startsWith(n.endsWith('.pptx')?'ppt/slides/slide':'word/document'));
+        for(const f of xmlFiles.sort()) {
+          const xml = await zip.files[f].async('string');
+          combined += xml.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ') + '\n';
+        }
       }
-      renderWeekly(text||'내용 추출 완료');
     }
+    renderWeekly(combined.trim());
+    document.getElementById('wFileInfo').textContent = `${files.length}개 파일 파싱 완료`;
   } catch(e) { alert('파일 파싱 오류: '+e.message); }
   document.getElementById('ldr').classList.remove('on');
-  document.getElementById('wFileInfo').textContent = file.name+' 파싱 완료';
 }
 
-function handleWeeklyFile(file){ if(file) parseWeeklyFile(file); }
+function handleWeeklyFiles(files){ if(files?.length) parseWeeklyFiles(files); }
 function dzOv2(e){e.preventDefault();document.getElementById('wdz').classList.add('ov');}
 function dzLv2(){document.getElementById('wdz').classList.remove('ov');}
-function dzDp2(e){e.preventDefault();dzLv2();const f=e.dataTransfer.files[0];if(f)parseWeeklyFile(f);}
+function dzDp2(e){e.preventDefault();dzLv2();const files=e.dataTransfer.files;if(files?.length)parseWeeklyFiles(files);}
 
 // ═══════════════════════════════════════════
 // renderAll
@@ -1243,6 +1403,7 @@ function renderAll() {
   renderDashboard();
   if(curTab==='reviews') renderReviews();
   else if(curTab==='bymodel') renderByModel();
+  else if(curTab==='exchange_refund') renderExchangeRefund();
   else if(curTab==='weekly') renderWeekly();
   lucide.createIcons();
 }
@@ -1305,11 +1466,12 @@ function goTab(name) {
   document.getElementById('pane-'+name)?.classList.add('on');
   document.getElementById('nv-'+name)?.classList.add('on');
   document.querySelector('.content').scrollTop = 0;
-  const labels = {dashboard:'Dashboard',reviews:'Reviews',bymodel:'By Model',weekly:'Weekly Report'};
+  const labels = {dashboard:'Dashboard',reviews:'Reviews',bymodel:'By Model',exchange_refund:'교환 / 환불',weekly:'Weekly Report'};
   document.getElementById('topTitle').textContent = labels[name]||name;
   if(name==='dashboard') renderDashboard();
   else if(name==='reviews') renderReviews();
   else if(name==='bymodel') renderByModel();
+  else if(name==='exchange_refund') renderExchangeRefund();
   else if(name==='weekly') renderWeekly();
   lucide.createIcons();
   closeMobileMenu();
