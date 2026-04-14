@@ -1340,13 +1340,13 @@ async function handleFiles(fileList){
   if(!files.length) return;
 
   document.getElementById('ldr').classList.add('on');
-  let latestWeeklyFile = null;
+  let weeklyFiles = [];
 
   for(const file of files){
     const n = file.name.toLowerCase();
 
     if (n.endsWith('.pdf') || n.endsWith('.ppt') || n.endsWith('.pptx') || n.endsWith('.docx') || n.endsWith('.txt')) {
-      latestWeeklyFile = file;
+      weeklyFiles.push(file);
       continue;
     }
 
@@ -1364,7 +1364,7 @@ async function handleFiles(fileList){
       if(type !== 'unknown') {
         FILES.set(type, {name:file.name, rows, headers});
       } else {
-        latestWeeklyFile = file;
+        weeklyFiles.push(file);
       }
     }catch(e){
       console.error(e);
