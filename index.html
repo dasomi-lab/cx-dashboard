@@ -10,6 +10,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
@@ -362,25 +363,33 @@ tr:hover td{background:var(--bg-alt);}
 
       <!-- DASHBOARD -->
       <div id="pane-dashboard" class="pane on">
+        <!-- KPI 6개 -->
         <div class="kpi-grid" id="kpiGrid"></div>
+
+        <!-- 추이 선형 차트 (전체 너비) -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-hdr">
+            <i data-lucide="trending-up" class="icon card-hdr-icon-lc"></i>
+            <div class="card-title">CS 처리 현황 · 채널톡 인입 추이</div>
+            <span id="trendPeriodBadge" style="margin-left:auto;font-size:12px;color:var(--text-tertiary)">—</span>
+          </div>
+          <div style="position:relative;height:200px"><canvas id="trendChart"></canvas></div>
+        </div>
+
+        <!-- 2열: 모델별 CS 도넛(좌) + AS증상 TOP10(우) -->
         <div class="two-col">
           <div class="card">
             <div class="card-hdr">
-              <i data-lucide="zap" class="icon card-hdr-icon-lc"></i>
-              <div class="card-title">VOC 주요 액션</div>
+              <i data-lucide="pie-chart" class="icon card-hdr-icon-lc"></i>
+              <div class="card-title">모델별 CS 분포</div>
             </div>
-            <div id="vocActionList"><div class="empty-msg">파일 업로드 후 자동 생성됩니다</div></div>
-          </div>
-          <div class="card">
-            <div class="card-hdr">
-              <i data-lucide="message-circle" class="icon card-hdr-icon-lc"></i>
-              <div class="card-title">채널톡 현황</div>
+            <div style="display:flex;align-items:center;gap:24px">
+              <div style="position:relative;width:160px;height:160px;flex-shrink:0">
+                <canvas id="modelDonut"></canvas>
+              </div>
+              <div id="modelLegend" style="flex:1;display:flex;flex-direction:column;gap:7px"></div>
             </div>
-            <div id="chTotal" style="font-size:13px;color:var(--text-tertiary);margin-bottom:12px">—</div>
-            <div id="chBars"><div class="empty-msg">—</div></div>
           </div>
-        </div>
-        <div class="three-col">
           <div class="card">
             <div class="card-hdr">
               <i data-lucide="wrench" class="icon card-hdr-icon-lc"></i>
@@ -388,27 +397,24 @@ tr:hover td{background:var(--bg-alt);}
             </div>
             <div id="symptomBars"><div class="empty-msg">—</div></div>
           </div>
-          <div class="card">
-            <div class="card-hdr">
-              <i data-lucide="bar-chart-2" class="icon card-hdr-icon-lc"></i>
-              <div class="card-title">모델별 CS</div>
-            </div>
-            <div id="modelBars"><div class="empty-msg">—</div></div>
-          </div>
-          <div class="card">
-            <div class="card-hdr">
-              <i data-lucide="package" class="icon card-hdr-icon-lc"></i>
-              <div class="card-title">상품군별 리뷰</div>
-            </div>
-            <div id="rvProdBars"><div class="empty-msg">—</div></div>
-          </div>
         </div>
-        <div class="card">
+
+        <!-- 주요 인사이트 -->
+        <div class="card" style="margin-bottom:20px">
           <div class="card-hdr">
             <i data-lucide="lightbulb" class="icon card-hdr-icon-lc"></i>
             <div class="card-title">주요 인사이트</div>
           </div>
           <div id="actionInsightGrid"></div>
+        </div>
+
+        <!-- VOC 주요 액션 -->
+        <div class="card">
+          <div class="card-hdr">
+            <i data-lucide="zap" class="icon card-hdr-icon-lc"></i>
+            <div class="card-title">VOC 주요 액션</div>
+          </div>
+          <div id="vocActionList"><div class="empty-msg">파일 업로드 후 자동 생성됩니다</div></div>
         </div>
       </div>
 
@@ -591,6 +597,16 @@ const DEFAULT = {
       {product:'소모품(미생물 푸드클리너)', rating:1, content:'처음에 딱딱하게 굳어서 물을 넣었더니 곰팡이 피다가 다시 굳어요. 몇 주 지났는데도 이상해요.'},
     ],
   },
+  // 일별 추이 (3/29~4/4, CS+채널톡)
+  dailyStats:[
+    {date:'3/29', cs:165, done:58,  ch:412},
+    {date:'3/30', cs:178, done:71,  ch:489},
+    {date:'3/31', cs:192, done:82,  ch:445},
+    {date:'4/1',  cs:145, done:62,  ch:398},
+    {date:'4/2',  cs:121, done:52,  ch:367},
+    {date:'4/3',  cs:56,  done:28,  ch:384},
+    {date:'4/4',  cs:26,  done:14,  ch:222},
+  ],
 };
 
 // ═══════════════════════════════════════════
@@ -738,9 +754,38 @@ function applyFiles() {
       }));
   }
   if (chR.length) {
-    const chMap={};
-    chR.forEach(r=>{const m=String(pickCol(r,['mediumType','mediumName','채널'])||'기타').trim()||'기타';chMap[m]=(chMap[m]||0)+1;});
+    const chMap={}, chDateMap={};
+    chR.forEach(r=>{
+      const m=String(pickCol(r,['mediumType','mediumName','채널'])||'기타').trim()||'기타';
+      chMap[m]=(chMap[m]||0)+1;
+      const rawDate=String(pickCol(r,['date','createdAt','접수일','날짜','일자'])||'');
+      const dm=rawDate.match(/(\d{1,2})[\/\-.](\d{1,2})/);
+      if(dm){const k=dm[1]+'/'+dm[2];chDateMap[k]=(chDateMap[k]||0)+1;}
+    });
     D.chDist=topN(chMap,6); D.chTotal=chR.length;
+    if(Object.keys(chDateMap).length>=2) D._chDateMap=chDateMap;
+  }
+  // 일별 CS 집계
+  if (csR.length) {
+    const csDateMap={}, doneDateMap={};
+    csR.forEach(r=>{
+      const rawDate=String(pickCol(r,['접수일','등록일'])||'');
+      const dm=rawDate.match(/(\d{1,2})[\/\-.](\d{1,2})/)||rawDate.match(/\d{4}[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+      if(dm){
+        const k=dm[1]+'/'+dm[2];
+        csDateMap[k]=(csDateMap[k]||0)+1;
+        const st=String(pickCol(r,['처리상태','접수상태'])||'');
+        if(st.includes('처리완료')) doneDateMap[k]=(doneDateMap[k]||0)+1;
+      }
+    });
+    if(Object.keys(csDateMap).length>=2){
+      const dates=Object.keys(csDateMap).sort((a,b)=>{
+        const [am,ad]=a.split('/').map(Number);
+        const [bm,bd]=b.split('/').map(Number);
+        return am!==bm?am-bm:ad-bd;
+      });
+      D.dailyStats=dates.map(d=>({date:d,cs:csDateMap[d]||0,done:doneDateMap[d]||0,ch:D._chDateMap?.[d]||0}));
+    }
   }
 }
 
@@ -818,18 +863,176 @@ function statPill(value, label, color) {
 }
 
 // ═══════════════════════════════════════════
+// Chart 인스턴스 관리
+// ═══════════════════════════════════════════
+const CHARTS = {};
+function destroyChart(id) {
+  if(CHARTS[id]){CHARTS[id].destroy();delete CHARTS[id];}
+}
+
+// ═══════════════════════════════════════════
 // 렌더 함수
 // ═══════════════════════════════════════════
 function renderDashboard() {
+  // ── KPI 6개: 채널톡인입 / 전화문의 / AS재인입 / 교환 / 환불 / 평균평점 ──
+  const kakao = D.chDist?.find(d=>/카카오|채널톡/i.test(d.name));
+  const phone  = D.chDist?.find(d=>/인콜|전화|phone|I\/C/i.test(d.name));
   document.getElementById('kpiGrid').innerHTML = [
-    kpiCard('inbox',       '총 CS 인입',   fmtN(D.csTotal)+'건',   `완료 ${fmtN(D.completed)}건 (${D.complRate}%)`, 'var(--text-tertiary)'),
-    kpiCard('refresh-cw',  'AS 재인입',    fmtN(D.asRein)+'건',    `전체 대비 ${D.asReinRate}%`, 'var(--danger-text)'),
-    kpiCard('repeat',      '교환',         fmtN(D.exTotal)+'건',   `이번 주`, 'var(--text-tertiary)'),
-    kpiCard('undo-2',      '환불',         fmtN(D.rfTotal)+'건',   `이번 주`, 'var(--text-tertiary)'),
-    kpiCard('star',        '평균 평점',    D.avgRating?(D.avgRating.toFixed(2)+'점'):'-', `리뷰 ${fmtN(D.rvTotal)}건`, 'var(--success-text)'),
-    kpiCard('thumbs-down', '저평점',       fmtN(D.negReviews)+'건', `3점 이하 · ${D.rvTotal?+(D.negReviews/D.rvTotal*100).toFixed(1):0}%`, 'var(--danger-text)'),
+    kpiCard('message-circle', '채널톡 인입',  fmtN(kakao?.value ?? D.chTotal)+'건',  `총 인입 ${fmtN(D.chTotal)}건`, 'var(--text-tertiary)'),
+    kpiCard('phone',          '전화 문의',    fmtN(phone?.value ?? 0)+'건',           `인콜(I/C)`, 'var(--text-tertiary)'),
+    kpiCard('refresh-cw',     'AS 재인입',    fmtN(D.asRein)+'건',                    `전체 대비 ${D.asReinRate}%`, 'var(--danger-text)'),
+    kpiCard('repeat',         '교환',         fmtN(D.exTotal)+'건',                   `이번 주`, 'var(--text-tertiary)'),
+    kpiCard('undo-2',         '환불',         fmtN(D.rfTotal)+'건',                   `이번 주`, 'var(--text-tertiary)'),
+    kpiCard('star',           '평균 평점',    D.avgRating?(D.avgRating.toFixed(2)+'점'):'-', `리뷰 ${fmtN(D.rvTotal)}건`, 'var(--success-text)'),
   ].join('');
 
+  // ── 선형 추이 차트 ──
+  const ds = D.dailyStats || [];
+  const trendBadge = document.getElementById('trendPeriodBadge');
+  if(trendBadge && ds.length) trendBadge.textContent = ds[0].date + ' ~ ' + ds[ds.length-1].date;
+
+  destroyChart('trend');
+  const tCtx = document.getElementById('trendChart');
+  if(tCtx && ds.length) {
+    CHARTS.trend = new Chart(tCtx, {
+      type: 'line',
+      data: {
+        labels: ds.map(d=>d.date),
+        datasets: [
+          {
+            label: '채널톡 인입',
+            data: ds.map(d=>d.ch),
+            borderColor: '#5D86F7',
+            backgroundColor: 'rgba(93,134,247,.08)',
+            borderWidth: 2,
+            pointRadius: 4,
+            pointBackgroundColor: '#5D86F7',
+            tension: 0.35,
+            fill: true,
+            yAxisID: 'y',
+          },
+          {
+            label: 'CS 처리완료',
+            data: ds.map(d=>d.done),
+            borderColor: '#47A786',
+            backgroundColor: 'rgba(71,167,134,.06)',
+            borderWidth: 2,
+            pointRadius: 4,
+            pointBackgroundColor: '#47A786',
+            tension: 0.35,
+            fill: true,
+            yAxisID: 'y',
+          },
+          {
+            label: 'CS 인입',
+            data: ds.map(d=>d.cs),
+            borderColor: '#826AF1',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            borderDash: [5,3],
+            pointRadius: 3,
+            pointBackgroundColor: '#826AF1',
+            tension: 0.35,
+            fill: false,
+            yAxisID: 'y',
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {mode:'index', intersect:false},
+        plugins: {
+          legend: {
+            position: 'top',
+            align: 'end',
+            labels: {
+              boxWidth: 10, boxHeight: 10, borderRadius: 3,
+              font: {family:'Pretendard', size:12},
+              color: '#5F6673',
+              padding: 16,
+            },
+          },
+          tooltip: {
+            backgroundColor: '#17181C',
+            titleFont: {family:'Pretendard', size:12},
+            bodyFont:  {family:'Pretendard', size:12},
+            padding: 10,
+            cornerRadius: 8,
+          },
+        },
+        scales: {
+          x: {
+            grid: {display:false},
+            ticks: {font:{family:'Pretendard',size:12}, color:'#8B93A1'},
+            border: {color:'#E7E9EE'},
+          },
+          y: {
+            grid: {color:'#EEF0F4', drawBorder:false},
+            ticks: {font:{family:'Pretendard',size:11}, color:'#8B93A1', maxTicksLimit:5},
+            border: {display:false},
+          },
+        },
+      },
+    });
+  }
+
+  // ── 모델별 CS 도넛 ──
+  destroyChart('donut');
+  const modelData = D.modelDist || [];
+  const dCtx = document.getElementById('modelDonut');
+  if(dCtx && modelData.length) {
+    const donutColors = ['#5D86F7','#47A786','#826AF1','#D9A514','#C24646','#5F6673'];
+    CHARTS.donut = new Chart(dCtx, {
+      type: 'doughnut',
+      data: {
+        labels: modelData.map(d=>d.name),
+        datasets:[{
+          data: modelData.map(d=>d.value),
+          backgroundColor: donutColors,
+          borderWidth: 0,
+          hoverOffset: 6,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: {display:false},
+          tooltip: {
+            backgroundColor:'#17181C',
+            titleFont:{family:'Pretendard',size:12},
+            bodyFont: {family:'Pretendard',size:12},
+            padding:10, cornerRadius:8,
+            callbacks:{label:ctx=>' '+ctx.label+': '+fmtN(ctx.raw)+'건'},
+          },
+        },
+      },
+    });
+    // 레전드
+    const total = modelData.reduce((s,d)=>s+d.value,0);
+    document.getElementById('modelLegend').innerHTML = modelData.map((d,i)=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="width:9px;height:9px;border-radius:50%;background:${donutColors[i]};flex-shrink:0"></span>
+          <span style="font-size:13px;font-weight:500;color:var(--text-secondary)">${d.name}</span>
+        </div>
+        <span style="font-size:13px;font-weight:600;color:var(--text-primary)">${fmtN(d.value)}<span style="font-size:11px;color:var(--text-tertiary);font-weight:400;margin-left:4px">${total?+(d.value/total*100).toFixed(1):0}%</span></span>
+      </div>`).join('');
+  }
+
+  // ── AS 증상 바 ──
+  bars(D.symptomAll||D.symptomTop, 'symptomBars');
+
+  // ── 주요 인사이트 ──
+  const acts = D.actions || [];
+  const strip = s => String(s||'').replace(/<[^>]+>/g,'');
+  document.getElementById('actionInsightGrid').innerHTML = insightCard(
+    strip(acts[0]?.txt), strip(acts[1]?.txt), strip(acts[2]?.txt)
+  );
+
+  // ── VOC 주요 액션 ──
   const vocEl = document.getElementById('vocActionList');
   if(D.actions && D.actions.length) {
     vocEl.innerHTML = `<div class="ins-list">${D.actions.map(a=>`
@@ -840,22 +1043,6 @@ function renderDashboard() {
   } else {
     vocEl.innerHTML = '<div class="empty-msg">파일 업로드 후 자동 생성됩니다</div>';
   }
-
-  const chTotalEl = document.getElementById('chTotal');
-  if(chTotalEl) chTotalEl.textContent = D.chTotal ? `총 ${fmtN(D.chTotal)}건` : '—';
-
-  bars(D.chDist, 'chBars');
-  bars(D.symptomAll||D.symptomTop, 'symptomBars');
-  bars(D.modelDist, 'modelBars');
-  bars(D.rvProdDist, 'rvProdBars');
-
-  const acts = D.actions || [];
-  const strip = s => String(s||'').replace(/<[^>]+>/g,'');
-  document.getElementById('actionInsightGrid').innerHTML = insightCard(
-    strip(acts[0]?.txt),
-    strip(acts[1]?.txt),
-    strip(acts[2]?.txt)
-  );
 }
 
 function renderReviews() {
