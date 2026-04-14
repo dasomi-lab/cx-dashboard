@@ -12,7 +12,6 @@
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
@@ -290,7 +289,7 @@ tr:hover td{background:var(--bg-alt);}
     <div class="dz" id="dz" onclick="document.getElementById('fi').click()" ondragover="dzOv(event)" ondragleave="dzLv()" ondrop="dzDp(event)">
       <div class="dz-ico"><i data-lucide="folder-open" class="icon-lg"></i></div>
       <div class="dz-t">파일을 드래그하거나 클릭하여 선택</div>
-      <div class="dz-s">PDF · XLSX · XLS · CSV · PPT · PPTX · DOCX · TXT<br><em>분석 데이터와 공유 자료를 한 번에 업로드할 수 있습니다</em></div>
+      <div class="dz-s">XLSX · XLS · CSV · PPT · PPTX · DOCX · TXT<br><em>분석 데이터와 공유 자료를 한 번에 업로드할 수 있습니다</em></div>
     </div>
     <input type="file" id="fi" multiple accept=".pdf,.xlsx,.xls,.csv,.ppt,.pptx,.docx,.txt" onchange="handleFiles(this.files)">
     <div id="ulist"></div>
@@ -739,55 +738,6 @@ function bdg(s, type){
   return `<span class="badge bb">${t}</span>`;
 }
 
-
-const SB_URL = 'https://iauawbrdkbghmvdcngxu.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWF3YnJka2JnaG12ZGNuZ3h1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5OTk1NjIsImV4cCI6MjA5MTU3NTU2Mn0.TO_3uI7h6nXNE3mHdmhdnJ_1tvFkB-29ri8J7knGn5I';
-let sbClient = null;
-
-function initSupabase(){
-  try{
-    if(window.supabase && window.supabase.createClient){
-      sbClient = window.supabase.createClient(SB_URL, SB_KEY);
-    }
-  }catch(e){
-    console.warn('Supabase 초기화 실패:', e.message);
-  }
-}
-
-async function uploadWeeklyPdfToStorage(file) {
-  if (!sbClient) throw new Error('Supabase가 초기화되지 않았습니다.');
-
-  const safeName = String(file.name || 'weekly.pdf').replace(/[^a-zA-Z0-9._-]/g, '_');
-  const filePath = `weekly/${Date.now()}_${safeName}`;
-
-  const { error } = await sbClient.storage
-    .from('Hate-Monday')
-    .upload(filePath, file, {
-      upsert: true,
-      contentType: 'application/pdf'
-    });
-
-  if (error) {
-    console.error('PDF 업로드 실패:', error);
-    throw error;
-  }
-
-  const { data } = sbClient.storage
-    .from('Hate-Monday')
-    .getPublicUrl(filePath);
-
-  return {
-    path: filePath,
-    url: data.publicUrl
-  };
-}
-
-async function deleteWeeklyPdfFromStorage(path) {
-  if (!sbClient || !path) return;
-  const { error } = await sbClient.storage.from('Hate-Monday').remove([path]);
-  if (error) console.warn('PDF 삭제 실패:', error.message);
-}
-
 function renderDashboard(){
   const kpis = [
     {label:'총 CS 인입', value:`${fmtN(D.csTotal)}건`, sub:`처리완료 ${fmtN(D.completed)}건`, icon:'headset'},
@@ -1056,7 +1006,7 @@ function renderWeekly(text){
           </div>
         </div>
         <div class="weekly-preview-box" style="padding:0;overflow:hidden">
-          <embed src="${asset.url}" type="application/pdf" width="100%" height="1000px" />
+          <embed src="${asset.url}" type="application/pdf" width="100%" height="720px" />
         </div>
       </div>`;
     }
@@ -1095,10 +1045,8 @@ function renderWeekly(text){
   if(window.lucide) lucide.createIcons();
 }
 
-async function clearWeeklyAsset(){
-  if (WEEKLY_ASSET?.path) {
-    await deleteWeeklyPdfFromStorage(WEEKLY_ASSET.path);
-  } else if (WEEKLY_ASSET && WEEKLY_ASSET.url && String(WEEKLY_ASSET.ext||'').toUpperCase() === 'PDF') {
+function clearWeeklyAsset(){
+  if (WEEKLY_ASSET && WEEKLY_ASSET.url && String(WEEKLY_ASSET.ext||'').toUpperCase() === 'PDF') {
     try { URL.revokeObjectURL(WEEKLY_ASSET.url); } catch(e) {}
   }
   WEEKLY_ASSET = null;
@@ -1106,7 +1054,6 @@ async function clearWeeklyAsset(){
   renderWeekly();
   updateChips();
   rebuildUList();
-  saveData();
 }
 
 function renderAll(){
@@ -1304,20 +1251,12 @@ async function parseWeeklyFiles(fileList){
       name:file.name,
       ext:n.split('.').pop().toUpperCase(),
       uploadedAt:new Date().toLocaleString('ko-KR'),
-      preview:[],
-      metrics:[],
-      tableHeaders:[],
-      tableRows:[],
-      conclusion:'',
-      url:'',
-      path:''
+      preview:[], metrics:[], tableHeaders:[], tableRows:[], conclusion:'', url:''
     };
     let combined = `\n\n### ${file.name}\n`;
 
     if (n.endsWith('.pdf')) {
-      const uploaded = await uploadWeeklyPdfToStorage(file);
-      asset.url = uploaded.url;
-      asset.path = uploaded.path;
+      asset.url = URL.createObjectURL(file);
       asset.conclusion = 'PDF 문서는 카드 내부 뷰어로 표시됩니다.';
     } else if (n.endsWith('.txt') || n.endsWith('.csv')) {
       const raw = await file.text();
@@ -1386,7 +1325,7 @@ async function parseWeeklyFiles(fileList){
     renderWeekly(combined.trim());
     document.getElementById('wFileInfo').textContent = '공유 자료 1개 반영 완료';
   } catch(e) {
-    alert('파일 파싱 오류: ' + (e.message || e));
+    alert('파일 파싱 오류: ' + e.message);
   }
 
   document.getElementById('ldr').classList.remove('on');
@@ -1589,7 +1528,6 @@ async function dlPDF(){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  initSupabase();
   lucide.createIcons();
   loadFromLS();
   updateChips();
