@@ -294,11 +294,12 @@ tr:hover td{background:var(--bg-alt);}
 }
 .vbar-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;}
 .vbar-value{font-size:11px;font-weight:700;color:#25306E;margin-bottom:8px;line-height:1;}
-.vbar-track{width:min(38px,100%);height:100%;display:flex;align-items:flex-end;justify-content:center;}
+.vbar-track{width:min(38px,100%);height:100%;display:flex;align-items:flex-end;justify-content:center;position:relative;}
 .vbar-fill{width:100%;min-height:4px;border-radius:10px 10px 0 0;transition:height .7s ease;}
-.vbar-label{margin-top:10px;font-size:11px;font-weight:600;color:#6C7A96;writing-mode:vertical-rl;transform:rotate(180deg);height:66px;text-align:left;white-space:nowrap;}
+.vbar-value-end{position:absolute;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:#25306E;line-height:1;white-space:nowrap;}
+.vbar-label{margin-top:10px;font-size:11px;font-weight:600;color:#6C7A96;writing-mode:horizontal-tb;transform:none;height:auto;text-align:center;white-space:nowrap;}
 @media(max-width:960px){.daily-grid{grid-template-columns:1fr;}.vbars{height:240px;}}
-@media(max-width:768px){.daily-main-title{font-size:18px;}.daily-accent{height:60px;width:10px;min-width:10px;}.vbar-label{writing-mode:horizontal-tb;transform:none;height:auto;font-size:10px;line-height:1.3;text-align:center;}}
+@media(max-width:768px){.daily-main-title{font-size:18px;}.daily-accent{height:60px;width:10px;min-width:10px;}.vbar-label{height:auto;font-size:10px;line-height:1.3;text-align:center;}}
 
 
 #exrf-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:stretch;}
@@ -317,6 +318,29 @@ tr:hover td{background:var(--bg-alt);}
 .model-top-badge{padding:6px 12px;border-radius:999px;background:var(--primary-50);color:var(--primary-600);font-size:12px;font-weight:700;border:1px solid var(--primary-100);}
 .model-section-title{font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:10px;}
 .model-empty{font-size:13px;color:var(--text-tertiary);padding:8px 0;}
+
+
+.review-grid-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:20px;}
+@media(max-width:960px){.review-grid-two{grid-template-columns:1fr;}}
+#exchangeTbl.tbl-wrap.scroll,#refundTbl.tbl-wrap.scroll{max-height:72vh;}
+.type-bars{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+.type-row{display:grid;grid-template-columns:88px 1fr auto;align-items:center;gap:10px;}
+.type-label{font-size:12px;font-weight:600;color:var(--text-secondary);}
+.type-track{height:10px;background:var(--bg-alt);border-radius:999px;overflow:hidden;border:1px solid var(--border-soft);}
+.type-fill{height:100%;border-radius:999px;transition:width .8s ease;}
+.type-num{font-size:12px;font-weight:700;color:var(--text-primary);}
+.symptom-split{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:center;}
+@media(max-width:768px){.symptom-split{grid-template-columns:1fr;}}
+.mini-donut{width:120px;height:120px;border-radius:50%;position:relative;margin:0 auto;}
+.mini-donut::after{content:"";position:absolute;inset:22px;background:#fff;border-radius:50%;box-shadow:inset 0 0 0 1px var(--border-soft);}
+.mini-donut-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:2;text-align:center;}
+.mini-donut-center strong{font-size:20px;line-height:1;color:var(--text-primary);}
+.mini-donut-center span{font-size:10px;color:var(--text-tertiary);margin-top:4px;}
+.rank-list{display:flex;flex-direction:column;gap:8px;}
+.rank-item{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;padding:8px 10px;background:var(--bg-alt);border:1px solid var(--border-soft);border-radius:var(--r-xs);}
+.rank-no{font-size:12px;font-weight:800;color:var(--text-primary);text-align:center;}
+.rank-name{font-size:12px;font-weight:600;color:var(--text-secondary);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rank-val{font-size:12px;font-weight:700;color:var(--text-primary);}
 
 /* ── MOBILE ── */
 @media(max-width:768px){
@@ -384,7 +408,7 @@ tr:hover td{background:var(--bg-alt);}
         <i data-lucide="repeat-2" class="icon"></i><span class="nv-label">교환 / 환불</span>
       </button>
       <button class="nv" id="nv-weekly" onclick="goTab('weekly')">
-        <i data-lucide="file-text" class="icon"></i><span class="nv-label">Weekly Report</span>
+        <i data-lucide="file-text" class="icon"></i><span class="nv-label">Weekly 이슈</span>
       </button>
     </nav>
     <div class="sb-bottom">
@@ -482,15 +506,6 @@ tr:hover td{background:var(--bg-alt);}
             <div class="card-title">주요 인사이트</div>
           </div>
           <div id="actionInsightGrid"></div>
-        </div>
-
-        <!-- VOC 주요 액션 -->
-        <div class="card">
-          <div class="card-hdr">
-            <i data-lucide="zap" class="icon card-hdr-icon-lc"></i>
-            <div class="card-title">VOC 주요 액션</div>
-          </div>
-          <div id="vocActionList"><div class="empty-msg">파일 업로드 후 자동 생성됩니다</div></div>
         </div>
       </div>
 
@@ -1057,39 +1072,87 @@ const DonutValuePlugin = {
 };
 
 
+
 function buildVerticalBars(data, color) {
   if(!data || !data.length) return '<div class="empty-msg">데이터 없음</div>';
   const max = Math.max(...data.map(d=>Number(d.value)||0), 1);
   return `<div class="vbars">${data.map(item=>{
     const value = Number(item.value)||0;
     const height = Math.max(4, (value / max) * 100);
+    const label = item.label || item.date || item.name;
     return `<div class="vbar-item">
-      <div class="vbar-value">${fmtN(value)}</div>
       <div class="vbar-track">
         <div class="vbar-fill" style="height:${height}%;background:${color}"></div>
+        <div class="vbar-value-end" style="bottom:calc(${height}% + 6px)">${fmtN(value)}</div>
       </div>
-      <div class="vbar-label">${item.label || item.date || item.name}</div>
+      <div class="vbar-label">${label}</div>
     </div>`;
   }).join('')}</div>`;
 }
 
-function modelSymptomCard(modelName, total, symptoms, reinCnt) {
+
+
+function getModelColor(modelName){
+  const m = String(modelName||'');
+  if(m.includes('프라임')) return {base:'#5D86F7', light:'#DCE7FF'};
+  if(m.includes('그래비티')) return {base:'#D94F4F', light:'#FBE1E1'};
+  if(m.includes('이지')) return {base:'#47A786', light:'#DDF4EC'};
+  if(m.includes('RC-02')) return {base:'#826AF1', light:'#EAE3FF'};
+  return {base:'#7B8794', light:'#E8ECF0'};
+}
+function buildMiniDonut(symptoms, color){
+  const list = (symptoms||[]).slice(0,5);
+  const total = list.reduce((s,i)=>s+(Number(i.value)||0),0) || 1;
+  const segs = [];
+  let start = 0;
+  const alphas = [1,.85,.7,.55,.4];
+  list.forEach((item, idx)=>{
+    const val = Number(item.value)||0;
+    const pct = (val/total)*100;
+    const end = start + pct;
+    segs.push(`color-mix(in srgb, ${color} ${int(alphas[idx]*100)}%, white) ${start}% ${end}%`);
+    start = end;
+  });
+  return {style:`background:conic-gradient(${segs.join(',') || color+' 0 100%'})`, total};
+}
+
+
+function modelInsightCard(modelName, total, symptoms, typeRow, reinCnt) {
+  const palette = getModelColor(modelName);
+  const typeEntries = typeRow ? Object.entries(typeRow).filter(([k])=>k!=='model').map(([k,v])=>({name:k, value:Number(v)||0})).filter(x=>x.value>0).sort((a,b)=>b.value-a.value).slice(0,5) : [];
+  const maxType = Math.max(...typeEntries.map(i=>i.value), 1);
+  const donut = buildMiniDonut(symptoms, palette.base);
+  const symptomItems = (symptoms||[]).slice(0,5);
   return `<div class="model-symptom-card">
     <div class="model-top-meta">
       <div class="model-top-left">
         <div class="model-top-name">${modelName}</div>
         <div class="model-top-sub">CS ${fmtN(total)}건 · AS 재인입 ${fmtN(reinCnt||0)}건</div>
       </div>
-      <div class="model-top-badge">증상 TOP ${Math.min(5, (symptoms||[]).length || 0)}</div>
+      <div class="model-top-badge">TOP ${Math.max(typeEntries.length, symptomItems.length, 0)}</div>
     </div>
-    <div class="model-section-title">주요 A/S 증상 분포</div>
-    <div>${symptoms && symptoms.length ? `<div class="blist">${symptoms.map((item,i)=>`
-      <div>
-        <div class="bi-row"><span class="bi-name">${item.name}</span><span class="bi-num">${fmtN(item.value)}건</span></div>
-        <div class="btrack"><div class="bfill" data-w="${(item.value/Math.max(...symptoms.map(s=>s.value),1)*100).toFixed(1)}" style="width:0%;background:${COLORS[i%COLORS.length]}"></div></div>
-      </div>`).join('')}</div>` : `<div class="model-empty">집계된 A/S 증상이 없습니다</div>`}</div>
+    <div class="model-section-title">AS 유형별</div>
+    ${typeEntries.length ? `<div class="type-bars">${typeEntries.map((item,idx)=>`
+      <div class="type-row">
+        <div class="type-label">${item.name}</div>
+        <div class="type-track"><div class="type-fill" style="width:${(item.value/maxType*100).toFixed(1)}%;background:linear-gradient(90deg, ${palette.light} 0%, ${palette.base} 100%);opacity:${idx===0?1:0.78};"></div></div>
+        <div class="type-num">${fmtN(item.value)}</div>
+      </div>`).join('')}</div>` : `<div class="model-empty">집계된 AS 유형이 없습니다</div>`}
+    <div class="model-section-title">AS 증상별</div>
+    ${symptomItems.length ? `<div class="symptom-split">
+      <div class="mini-donut" style="${donut.style}">
+        <div class="mini-donut-center"><strong>${fmtN(donut.total)}</strong><span>TOP5 합계</span></div>
+      </div>
+      <div class="rank-list">${symptomItems.map((item,idx)=>`
+        <div class="rank-item">
+          <div class="rank-no">${idx+1}</div>
+          <div class="rank-name">${item.name}</div>
+          <div class="rank-val">${fmtN(item.value)}건</div>
+        </div>`).join('')}</div>
+    </div>` : `<div class="model-empty">집계된 A/S 증상이 없습니다</div>`}
   </div>`;
 }
+
 
 function renderDashboard() {
   const kakao = D.chDist?.find(d=>/카카오|채널톡/i.test(d.name));
@@ -1164,16 +1227,6 @@ function renderDashboard() {
   const strip = s => String(s||'').replace(/<[^>]+>/g,'');
   document.getElementById('actionInsightGrid').innerHTML = insightCard(strip(acts[0]?.txt), strip(acts[1]?.txt), strip(acts[2]?.txt));
 
-  const vocEl = document.getElementById('vocActionList');
-  if(D.actions && D.actions.length) {
-    vocEl.innerHTML = `<div class="ins-list">${D.actions.map(a=>`
-      <div class="ins-item">
-        <div class="ins-dot" style="background:${a.c}"></div>
-        <div class="ins-txt">${a.txt}</div>
-      </div>`).join('')}</div>`;
-  } else {
-    vocEl.innerHTML = '<div class="empty-msg">파일 업로드 후 자동 생성됩니다</div>';
-  }
   requestAnimationFrame(()=>{document.querySelectorAll('#modelCardGrid .bfill').forEach(b=>{b.style.width=b.dataset.w+'%';});});
 }
 
@@ -1218,23 +1271,26 @@ function renderReviews() {
   );
 }
 
+
 function renderByModel() {
+  const order = ['프라임','그래비티','이지','RC-02','그래비티W','기타'];
   const modelDist = [...(D.modelDist || [])].sort((a,b)=>{
-    if(a.name==='기타') return 1;
-    if(b.name==='기타') return -1;
-    return 0;
+    const ai = order.indexOf(a.name) === -1 ? 999 : order.indexOf(a.name);
+    const bi = order.indexOf(b.name) === -1 ? 999 : order.indexOf(b.name);
+    return ai - bi;
   });
   const symptomMap = D.modelSymptomTopByModel || {};
   const reinMap = Object.fromEntries((D.asReinByModel||[]).map(item=>[item.name, item.value]));
+  const typeMap = Object.fromEntries((D.asTypeTable||[]).map(item=>[item.model, item]));
   const grid = document.getElementById('modelCardGrid');
   if(!modelDist.length) {
     grid.innerHTML = '<div class="empty-msg">CS 파일을 업로드해 주세요</div>';
     return;
   }
   grid.className = 'model-symptom-grid';
-  grid.innerHTML = modelDist.map(item=>modelSymptomCard(item.name, item.value, symptomMap[item.name] || [], reinMap[item.name] || 0)).join('');
-  requestAnimationFrame(()=>{grid.querySelectorAll('.bfill').forEach(b=>{b.style.width=b.dataset.w+'%';});});
+  grid.innerHTML = modelDist.map(item=>modelInsightCard(item.name, item.value, symptomMap[item.name] || [], typeMap[item.name] || null, reinMap[item.name] || 0)).join('');
 }
+
 
 function renderExchangeRefund() {
   const exList = D.exchangeList || [];
@@ -1466,7 +1522,7 @@ function goTab(name) {
   document.getElementById('pane-'+name)?.classList.add('on');
   document.getElementById('nv-'+name)?.classList.add('on');
   document.querySelector('.content').scrollTop = 0;
-  const labels = {dashboard:'Dashboard',reviews:'Reviews',bymodel:'By Model',exchange_refund:'교환 / 환불',weekly:'Weekly Report'};
+  const labels = {dashboard:'Dashboard',reviews:'Reviews',bymodel:'By Model',exchange_refund:'교환 / 환불',weekly:'Weekly 이슈'};
   document.getElementById('topTitle').textContent = labels[name]||name;
   if(name==='dashboard') renderDashboard();
   else if(name==='reviews') renderReviews();
@@ -1554,29 +1610,77 @@ function updateChips(){
 // ═══════════════════════════════════════════
 // PDF
 // ═══════════════════════════════════════════
+
 async function dlPDF(){
   const btn=document.getElementById('pdfBtn');
   btn.innerHTML='<i data-lucide="loader" class="icon"></i>';btn.disabled=true;
   lucide.createIcons();
   try{
     const {jsPDF}=window.jspdf;
-    const prev=curTab; if(curTab!=='dashboard')goTab('dashboard');
-    await new Promise(r=>setTimeout(r,400));
-    const el=document.getElementById('mainContent');
-    const cv=await html2canvas(el,{scale:1.5,useCORS:true,backgroundColor:'#F5F6F8',logging:false});
-    const doc=new jsPDF('l','mm','a4');
-    const pw=doc.internal.pageSize.getWidth(),ph=doc.internal.pageSize.getHeight(),m=10;
-    const iw=pw-m*2,ih=cv.height*iw/cv.width;
-    doc.addImage(cv.toDataURL('image/jpeg',0.9),'JPEG',m,m,iw,Math.min(ih,ph-m*2));
-    doc.setFontSize(7);doc.setTextColor(170);
-    doc.text(`CX Weekly Report · ${new Date().toLocaleDateString('ko-KR')}`,m,ph-4);
+    const tabs = ['dashboard','reviews','bymodel','exchange_refund','weekly'];
+    const prev=curTab;
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '-20000px';
+    wrapper.style.top = '0';
+    wrapper.style.width = '1440px';
+    wrapper.style.background = '#F5F6F8';
+    wrapper.style.padding = '24px';
+    wrapper.style.zIndex = '-1';
+    document.body.appendChild(wrapper);
+
+    for (const tab of tabs){
+      goTab(tab);
+      await new Promise(r=>setTimeout(r,250));
+      const pane = document.querySelector(`#pane-${tab}`);
+      if(!pane) continue;
+      const section = document.createElement('div');
+      section.style.background = '#F5F6F8';
+      section.style.paddingBottom = '24px';
+      const title = document.createElement('div');
+      title.style.fontFamily = 'Pretendard, sans-serif';
+      title.style.fontSize = '24px';
+      title.style.fontWeight = '700';
+      title.style.margin = '0 0 14px 0';
+      title.textContent = ({dashboard:'Dashboard',reviews:'Reviews',bymodel:'By Model',exchange_refund:'교환 / 환불',weekly:'Weekly 이슈'})[tab];
+      section.appendChild(title);
+      const clone = pane.cloneNode(true);
+      clone.style.display='block';
+      section.appendChild(clone);
+      wrapper.appendChild(section);
+    }
+
+    await new Promise(r=>setTimeout(r,300));
+    const cv=await html2canvas(wrapper,{scale:1.4,useCORS:true,backgroundColor:'#F5F6F8',logging:false,windowWidth:1600});
+    const doc=new jsPDF('p','mm','a4');
+    const pw=doc.internal.pageSize.getWidth(), ph=doc.internal.pageSize.getHeight();
+    const margin=8;
+    const imgW = pw - margin*2;
+    const pageCanvas = document.createElement('canvas');
+    const pageCtx = pageCanvas.getContext('2d');
+    const pagePxHeight = Math.floor(cv.width * ((ph - margin*2) / imgW));
+    let rendered = 0, page = 0;
+    while(rendered < cv.height){
+      pageCanvas.width = cv.width;
+      pageCanvas.height = Math.min(pagePxHeight, cv.height - rendered);
+      pageCtx.fillStyle = '#F5F6F8';
+      pageCtx.fillRect(0,0,pageCanvas.width,pageCanvas.height);
+      pageCtx.drawImage(cv, 0, rendered, cv.width, pageCanvas.height, 0, 0, cv.width, pageCanvas.height);
+      const imgH = pageCanvas.height * imgW / pageCanvas.width;
+      if(page>0) doc.addPage();
+      doc.addImage(pageCanvas.toDataURL('image/jpeg',0.92),'JPEG',margin,margin,imgW,imgH);
+      rendered += pageCanvas.height;
+      page += 1;
+    }
     const d=new Date();
-    doc.save(`주간CS보고서_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.pdf`);
-    if(prev!=='dashboard')goTab(prev);
+    doc.save(`CX통합리포트_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.pdf`);
+    wrapper.remove();
+    if(prev!==curTab) goTab(prev);
   }catch(e){alert('PDF 오류: '+e.message);}
   btn.innerHTML='<i data-lucide="file-down" class="icon"></i>PDF';btn.disabled=false;
   lucide.createIcons();
 }
+
 
 // ═══════════════════════════════════════════
 // Supabase
