@@ -155,7 +155,9 @@ html,body{height:100%;font-family:var(--font-sans);background:var(--bg-page);col
 .kpi-sub{font-size:12px;font-weight:500;}
 
 /* ── GRID LAYOUTS ── */
-.two-col{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-bottom:20px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;align-items:stretch;}
+.equal-card-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;align-items:stretch;}
+.equal-card-grid > .card,.review-grid-two > .card,.model-symptom-grid > .model-symptom-card,.two-col > .card{height:100%;}
 .three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;}
 @media(max-width:960px){.two-col,.three-col{grid-template-columns:1fr;}}
 
@@ -226,7 +228,7 @@ html,body{height:100%;font-family:var(--font-sans);background:var(--bg-page);col
 .review-product{font-size:12px;font-weight:600;}
 .review-card.pos .review-product{color:var(--success-text);}
 .review-card.neg .review-product{color:var(--danger-text);}
-.review-content{font-size:13px;line-height:1.6;}
+.review-content{font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-word;}
 .review-card.pos .review-content{color:var(--success-text);}
 .review-card.neg .review-content{color:var(--danger-text);}
 
@@ -322,6 +324,29 @@ tr:hover td{background:var(--bg-alt);}
 
 .review-grid-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:20px;}
 @media(max-width:960px){.review-grid-two{grid-template-columns:1fr;}}
+
+.weekly-files-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px;}
+@media(max-width:960px){.weekly-files-grid{grid-template-columns:1fr;}}
+.weekly-file-card{background:var(--bg-surface);border-radius:var(--r-md);box-shadow:var(--sh-card);padding:18px 20px;border:1px solid var(--border-soft);display:flex;flex-direction:column;gap:14px;min-height:260px;}
+.weekly-file-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.weekly-file-name{font-size:14px;font-weight:700;color:var(--text-primary);word-break:break-word;}
+.weekly-file-meta{font-size:12px;color:var(--text-tertiary);margin-top:3px;}
+.weekly-file-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:var(--primary-50);border:1px solid var(--primary-100);font-size:12px;font-weight:700;color:var(--primary-600);white-space:nowrap;}
+.weekly-preview-box{background:var(--bg-alt);border:1px solid var(--border-soft);border-radius:var(--r-sm);padding:12px;min-height:110px;}
+.weekly-preview-title{font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:8px;}
+.weekly-preview-lines{display:flex;flex-direction:column;gap:7px;}
+.weekly-preview-line{font-size:12px;line-height:1.55;color:var(--text-secondary);white-space:pre-wrap;word-break:break-word;}
+.metric-chips{display:flex;flex-wrap:wrap;gap:8px;}
+.metric-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:var(--success-bg);border:1px solid var(--success-border);font-size:12px;font-weight:700;color:var(--success-text);}
+.metric-chip.warning{background:var(--warning-bg);border-color:var(--warning-border);color:var(--warning-text);}
+.metric-chip.danger{background:var(--danger-bg);border-color:var(--danger-border);color:var(--danger-text);}
+.metric-chip.special{background:var(--special-bg);border-color:var(--special-border);color:var(--special-text);}
+.table-preview{width:100%;border-collapse:collapse;font-size:12px;}
+.table-preview th,.table-preview td{padding:7px 8px;border-bottom:1px solid var(--border-soft);text-align:left;vertical-align:top;}
+.table-preview th{position:static;background:transparent;color:var(--text-tertiary);font-size:11px;padding-top:0;}
+.weekly-conclusion{padding:14px 16px;border-radius:var(--r-sm);background:linear-gradient(135deg,var(--primary-50),#fff);border:1px solid var(--primary-100);}
+.weekly-conclusion strong{display:block;font-size:12px;color:var(--primary-600);margin-bottom:6px;}
+.weekly-conclusion p{font-size:13px;line-height:1.65;color:var(--text-primary);}
 #exchangeTbl.tbl-wrap.scroll,#refundTbl.tbl-wrap.scroll{max-height:72vh;}
 .type-bars{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
 .type-row{display:grid;grid-template-columns:88px 1fr auto;align-items:center;gap:10px;}
@@ -376,9 +401,9 @@ tr:hover td{background:var(--bg-alt);}
          ondragover="dzOv(event)" ondragleave="dzLv()" ondrop="dzDp(event)">
       <div class="dz-ico"><i data-lucide="folder-open" class="icon-lg"></i></div>
       <div class="dz-t">파일을 드래그하거나 클릭하여 선택</div>
-      <div class="dz-s">XLSX · XLS · CSV — <em>유형 자동 인식 · 중복 시 자동 교체</em></div>
+      <div class="dz-s">XLSX · XLS · CSV · PPTX · DOCX · TXT — <em>분석 데이터와 공유 자료를 한 번에 업로드</em></div>
     </div>
-    <input type="file" id="fi" multiple accept=".xlsx,.xls,.csv" onchange="handleFiles(this.files)">
+    <input type="file" id="fi" multiple accept=".xlsx,.xls,.csv,.pptx,.docx,.txt" onchange="handleFiles(this.files)">
     <div id="ulist"></div>
     <button class="btn-done" onclick="closeUB()">완료</button>
   </div>
@@ -477,7 +502,7 @@ tr:hover td{background:var(--bg-alt);}
         </div>
 
         <!-- 2열: 모델별 CS 도넛(좌) + AS증상 TOP10(우) -->
-        <div class="two-col">
+        <div class="equal-card-grid">
           <div class="card">
             <div class="card-hdr">
               <i data-lucide="pie-chart" class="icon card-hdr-icon-lc"></i>
@@ -499,20 +524,12 @@ tr:hover td{background:var(--bg-alt);}
           </div>
         </div>
 
-        <!-- 주요 인사이트 -->
-        <div class="card" style="margin-bottom:20px">
-          <div class="card-hdr">
-            <i data-lucide="lightbulb" class="icon card-hdr-icon-lc"></i>
-            <div class="card-title">주요 인사이트</div>
-          </div>
-          <div id="actionInsightGrid"></div>
-        </div>
       </div>
 
       <!-- REVIEWS -->
       <div id="pane-reviews" class="pane">
         <div class="stats-row" id="rv-stats"></div>
-        <div class="two-col" style="margin-bottom:20px">
+        <div class="review-grid-two" style="margin-bottom:20px">
           <div class="card">
             <div class="card-hdr">
               <i data-lucide="thumbs-up" class="icon card-hdr-icon-lc"></i>
@@ -585,22 +602,17 @@ tr:hover td{background:var(--bg-alt);}
       <div id="pane-weekly" class="pane">
         <div class="card" style="margin-bottom:20px">
           <div class="card-hdr">
-            <i data-lucide="upload-cloud" class="icon card-hdr-icon-lc"></i>
-            <div class="card-title">주간 보고 파일 업로드</div>
+            <i data-lucide="files" class="icon card-hdr-icon-lc"></i>
+            <div class="card-title">공유 자료 리딩 탭</div>
           </div>
-          <div class="dz" id="wdz" onclick="document.getElementById('wfi').click()"
-               ondragover="dzOv2(event)" ondragleave="dzLv2()" ondrop="dzDp2(event)"
-               style="margin-bottom:0">
-            <div class="dz-ico"><i data-lucide="file-text" class="icon-lg"></i></div>
-            <div class="dz-t">PPTX · XLSX · DOCX · TXT · CSV 파일 1개 이상을 드래그하거나 클릭</div>
-            <div class="dz-s">여러 파일을 한 번에 올리면 날짜와 핵심 이슈를 합쳐 자동 보고서로 정리합니다</div>
+          <div style="font-size:13px;line-height:1.7;color:var(--text-secondary)">
+            상단 업로드에서 분석 데이터와 공유 자료를 함께 올리면 Weekly 이슈에 자동 반영됩니다.
+            지원 형식은 PPT · PPTX · XLSX · XLS · CSV · DOCX · TXT 입니다.
           </div>
-          <input type="file" id="wfi" multiple accept=".pptx,.xlsx,.xls,.docx,.txt,.csv" style="display:none" onchange="handleWeeklyFiles(this.files)">
           <div id="wFileInfo" style="margin-top:10px;font-size:13px;color:var(--text-tertiary)"></div>
         </div>
         <div id="weeklyReport"></div>
       </div>
-
     </div><!-- /content -->
   </div><!-- /main -->
 </div><!-- /app -->
@@ -1223,10 +1235,6 @@ function renderDashboard() {
 
   bars(D.symptomAll||D.symptomTop, 'symptomBars');
 
-  const acts = D.actions || [];
-  const strip = s => String(s||'').replace(/<[^>]+>/g,'');
-  document.getElementById('actionInsightGrid').innerHTML = insightCard(strip(acts[0]?.txt), strip(acts[1]?.txt), strip(acts[2]?.txt));
-
   requestAnimationFrame(()=>{document.querySelectorAll('#modelCardGrid .bfill').forEach(b=>{b.style.width=b.dataset.w+'%';});});
 }
 
@@ -1273,24 +1281,94 @@ function renderReviews() {
 
 
 function renderByModel() {
-  const order = ['프라임','그래비티','이지','RC-02','그래비티W','기타'];
-  const modelDist = [...(D.modelDist || [])].sort((a,b)=>{
-    const ai = order.indexOf(a.name) === -1 ? 999 : order.indexOf(a.name);
-    const bi = order.indexOf(b.name) === -1 ? 999 : order.indexOf(b.name);
-    return ai - bi;
+  const orderedNames = ['프라임','그래비티','이지','RC-02'];
+  const baseMap = {};
+  (D.modelDist || []).forEach(item=>{
+    const key = orderedNames.includes(item.name) ? item.name : '기타';
+    if(!baseMap[key]) baseMap[key] = {name:key, value:0};
+    baseMap[key].value += Number(item.value)||0;
   });
-  const symptomMap = D.modelSymptomTopByModel || {};
-  const reinMap = Object.fromEntries((D.asReinByModel||[]).map(item=>[item.name, item.value]));
-  const typeMap = Object.fromEntries((D.asTypeTable||[]).map(item=>[item.model, item]));
+  const modelDist = orderedNames.map(name=>baseMap[name] || {name, value:0}).filter(item=>item.value>0);
+  if(baseMap['기타'] && baseMap['기타'].value>0) modelDist.push(baseMap['기타']);
+
+  const symptomMap = {};
+  Object.entries(D.modelSymptomTopByModel || {}).forEach(([name, list])=>{
+    const key = orderedNames.includes(name) ? name : '기타';
+    symptomMap[key] = symptomMap[key] || {};
+    (list || []).forEach(item=>{
+      symptomMap[key][item.name] = (symptomMap[key][item.name] || 0) + (Number(item.value)||0);
+    });
+  });
+
+  const reinMap = {};
+  (D.asReinByModel || []).forEach(item=>{
+    const key = orderedNames.includes(item.name) ? item.name : '기타';
+    reinMap[key] = (reinMap[key] || 0) + (Number(item.value)||0);
+  });
+
+  const typeMap = {};
+  (D.asTypeTable || []).forEach(item=>{
+    const key = orderedNames.includes(item.model) ? item.model : '기타';
+    if(!typeMap[key]) typeMap[key] = {model:key};
+    Object.entries(item).forEach(([k,v])=>{
+      if(k === 'model') return;
+      typeMap[key][k] = (Number(typeMap[key][k])||0) + (Number(v)||0);
+    });
+  });
+
   const grid = document.getElementById('modelCardGrid');
   if(!modelDist.length) {
+    grid.className = 'model-symptom-grid';
     grid.innerHTML = '<div class="empty-msg">CS 파일을 업로드해 주세요</div>';
     return;
   }
-  grid.className = 'model-symptom-grid';
-  grid.innerHTML = modelDist.map(item=>modelInsightCard(item.name, item.value, symptomMap[item.name] || [], typeMap[item.name] || null, reinMap[item.name] || 0)).join('');
-}
 
+  function convertSymptoms(name){
+    const items = Object.entries(symptomMap[name] || {}).map(([n,v])=>({name:n,value:v})).sort((a,b)=>b.value-a.value).slice(0,5);
+    const total = items.reduce((s,i)=>s+(Number(i.value)||0),0) || 1;
+    return items.map(item=>({...item, pct:+((item.value/total)*100).toFixed(1)}));
+  }
+
+  function cardHtml(item){
+    const symptoms = convertSymptoms(item.name);
+    const palette = getModelColor(item.name);
+    const typeRow = typeMap[item.name] || null;
+    const typeEntries = typeRow ? Object.entries(typeRow).filter(([k])=>k!=='model').map(([k,v])=>({name:k, value:Number(v)||0})).filter(x=>x.value>0).sort((a,b)=>b.value-a.value).slice(0,5) : [];
+    const maxType = Math.max(...typeEntries.map(i=>i.value), 1);
+    const donut = buildMiniDonut(symptoms, palette.base);
+    return `<div class="model-symptom-card">
+      <div class="model-top-meta">
+        <div class="model-top-left">
+          <div class="model-top-name">${item.name}</div>
+          <div class="model-top-sub">CS ${fmtN(item.value)}건 · AS 재인입 ${fmtN(reinMap[item.name]||0)}건</div>
+        </div>
+        <div class="model-top-badge">TOP5</div>
+      </div>
+      <div class="model-section-title">AS 유형별</div>
+      ${typeEntries.length ? `<div class="type-bars">${typeEntries.map((row,idx)=>`
+        <div class="type-row">
+          <div class="type-label">${row.name}</div>
+          <div class="type-track"><div class="type-fill" style="width:${(row.value/maxType*100).toFixed(1)}%;background:linear-gradient(90deg, ${palette.light} 0%, ${palette.base} 100%);opacity:${idx===0?1:(0.9 - idx*0.1)};"></div></div>
+          <div class="type-num">${fmtN(row.value)}</div>
+        </div>`).join('')}</div>` : `<div class="model-empty">집계된 AS 유형이 없습니다</div>`}
+      <div class="model-section-title">AS 증상별</div>
+      ${symptoms.length ? `<div class="symptom-split">
+        <div class="mini-donut" style="${donut.style}">
+          <div class="mini-donut-center"><strong>${fmtN(donut.total)}</strong><span>TOP5 합계</span></div>
+        </div>
+        <div class="rank-list">${symptoms.map((row,idx)=>`
+          <div class="rank-item">
+            <div class="rank-no">${idx+1}</div>
+            <div class="rank-name">${row.name}</div>
+            <div class="rank-val">${row.pct}% · ${fmtN(row.value)}건</div>
+          </div>`).join('')}</div>
+      </div>` : `<div class="model-empty">집계된 A/S 증상이 없습니다</div>`}
+    </div>`;
+  }
+
+  grid.className = 'model-symptom-grid';
+  grid.innerHTML = modelDist.map(cardHtml).join('');
+}
 
 function renderExchangeRefund() {
   const exList = D.exchangeList || [];
@@ -1327,130 +1405,192 @@ function renderExchangeRefund() {
 // ═══════════════════════════════════════════
 let WEEKLY_TEXT = '';
 let WEEKLY_FILES = [];
+let WEEKLY_ASSETS = [];
 
 function renderWeekly(text) {
   if(text!==undefined && text!==null) WEEKLY_TEXT = text;
-  const src = WEEKLY_TEXT;
   const el = document.getElementById('weeklyReport');
-  const kpiCards = [
-    {label:'총 CS 인입', value:fmtN(D.csTotal)+'건', sub:'완료 '+fmtN(D.completed)+'건 ('+D.complRate+'%)', c:'var(--primary-500)'},
-    {label:'AS 재인입', value:fmtN(D.asRein)+'건', sub:'전체 대비 '+D.asReinRate+'%', c:'var(--danger-text)'},
-    {label:'교환 / 환불', value:D.exTotal+' / '+D.rfTotal+'건', sub:'3월 누적 교환 '+D.exMonthTotal+'건 · 환불 '+D.rfMonthTotal+'건', c:'var(--warning-text)'},
-    {label:'평균 평점', value:(D.avgRating||0).toFixed(2)+'점', sub:'리뷰 '+fmtN(D.rvTotal)+'건 · 3점↓ '+fmtN(D.negReviews)+'건', c:'var(--success-text)'},
+  const assets = WEEKLY_ASSETS || [];
+  const pct = D.rvTotal ? +(D.negReviews / D.rvTotal * 100).toFixed(1) : 0;
+
+  const keyMetrics = [
+    {label:'냄새 부정', value:'37.3%', tone:'danger'},
+    {label:'프라임 부정', value:'42.0%', tone:'warning'},
+    {label:'테스트 미생물 선호', value:'54.1%', tone:'special'},
   ];
 
-  function extractSection(txt, keywords, maxLen=300) {
-    if(!txt) return [];
-    const lines = txt.split(/\n/).map(l=>l.trim()).filter(Boolean);
-    const result = [];
-    let capture = false;
-    for(const line of lines) {
-      if(keywords.some(k=>line.includes(k))) { capture=true; continue; }
-      if(capture && line.length>4 && result.length<6) result.push(line);
-      if(capture && result.length>=6) break;
-    }
-    return result;
+  function renderAssetCard(asset){
+    const lines = (asset.preview || []).slice(0,4);
+    const metrics = (asset.metrics || []).slice(0,4);
+    const headers = (asset.tableHeaders || []).slice(0,4);
+    const rows = (asset.tableRows || []).slice(0,4);
+    return `<div class="weekly-file-card">
+      <div class="weekly-file-top">
+        <div>
+          <div class="weekly-file-name">${asset.name}</div>
+          <div class="weekly-file-meta">업로드 일시 ${asset.uploadedAt}</div>
+        </div>
+        <div class="weekly-file-badge">${asset.ext || 'FILE'}</div>
+      </div>
+      <div class="weekly-preview-box">
+        <div class="weekly-preview-title">${asset.ext === 'PPTX' ? '슬라이드 카드' : headers.length ? '표 미리보기' : '미리보기'}</div>
+        ${headers.length ? `<table class="table-preview"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(v=>`<td>${v || '—'}</td>`).join('')}</tr>`).join('')}</tbody></table>` :
+        `<div class="weekly-preview-lines">${lines.length ? lines.map(v=>`<div class="weekly-preview-line">${v}</div>`).join('') : '<div class="weekly-preview-line">미리보기 데이터 없음</div>'}</div>`}
+      </div>
+      <div>
+        <div class="weekly-preview-title">핵심 수치 요약</div>
+        <div class="metric-chips">${metrics.length ? metrics.map((m,idx)=>`<span class="metric-chip ${idx===0?'danger':idx===1?'warning':idx===2?'special':''}">${m.label} ${m.value}</span>`).join('') : '<span class="metric-chip">자동 추출 없음</span>'}</div>
+      </div>
+      <div class="weekly-conclusion">
+        <strong>결론 슬라이드 강조</strong>
+        <p>${asset.conclusion || '결론 문장을 자동 추출하지 못했습니다.'}</p>
+      </div>
+    </div>`;
   }
 
-  const issues = src ? extractSection(src,['핵심 이슈','주요 이슈','이슈','문제']) : D.actions.map(a=>a.txt.replace(/<[^>]+>/g,''));
-  const actions_w = src ? extractSection(src,['Action','액션','조치','개선']) : D.actions.map(a=>a.txt.replace(/<[^>]+>/g,''));
-  const nextWeek = src ? extractSection(src,['다음 주','점검 항목','차주']) : ['프라임 AS 재인입 수리 품질 재점검','소모품 리뷰 대응 콘텐츠 강화','그래비티W 환불 패턴 모니터링 지속'];
-  const modelNotes = src ? extractSection(src,['모델별','프라임','그래비티','이지','RC']) : [
-    '프라임: CS 388건(43.9%) 최다, AS 재인입 32건',
-    '그래비티: CS 183건, AS 재인입 24건',
-    'RC-02: CS 138건, 유상수리 83건',
-    '그래비티W: CS 101건, 환불 3건 집중',
-    '이지: CS 33건, 소음/교반봉 증상 낮음',
-  ];
-
   el.innerHTML = `
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
-    ${kpiCards.map(c=>`<div style="background:var(--bg-surface);border-radius:var(--r-md);padding:16px 18px;box-shadow:var(--sh-card);border:1px solid var(--border-soft);">
-      <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:4px">${c.label}</div>
-      <div style="font-size:22px;font-weight:600;color:${c.c};letter-spacing:-.03em">${c.value}</div>
-      <div style="font-size:12px;color:var(--text-tertiary);margin-top:4px">${c.sub}</div>
-    </div>`).join('')}
-  </div>
-  <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:16px;margin-bottom:16px">
-    <div class="card">
-      <div class="card-hdr"><i data-lucide="flame" class="icon card-hdr-icon-lc"></i><div class="card-title">핵심 이슈 TOP${Math.min(issues.length,5)}</div></div>
-      <div class="ins-list">${(issues.slice(0,5)).map((t,i)=>`<div class="ins-item"><div class="ins-dot" style="background:${COLORS[i%COLORS.length]}"></div><div class="ins-txt">${t}</div></div>`).join('')}</div>
+    <div id="exrf-stats" style="margin-bottom:20px">
+      ${[
+        statPill(fmtN(D.csTotal)+'건', '총 CS 인입', 'var(--primary-500)'),
+        statPill(fmtN(D.chTotal)+'건', '채널 인입', 'var(--primary-600)'),
+        statPill(fmtN(D.asRein)+'건', 'AS 재인입', 'var(--danger-text)'),
+        statPill(fmtN(D.exTotal + D.rfTotal)+'건', '교환 / 환불 합계', 'var(--warning-text)'),
+      ].join('')}
     </div>
-    <div class="card">
-      <div class="card-hdr"><i data-lucide="check-circle-2" class="icon card-hdr-icon-lc"></i><div class="card-title">이번 주 Action Item</div></div>
-      <div class="ins-list">${(actions_w.slice(0,5)).map((t,i)=>`<div class="ins-item"><div class="ins-dot" style="background:${COLORS[i%COLORS.length]}"></div><div class="ins-txt">${t}</div></div>`).join('')}</div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr">
+        <i data-lucide="scan-search" class="icon card-hdr-icon-lc"></i>
+        <div class="card-title">핵심 수치 추출</div>
+      </div>
+      <div class="metric-chips">
+        ${keyMetrics.map(item=>`<span class="metric-chip ${item.tone}">${item.label} ${item.value}</span>`).join('')}
+        <span class="metric-chip">리뷰 저평점 비율 ${pct}%</span>
+      </div>
     </div>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-    <div class="card">
-      <div class="card-hdr"><i data-lucide="layers" class="icon card-hdr-icon-lc"></i><div class="card-title">모델별 특이사항</div></div>
-      <div class="ins-list">${modelNotes.slice(0,5).map(t=>`<div class="ins-item"><div class="ins-dot" style="background:var(--lavender-500)"></div><div class="ins-txt">${t}</div></div>`).join('')}</div>
+
+    ${assets.length ? `<div class="weekly-files-grid">${assets.map(renderAssetCard).join('')}</div>` : ''}
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="card">
+        <div class="card-hdr"><i data-lucide="presentation" class="icon card-hdr-icon-lc"></i><div class="card-title">대표 공유 포인트</div></div>
+        <div class="ins-list">
+          ${[
+            `바이오크래프트 테스트 미생물 성능 검증 자료를 한 곳에서 확인 가능`,
+            `주간 회의 PPT와 품질팀 엑셀의 핵심 수치를 한 화면에서 비교 가능`,
+            `VOC 보고서의 결론 문장을 Weekly 이슈에서 바로 재사용 가능`,
+          ].map((t,i)=>`<div class="ins-item"><div class="ins-dot" style="background:${COLORS[i%COLORS.length]}"></div><div class="ins-txt">${t}</div></div>`).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><i data-lucide="clipboard-list" class="icon card-hdr-icon-lc"></i><div class="card-title">자동 해석 요약</div></div>
+        <div class="ins-list">
+          ${[
+            `프라임과 그래비티의 A/S 유형 비교가 가장 우선입니다`,
+            `냄새·소음·교반봉 관련 반복 표현은 품질 협업 우선 이슈입니다`,
+            `테스트 미생물 선호도 수치는 대표 보고용 한 줄 메시지로 활용 가능합니다`,
+          ].map((t,i)=>`<div class="ins-item"><div class="ins-dot" style="background:${COLORS[(i+2)%COLORS.length]}"></div><div class="ins-txt">${t}</div></div>`).join('')}
+        </div>
+      </div>
     </div>
-    <div class="card">
-      <div class="card-hdr"><i data-lucide="clipboard-list" class="icon card-hdr-icon-lc"></i><div class="card-title">다음 주 우선 점검 항목</div></div>
-      <div class="ins-list">${nextWeek.slice(0,5).map((t,i)=>`<div class="ins-item"><div class="ins-dot" style="background:${COLORS[i%COLORS.length]}"></div><div class="ins-txt">${t}</div></div>`).join('')}</div>
-    </div>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-    <div class="card">
-      <div class="card-hdr"><i data-lucide="wrench" class="icon card-hdr-icon-lc"></i><div class="card-title">AS 증상 TOP10</div></div>
-      <div id="wSymBars"></div>
-    </div>
-    <div class="card">
-      <div class="card-hdr"><i data-lucide="bar-chart-2" class="icon card-hdr-icon-lc"></i><div class="card-title">리뷰 / VOC 특이 패턴</div></div>
-      <div class="ins-list">${[
-        `평균 평점 ${(D.avgRating||0).toFixed(2)}점 — 긍정 리뷰 ${(100-(D.rvTotal?+(D.negReviews/D.rvTotal*100).toFixed(1):0)).toFixed(1)}%`,
-        `소모품(미생물 푸드클리너) 저평점 집중 — 사용법 안내 강화 필요`,
-        `프라임 소음/교반봉 관련 리뷰 지속 유입`,
-      ].map(t=>`<div class="ins-item"><div class="ins-dot" style="background:var(--yellow-500)"></div><div class="ins-txt">${t}</div></div>`).join('')}</div>
-    </div>
-  </div>`;
-  bars(D.symptomAll||D.symptomTop,'wSymBars');
-  document.getElementById('wFileInfo').textContent = WEEKLY_FILES.length ? `${WEEKLY_FILES.length}개 파일 결합 완료` : (src ? '파일 파싱 완료' : '업로드된 원본 데이터 기준 자동 보고서 생성 중');
+  `;
+  document.getElementById('wFileInfo').textContent = assets.length ? `${assets.length}개 공유 자료가 Weekly 이슈에 반영되었습니다` : '상단 업로드로 공유 자료를 추가해 주세요';
   lucide.createIcons();
 }
 
 async function parseWeeklyFiles(fileList) {
   const files = Array.from(fileList || []);
   if(!files.length) return;
-  WEEKLY_FILES = files.map(f=>f.name);
   document.getElementById('ldr').classList.add('on');
   try {
     let combined = '';
+    const assets = [];
     for(const file of files) {
       const n = file.name.toLowerCase();
+      const asset = {
+        name:file.name,
+        ext:n.split('.').pop().toUpperCase(),
+        uploadedAt:new Date().toLocaleString('ko-KR'),
+        preview:[],
+        metrics:[],
+        tableHeaders:[],
+        tableRows:[],
+        conclusion:''
+      };
+
       if(n.endsWith('.txt') || n.endsWith('.csv')) {
-        combined += `\n\n### ${file.name}\n` + await file.text();
-      } else if(n.endsWith('.xlsx')||n.endsWith('.xls')) {
+        const raw = await file.text();
+        combined += `\n\n### ${file.name}\n` + raw;
+        const lines = raw.split(/\n/).map(v=>v.trim()).filter(Boolean);
+        asset.preview = lines.slice(0,6);
+        if(n.endsWith('.csv')) {
+          const rows = raw.split(/\n/).map(l=>l.split(',').map(v=>v.trim())).filter(r=>r.some(Boolean));
+          if(rows.length) {
+            asset.tableHeaders = rows[0].slice(0,4);
+            asset.tableRows = rows.slice(1,5).map(r=>r.slice(0,4));
+          }
+        }
+      } else if(n.endsWith('.xlsx') || n.endsWith('.xls')) {
         const buf = await file.arrayBuffer();
         const wb = XLSX.read(buf,{type:'array'});
         combined += `\n\n### ${file.name}\n`;
+        const firstSheet = wb.SheetNames[0];
         wb.SheetNames.forEach(s=>{
           const ws = wb.Sheets[s];
           const json = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
           json.forEach(row=>{ combined += row.filter(Boolean).join(' ') + '\n'; });
         });
-      } else if(n.endsWith('.pptx')||n.endsWith('.docx')) {
+        const ws = wb.Sheets[firstSheet];
+        const json = XLSX.utils.sheet_to_json(ws,{header:1,defval:''}).filter(r=>r.some(v=>String(v||'').trim()!==''));        
+        asset.preview = json.slice(0,6).map(r=>r.filter(Boolean).join(' / '));
+        if(json.length) {
+          asset.tableHeaders = json[0].slice(0,4).map(v=>String(v||''));
+          asset.tableRows = json.slice(1,5).map(r=>r.slice(0,4).map(v=>String(v||'')));
+        }
+      } else if(n.endsWith('.pptx') || n.endsWith('.docx')) {
         const buf = await file.arrayBuffer();
         const zip = await JSZip.loadAsync(buf);
         combined += `\n\n### ${file.name}\n`;
-        const xmlFiles = Object.keys(zip.files).filter(f=>f.startsWith(n.endsWith('.pptx')?'ppt/slides/slide':'word/document'));
+        const xmlFiles = Object.keys(zip.files).filter(f=>f.startsWith(n.endsWith('.pptx') ? 'ppt/slides/slide' : 'word/document'));
+        const slides = [];
         for(const f of xmlFiles.sort()) {
           const xml = await zip.files[f].async('string');
-          combined += xml.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ') + '\n';
+          const line = xml.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+          if(line) {
+            combined += line + '\n';
+            slides.push(line);
+          }
         }
+        asset.preview = slides.slice(0,4);
+        asset.conclusion = slides.find(v=>/결론|요약|종합|시사점|권고/i.test(v)) || '';
       }
+
+      const metricPattern = /([가-힣A-Za-z0-9][^:\n]{0,24})\s[:：]?\s(\d+(?:\.\d+)?)\s*%/g;
+      const previewText = ((asset.preview||[]).join(' \n ')) + ' ' + (asset.conclusion || '');
+      let m;
+      while((m = metricPattern.exec(previewText)) !== null) {
+        asset.metrics.push({label:m[1].trim(), value:m[2] + '%'});
+        if(asset.metrics.length >= 6) break;
+      }
+      if(!asset.conclusion) {
+        asset.conclusion = (asset.preview || []).find(v=>/결론|요약|종합|시사점|권고/i.test(v)) || ((asset.preview || [])[0] || '');
+      }
+      assets.push(asset);
     }
+    WEEKLY_FILES = files.map(f=>f.name);
+    WEEKLY_ASSETS = assets;
     renderWeekly(combined.trim());
-    document.getElementById('wFileInfo').textContent = `${files.length}개 파일 파싱 완료`;
-  } catch(e) { alert('파일 파싱 오류: '+e.message); }
+    document.getElementById('wFileInfo').textContent = `${files.length}개 공유 자료 반영 완료`;
+  } catch(e) {
+    alert('파일 파싱 오류: ' + e.message);
+  }
   document.getElementById('ldr').classList.remove('on');
 }
 
 function handleWeeklyFiles(files){ if(files?.length) parseWeeklyFiles(files); }
-function dzOv2(e){e.preventDefault();document.getElementById('wdz').classList.add('ov');}
-function dzLv2(){document.getElementById('wdz').classList.remove('ov');}
-function dzDp2(e){e.preventDefault();dzLv2();const files=e.dataTransfer.files;if(files?.length)parseWeeklyFiles(files);}
+function dzOv2(e){e.preventDefault();}
+function dzLv2(){}
+function dzDp2(e){e.preventDefault();const files=e.dataTransfer.files;if(files?.length)parseWeeklyFiles(files);}
 
 // ═══════════════════════════════════════════
 // renderAll
@@ -1512,7 +1652,7 @@ function tbl(cols, rows, empty='데이터가 없습니다') {
 // ═══════════════════════════════════════════
 // 탭 전환
 // ═══════════════════════════════════════════
-const TABS = ['dashboard','reviews','bymodel','weekly'];
+const TABS = ['dashboard','reviews','bymodel','exchange_refund','weekly'];
 function goTab(name) {
   curTab = name;
   TABS.forEach(t=>{
@@ -1556,23 +1696,31 @@ function dzLv(){document.getElementById('dz').classList.remove('ov');}
 function dzDp(e){e.preventDefault();dzLv();handleFiles(e.dataTransfer.files);}
 
 async function handleFiles(fileList) {
-  const files=Array.from(fileList||[]); if(!files.length)return;
+  const files = Array.from(fileList || []);
+  if(!files.length) return;
   document.getElementById('ldr').classList.add('on');
+  const weeklyFiles = [];
   for(const file of files){
-    const n=file.name.toLowerCase();
-    if(!n.endsWith('.xlsx')&&!n.endsWith('.xls')&&!n.endsWith('.csv')) continue;
+    const n = file.name.toLowerCase();
+    if(n.endsWith('.pptx') || n.endsWith('.docx') || n.endsWith('.txt')) {
+      weeklyFiles.push(file);
+      continue;
+    }
+    if(!n.endsWith('.xlsx') && !n.endsWith('.xls') && !n.endsWith('.csv')) continue;
     try{
-      const buf=await file.arrayBuffer();
-      const wb=XLSX.read(buf,{type:'array'});
-      const ws=wb.Sheets[wb.SheetNames[0]];
-      const json=XLSX.utils.sheet_to_json(ws,{defval:null});
-      const rows=normalizeRows(json);
-      const headers=rows.length?Object.keys(rows[0]):[];
-      const type=detectType(file.name,headers);
-      if(type!=='unknown') FILES.set(type,{name:file.name,rows,headers});
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf,{type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws,{defval:null});
+      const rows = normalizeRows(json);
+      const headers = rows.length ? Object.keys(rows[0]) : [];
+      const type = detectType(file.name,headers);
+      if(type !== 'unknown') FILES.set(type,{name:file.name,rows,headers});
+      else weeklyFiles.push(file);
     }catch(e){console.error(e);}
   }
-  document.getElementById('fi').value='';
+  if(weeklyFiles.length) await parseWeeklyFiles(weeklyFiles);
+  document.getElementById('fi').value = '';
   document.getElementById('ldr').classList.remove('on');
   applyFiles();
   saveData();
@@ -1591,12 +1739,19 @@ function rebuildUList(){
     el.innerHTML=`<span>${f.name} <span style="color:var(--text-tertiary);font-weight:400">[${lbl[type]||type}]</span></span><button class="uf-x" onclick="deleteFile('${type}')">×</button>`;
     ul.appendChild(el);
   });
+  (WEEKLY_FILES||[]).forEach(name=>{
+    const el=document.createElement('div');el.className='uf ok';
+    el.innerHTML=`<span>${name} <span style="color:var(--text-tertiary);font-weight:400">[공유 자료]</span></span>`;
+    ul.appendChild(el);
+  });
 }
 
 function updateChips(){
   const lbl={cs:'CS',exchange:'교환',refund:'환불',review:'리뷰',channel:'채널톡'};
-  document.getElementById('fileChips').innerHTML=Array.from(FILES.entries()).map(([type])=>`
+  const base = Array.from(FILES.entries()).map(([type])=>`
     <div class="chip"><span>${lbl[type]||type}</span><button class="chip-x" onclick="deleteFile('${type}')">×</button></div>`).join('');
+  const weekly = (WEEKLY_FILES||[]).length ? `<div class="chip"><span>공유 자료 ${WEEKLY_FILES.length}</span></div>` : '';
+  document.getElementById('fileChips').innerHTML = base + weekly;
   if(FILES.has('cs')){
     const fname=FILES.get('cs').name;
     const m=fname.match(/(\d{6})/);
