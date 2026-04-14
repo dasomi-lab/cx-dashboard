@@ -401,9 +401,9 @@ tr:hover td{background:var(--bg-alt);}
          ondragover="dzOv(event)" ondragleave="dzLv()" ondrop="dzDp(event)">
       <div class="dz-ico"><i data-lucide="folder-open" class="icon-lg"></i></div>
       <div class="dz-t">파일을 드래그하거나 클릭하여 선택</div>
-      <div class="dz-s">XLSX · XLS · CSV · PPTX · DOCX · TXT — <em>분석 데이터와 공유 자료를 한 번에 업로드</em></div>
+      <div class="dz-s">XLSX · XLS · CSV — <em>분석 데이터 전용 업로드</em></div>
     </div>
-    <input type="file" id="fi" multiple accept=".xlsx,.xls,.csv,.pptx,.docx,.txt" onchange="handleFiles(this.files)">
+    <input type="file" id="fi" multiple accept=".xlsx,.xls,.csv" onchange="handleFiles(this.files)">
     <div id="ulist"></div>
     <button class="btn-done" onclick="closeUB()">완료</button>
   </div>
@@ -605,10 +605,18 @@ tr:hover td{background:var(--bg-alt);}
             <i data-lucide="files" class="icon card-hdr-icon-lc"></i>
             <div class="card-title">공유 자료 리딩 탭</div>
           </div>
-          <div style="font-size:13px;line-height:1.7;color:var(--text-secondary)">
-            상단 업로드에서 분석 데이터와 공유 자료를 함께 올리면 Weekly 이슈에 자동 반영됩니다.
+          <div style="font-size:13px;line-height:1.7;color:var(--text-secondary);margin-bottom:14px">
+            Weekly 이슈 자료는 분석 데이터와 분리하여 별도로 업로드합니다.
             지원 형식은 PPT · PPTX · XLSX · XLS · CSV · DOCX · TXT 입니다.
           </div>
+          <div class="dz" id="wdz" onclick="document.getElementById('wfi').click()"
+               ondragover="dzOv2(event)" ondragleave="dzLv2()" ondrop="dzDp2(event)"
+               style="margin-bottom:0">
+            <div class="dz-ico"><i data-lucide="file-text" class="icon-lg"></i></div>
+            <div class="dz-t">공유 자료 파일을 드래그하거나 클릭하여 선택</div>
+            <div class="dz-s">PPT · XLSX · CSV · DOCX · TXT — <em>Weekly 이슈 전용 업로드</em></div>
+          </div>
+          <input type="file" id="wfi" multiple accept=".ppt,.pptx,.xlsx,.xls,.csv,.docx,.txt" style="display:none" onchange="handleWeeklyFiles(this.files)">
           <div id="wFileInfo" style="margin-top:10px;font-size:13px;color:var(--text-tertiary)"></div>
         </div>
         <div id="weeklyReport"></div>
@@ -800,8 +808,16 @@ function parseMonthDay(raw) {
 function updateDerivedPeriod() {
   const ds = D.dailyStats || [];
   if(!ds.length) return;
-  const start = ds[0].date, end = ds[ds.length-1].date;
-  D.period = `${start} ~ ${end}`;
+  const start = ds[0].date;
+  const end = ds[ds.length - 1].date;
+
+  const [sm, sd] = start.split('/').map(Number);
+  const [em, ed] = end.split('/').map(Number);
+  const year = 2026;
+  const month = sm || em || 1;
+  const week = Math.ceil((ed || sd || 1) / 7);
+
+  D.period = `${year}년 ${month}월 ${week}주차 · ${start} ~ ${end}`;
 }
 
 // ═══════════════════════════════════════════
@@ -815,7 +831,7 @@ function applyFiles() {
   const chR = FILES.get('channel')?.rows||[];
 
   if (csR.length) {
-    const modelMap={},symMap={},reinMap={},statusMap={},modelSymMap={};
+    const modelMap={},symMap={},reinMap={},statusMap={},modelSymMap={},modelTypeMap={};
     let completed=0,asRein=0;
     csR.forEach(r=>{
       const model=modelAlias(pickCol(r,['품명','상품명','모델명']));
@@ -823,7 +839,9 @@ function applyFiles() {
       const st=String(pickCol(r,['처리상태','접수상태'])||'');
       statusMap[st||'미분류']=(statusMap[st||'미분류']||0)+1;
       if(st.includes('처리완료'))completed++;
-      const asType=String(pickCol(r,['A/S유형','AS유형','구분'])||'').trim();
+      const asType=String(pickCol(r,['A/S유형','AS유형','구분'])||'미분류').trim() || '미분류';
+      modelTypeMap[model]=modelTypeMap[model]||{};
+      modelTypeMap[model][asType]=(modelTypeMap[model][asType]||0)+1;
       if(/^AS\(재/.test(asType)||asType==='AS(재)'){asRein++;reinMap[model]=(reinMap[model]||0)+1;}
       const sym=String(pickCol(r,['A/S증상','증상','문의유형'])||'미분류');
       const symParts = sym.split(/[,+\n]/).map(s=>s.trim()).filter(Boolean);
@@ -841,6 +859,11 @@ function applyFiles() {
     D.symptomAll=topN(symMap,10);
     D.statusDist=topN(statusMap,5);
     D.modelSymptomTopByModel = Object.fromEntries(Object.entries(modelSymMap).map(([model, mp])=>[model, topN(mp,5)]));
+    D.asTypeTable = Object.entries(modelTypeMap).map(([model, mp])=>{
+      const row = {model};
+      Object.entries(mp).forEach(([k,v])=> row[k] = v);
+      return row;
+    });
     const topM=topN(modelMap,1)[0]; if(topM){D.topModel=topM.name;D.topModelCnt=topM.value;D.topModelPct=+((topM.value/csR.length)*100).toFixed(1);}
     const topS=topN(symMap,1)[0]; if(topS){D.topSym=topS.name;D.topSymCnt=topS.value;}
     D.csList=csR.slice(0,30).map(r=>({
@@ -1587,20 +1610,20 @@ async function parseWeeklyFiles(fileList) {
   document.getElementById('ldr').classList.remove('on');
 }
 
-function handleWeeklyFiles(files){ if(files?.length) parseWeeklyFiles(files); }
+async function handleWeeklyFiles(files){ if(files?.length) await parseWeeklyFiles(files); }
 function dzOv2(e){e.preventDefault();}
 function dzLv2(){}
-function dzDp2(e){e.preventDefault();const files=e.dataTransfer.files;if(files?.length)parseWeeklyFiles(files);}
+async function dzDp2(e){e.preventDefault();const files=e.dataTransfer.files;if(files?.length) await parseWeeklyFiles(files);}
 
 // ═══════════════════════════════════════════
 // renderAll
 // ═══════════════════════════════════════════
 function renderAll() {
   renderDashboard();
-  if(curTab==='reviews') renderReviews();
-  else if(curTab==='bymodel') renderByModel();
-  else if(curTab==='exchange_refund') renderExchangeRefund();
-  else if(curTab==='weekly') renderWeekly();
+  renderReviews();
+  renderByModel();
+  renderExchangeRefund();
+  renderWeekly();
   lucide.createIcons();
 }
 
@@ -1695,17 +1718,12 @@ function dzOv(e){e.preventDefault();document.getElementById('dz').classList.add(
 function dzLv(){document.getElementById('dz').classList.remove('ov');}
 function dzDp(e){e.preventDefault();dzLv();handleFiles(e.dataTransfer.files);}
 
-async function handleFiles(fileList) {
+async async function handleFiles(fileList) {
   const files = Array.from(fileList || []);
   if(!files.length) return;
   document.getElementById('ldr').classList.add('on');
-  const weeklyFiles = [];
   for(const file of files){
     const n = file.name.toLowerCase();
-    if(n.endsWith('.pptx') || n.endsWith('.docx') || n.endsWith('.txt')) {
-      weeklyFiles.push(file);
-      continue;
-    }
     if(!n.endsWith('.xlsx') && !n.endsWith('.xls') && !n.endsWith('.csv')) continue;
     try{
       const buf = await file.arrayBuffer();
@@ -1716,10 +1734,8 @@ async function handleFiles(fileList) {
       const headers = rows.length ? Object.keys(rows[0]) : [];
       const type = detectType(file.name,headers);
       if(type !== 'unknown') FILES.set(type,{name:file.name,rows,headers});
-      else weeklyFiles.push(file);
     }catch(e){console.error(e);}
   }
-  if(weeklyFiles.length) await parseWeeklyFiles(weeklyFiles);
   document.getElementById('fi').value = '';
   document.getElementById('ldr').classList.remove('on');
   applyFiles();
@@ -1752,14 +1768,7 @@ function updateChips(){
     <div class="chip"><span>${lbl[type]||type}</span><button class="chip-x" onclick="deleteFile('${type}')">×</button></div>`).join('');
   const weekly = (WEEKLY_FILES||[]).length ? `<div class="chip"><span>공유 자료 ${WEEKLY_FILES.length}</span></div>` : '';
   document.getElementById('fileChips').innerHTML = base + weekly;
-  if(FILES.has('cs')){
-    const fname=FILES.get('cs').name;
-    const m=fname.match(/(\d{6})/);
-    if(m){
-      const d=m[1];
-      document.getElementById('sbPeriodBadge').textContent=`${d.slice(0,4)}.${parseInt(d.slice(4,6))} 주간`;
-    }
-  }
+  document.getElementById('sbPeriodBadge').textContent = D.period || '—';
 }
 
 // ═══════════════════════════════════════════
