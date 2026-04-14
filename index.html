@@ -170,6 +170,20 @@ th{background:var(--bg-alt);padding:10px 14px;text-align:left;font-size:12px;fon
 td{padding:10px 14px;border-bottom:1px solid var(--bg-alt);vertical-align:middle;}
 tr:last-child td{border-bottom:none;}
 tr:hover td{background:var(--bg-alt);}
+#rvTbl table th:nth-child(1),
+#rvTbl table td:nth-child(1){
+  width:18%;
+}
+#rvTbl table th:nth-child(2),
+#rvTbl table td:nth-child(2){
+  width:8%;
+  min-width:70px;
+  text-align:center;
+}
+#rvTbl table th:nth-child(3),
+#rvTbl table td:nth-child(3){
+  width:74%;
+}
 .badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:500;}
 .bg{background:var(--success-bg);color:var(--success-text);}
 .br{background:var(--danger-bg);color:var(--danger-text);}
@@ -931,13 +945,26 @@ function renderExchangeRefund(){
   document.getElementById('refundSummary').innerHTML = rfList.length ? `<div class="summary-chips"><span class="badge br">총 ${fmtN(rfList.length)}건</span></div>` : '<div class="empty-msg">환불 데이터 없음</div>';
 
   document.getElementById('exchangeTbl').innerHTML = tbl(
-    ['제품','처리상태','유형','증상/사유','원인','구매처'],
-    exList.map(r=>[r.product, bdg(r.status,'st'), r.type || '—', `<div class="review-content-full">${r.symptom||'—'}</div>`, `<div class="review-content-full">${r.reason||'—'}</div>`, r.store||'—']),
+    ['제품','처리상태','유형','증상/사유','구매처'],
+    exList.map(r=>[
+      r.product,
+      bdg(r.status,'st'),
+      r.type || '—',
+      `<div class="review-content-full">${r.symptom||'—'}</div>`,
+      r.store||'—'
+    ]),
     '교환 파일을 업로드해 주세요'
   );
+
   document.getElementById('refundTbl').innerHTML = tbl(
-    ['제품','처리상태','유형','증상/사유','원인','구매처'],
-    rfList.map(r=>[r.product, bdg(r.status,'st'), r.type || '—', `<div class="review-content-full">${r.symptom||'—'}</div>`, `<div class="review-content-full">${r.reason||'—'}</div>`, r.store||'—']),
+    ['제품','처리상태','유형','증상/사유','구매처'],
+    rfList.map(r=>[
+      r.product,
+      bdg(r.status,'st'),
+      r.type || '—',
+      `<div class="review-content-full">${r.symptom||'—'}</div>`,
+      r.store||'—'
+    ]),
     '환불 파일을 업로드해 주세요'
   );
 }
