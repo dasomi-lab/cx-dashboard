@@ -540,15 +540,19 @@ function normalizeRows(json){
 function detectType(fname, headers){
   const n = fname.toLowerCase().replace(/\s/g,'');
   const h = headers.join('|');
+  if (n.includes('cs관리') || n.includes('cs_') || n.includes('202604')) return 'cs';
   if (n.includes('교환')) return 'exchange';
   if (n.includes('환불')) return 'refund';
-  if (n.includes('cs관리') || n.startsWith('cs') || n.includes('cs_')) return 'cs';
   if (n.includes('review') || n.includes('리뷰')) return 'review';
-  if (n.includes('chat') || n.includes('채널') || h.includes('mediumType')) return 'channel';
+  if (n.includes('chat') || n.includes('채널')) return 'channel';
+
+  if (h.includes('A/S증상') || h.includes('증상') || h.includes('AS유형') || h.includes('A/S유형')
+      || h.includes('처리상태') || h.includes('접수상태') || h.includes('모델명')
+      || h.includes('품명') || h.includes('상품명') || h.includes('접수번호')) return 'cs';
   if (h.includes('교환유형')) return 'exchange';
   if (h.includes('환불유형')) return 'refund';
-  if (h.includes('A/S증상') || h.includes('접수번호')) return 'cs';
   if (h.includes('구매자평점')) return 'review';
+  if (h.includes('mediumType')) return 'channel';
   return 'unknown';
 }
 function parseMonthDay(raw){
@@ -935,18 +939,12 @@ function renderWeekly(text){
   if(text!==undefined && text!==null) WEEKLY_TEXT = text;
   const el = document.getElementById('weeklyReport');
   const asset = WEEKLY_ASSET || null;
-  const pct = D.rvTotal ? +((D.negReviews / D.rvTotal) * 100).toFixed(1) : 0;
-
-  const keyMetrics = asset?.metrics?.length ? asset.metrics.slice(0,4) : [
-    {label:'리뷰 저평점 비율', value:`${pct}%`, tone:'danger'},
-    {label:'AS 재인입', value:`${fmtN(D.asRein)}건`, tone:'warning'},
-    {label:'교환/환불', value:`${fmtN((D.exTotal||0)+(D.rfTotal||0))}건`, tone:'special'},
-  ];
 
   function renderAssetCard(asset){
     const lines = (asset.preview || []).slice(0,4);
     const headers = (asset.tableHeaders || []).slice(0,4);
     const rows = (asset.tableRows || []).slice(0,4);
+
     return `<div class="weekly-file-card" style="min-height:auto">
       <div class="weekly-file-top">
         <div>
@@ -957,14 +955,11 @@ function renderWeekly(text){
       </div>
 
       <div class="weekly-preview-box">
-        <div class="weekly-preview-title">${headers.length ? '표 미리보기' : (asset.ext === 'PPTX' || asset.ext === 'PPT' ? '슬라이드 미리보기' : '문서 미리보기')}</div>
+        <div class="weekly-preview-title">${headers.length ? '표 미리보기' : '문장 미리보기'}</div>
         ${
-          headers.length ? `<table class="table-preview"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${
-            rows.map(r=>`<tr>${r.map(v=>`<td>${v || '—'}</td>`).join('')}</tr>`).join('')
-          }</tbody></table>` :
-          `<div class="weekly-preview-lines">${
-            lines.length ? lines.map(v=>`<div class="weekly-preview-line">${v}</div>`).join('') : '<div class="weekly-preview-line">미리보기 데이터 없음</div>'
-          }</div>`
+          headers.length
+            ? `<table class="table-preview"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(v=>`<td>${v || '—'}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+            : `<div class="weekly-preview-lines">${lines.length ? lines.map(v=>`<div class="weekly-preview-line">${v}</div>`).join('') : '<div class="weekly-preview-line">미리보기 데이터 없음</div>'}</div>`
         }
       </div>
 
@@ -972,9 +967,9 @@ function renderWeekly(text){
         <div class="weekly-preview-title">핵심 수치 칩</div>
         <div class="metric-chips">
           ${
-            (asset.metrics || []).length ? asset.metrics.slice(0,4).map((m, idx)=>`
-              <span class="metric-chip ${idx===0?'danger':idx===1?'warning':idx===2?'special':''}">${m.label} ${m.value}</span>
-            `).join('') : '<span class="metric-chip">자동 추출 없음</span>'
+            (asset.metrics || []).length
+              ? asset.metrics.slice(0,4).map((m, idx)=>`<span class="metric-chip ${idx===0?'danger':idx===1?'warning':idx===2?'special':''}">${m.label} ${m.value}</span>`).join('')
+              : '<span class="metric-chip">자동 추출 없음</span>'
           }
         </div>
       </div>
@@ -986,34 +981,13 @@ function renderWeekly(text){
     </div>`;
   }
 
-  el.innerHTML = `
-    <div id="exrf-stats" style="margin-bottom:20px">
-      ${[
-        statPill(fmtN(D.csTotal) + '건', '총 CS 인입', 'var(--primary-500)'),
-        statPill(fmtN(D.asRein) + '건', 'AS 재인입', 'var(--danger-text)'),
-        statPill(fmtN((D.exTotal||0)+(D.rfTotal||0)) + '건', '교환 / 환불 합계', 'var(--warning-text)'),
-        statPill(`${pct}%`, '리뷰 저평점 비율', 'var(--special-text)')
-      ].join('')}
-    </div>
+  el.innerHTML = asset
+    ? renderAssetCard(asset)
+    : `<div class="card"><div class="empty-msg">공유 자료 1개를 업로드해 주세요</div></div>`;
 
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr">
-        <i data-lucide="scan-search" class="icon card-hdr-icon-lc"></i>
-        <div class="card-title">핵심 수치 추출</div>
-      </div>
-      <div class="metric-chips">
-        ${keyMetrics.map((item, idx)=>`
-          <span class="metric-chip ${item.tone || (idx===0?'danger':idx===1?'warning':idx===2?'special':'')}">${item.label} ${item.value}</span>
-        `).join('')}
-      </div>
-    </div>
-
-    ${
-      asset ? renderAssetCard(asset) : `<div class="card"><div class="empty-msg">공유 자료 1개를 업로드해 주세요</div></div>`
-    }
-  `;
-
-  document.getElementById('wFileInfo').textContent = asset ? '공유 자료 1개가 Weekly 이슈에 별도 반영되었습니다' : '상단 업로드로 공유 자료 1개를 추가해 주세요';
+  document.getElementById('wFileInfo').textContent = asset
+    ? '공유 자료 1개가 Weekly 이슈에 별도 반영되었습니다'
+    : '상단 업로드로 공유 자료 1개를 추가해 주세요';
 }
 
 function renderAll(){
