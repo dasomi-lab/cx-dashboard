@@ -291,7 +291,7 @@ tr:hover td{background:var(--bg-alt);}
       <div class="dz-t">파일을 드래그하거나 클릭하여 선택</div>
       <div class="dz-s">XLSX · XLS · CSV · PPT · PPTX · DOCX · TXT<br><em>분석 데이터와 공유 자료를 한 번에 업로드할 수 있습니다</em></div>
     </div>
-    <input type="file" id="fi" multiple accept=".pdf,.xlsx,.xls,.csv,.ppt,.pptx,.docx,.txt" onchange="handleFiles(this.files)">
+    <input type="file" id="fi" multiple accept=".xlsx,.xls,.csv,.ppt,.pptx,.docx,.txt" onchange="handleFiles(this.files)">
     <div id="ulist"></div>
     <button class="btn-done" onclick="closeUB()">완료</button>
   </div>
@@ -587,22 +587,8 @@ function parseMonthDay(raw){
 function updateDerivedPeriod(){
   const ds = D.dailyStats || [];
   if(!ds.length) return;
-
-  function toDateObj(md){
-    const [m,d] = String(md).split('/').map(Number);
-    return new Date(2026, (m||1)-1, d||1);
-  }
-
-  const startObj = toDateObj(ds[0].date);
-  const endObj = toDateObj(ds[ds.length-1].date);
-
-  const month = startObj.getMonth() + 1;
-  const week = Math.ceil(startObj.getDate() / 7);
-
-  const ymd = dt => `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
-
-  D.period = `${month}월 ${week}주차`;
-  D.periodRange = `${ymd(startObj)} ~ ${ymd(endObj)}`;
+  const start = ds[0].date, end = ds[ds.length-1].date;
+  D.period = `${start} ~ ${end}`;
 }
 function statPill(v, l, color){
   return `<div class="stat-pill" style="--pill-color:${color || 'var(--primary-500)'}">
@@ -1046,14 +1032,10 @@ function renderWeekly(text){
 }
 
 function clearWeeklyAsset(){
-  if (WEEKLY_ASSET && WEEKLY_ASSET.url && String(WEEKLY_ASSET.ext||'').toUpperCase() === 'PDF') {
-    try { URL.revokeObjectURL(WEEKLY_ASSET.url); } catch(e) {}
-  }
   WEEKLY_ASSET = null;
-  WEEKLY_FILE = null;
+  const chip = document.getElementById('weeklyChip');
+  if(chip) chip.remove();
   renderWeekly();
-  updateChips();
-  rebuildUList();
 }
 
 function renderAll(){
@@ -1238,7 +1220,7 @@ function applyFiles(){
   }
 }
 
-async async function parseWeeklyFiles(fileList){
+async function parseWeeklyFiles(fileList){
   const files = Array.from(fileList || []);
   if(!files.length) return;
 
@@ -1251,14 +1233,11 @@ async async function parseWeeklyFiles(fileList){
       name:file.name,
       ext:n.split('.').pop().toUpperCase(),
       uploadedAt:new Date().toLocaleString('ko-KR'),
-      preview:[], metrics:[], tableHeaders:[], tableRows:[], conclusion:'', url:''
+      preview:[], metrics:[], tableHeaders:[], tableRows:[], conclusion:''
     };
     let combined = `\n\n### ${file.name}\n`;
 
-    if (n.endsWith('.pdf')) {
-      asset.url = URL.createObjectURL(file);
-      asset.conclusion = 'PDF 문서는 카드 내부 뷰어로 표시됩니다.';
-    } else if (n.endsWith('.txt') || n.endsWith('.csv')) {
+    if (n.endsWith('.txt') || n.endsWith('.csv')) {
       const raw = await file.text();
       combined += raw;
       const lines = raw.split(/\n/).map(v=>v.trim()).filter(Boolean);
@@ -1331,7 +1310,7 @@ async async function parseWeeklyFiles(fileList){
   document.getElementById('ldr').classList.remove('on');
 }
 
-async async function handleFiles(fileList){
+async function handleFiles(fileList){
   const files = Array.from(fileList || []);
   if(!files.length) return;
 
@@ -1341,7 +1320,7 @@ async async function handleFiles(fileList){
   for(const file of files){
     const n = file.name.toLowerCase();
 
-    if (n.endsWith('.pdf') || n.endsWith('.ppt') || n.endsWith('.pptx') || n.endsWith('.docx') || n.endsWith('.txt')) {
+    if (n.endsWith('.ppt') || n.endsWith('.pptx') || n.endsWith('.docx') || n.endsWith('.txt')) {
       latestWeeklyFile = file;
       continue;
     }
@@ -1411,15 +1390,9 @@ function rebuildUList(){
 function updateChips(){
   const lbl = { cs:'CS', exchange:'교환', refund:'환불', review:'리뷰', channel:'채널톡' };
   const base = Array.from(FILES.entries()).map(([type])=>`<div class="chip"><span>${lbl[type]||type}</span><button class="chip-x" onclick="deleteFile('${type}')">×</button></div>`).join('');
-  const weekly = WEEKLY_FILE ? `<div class="chip" id="weeklyChip"><span>공유 자료 1개</span></div>` : '';
+  const weekly = WEEKLY_FILE ? `<div class="chip"><span>공유 자료 1개</span></div>` : '';
   document.getElementById('fileChips').innerHTML = base + weekly;
-
-  const badge = document.getElementById('sbPeriodBadge');
-  if (badge) {
-    const title = D.period || '—';
-    const range = D.periodRange || '';
-    badge.innerHTML = range ? `${title}<br>${range}` : title;
-  }
+  document.getElementById('sbPeriodBadge').textContent = D.period || '—';
 }
 
 function openUB(){ document.getElementById('ub').classList.add('on'); }
