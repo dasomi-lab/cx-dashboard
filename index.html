@@ -1371,9 +1371,9 @@ async function handleFiles(fileList){
     }
   }
 
-  if (latestWeeklyFile) {
-    await parseWeeklyFiles([latestWeeklyFile]);
-  }
+for (const file of weeklyFiles) {
+  await renderSharedFile(file);
+}
 
   document.getElementById('fi').value = '';
   document.getElementById('ldr').classList.remove('on');
