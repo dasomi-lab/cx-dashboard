@@ -1045,10 +1045,7 @@ function renderWeekly(text){
   if(window.lucide) lucide.createIcons();
 }
 
-async function clearWeeklyAsset(){
-  if (WEEKLY_ASSET?.path) {
-    await deleteWeeklyPdfFromStorage(WEEKLY_ASSET.path);
-  }
+function clearWeeklyAsset(){
   if (WEEKLY_ASSET && WEEKLY_ASSET.url && String(WEEKLY_ASSET.ext||'').toUpperCase() === 'PDF') {
     try { URL.revokeObjectURL(WEEKLY_ASSET.url); } catch(e) {}
   }
@@ -1241,7 +1238,7 @@ function applyFiles(){
   }
 }
 
-async async function parseWeeklyFiles(fileList){
+async function parseWeeklyFiles(fileList){
   const files = Array.from(fileList || []);
   if(!files.length) return;
 
@@ -1254,17 +1251,12 @@ async async function parseWeeklyFiles(fileList){
       name:file.name,
       ext:n.split('.').pop().toUpperCase(),
       uploadedAt:new Date().toLocaleString('ko-KR'),
-      preview:[], metrics:[], tableHeaders:[], tableRows:[], conclusion:'', url:'', path:''
+      preview:[], metrics:[], tableHeaders:[], tableRows:[], conclusion:'', url:''
     };
     let combined = `\n\n### ${file.name}\n`;
 
     if (n.endsWith('.pdf')) {
-      const uploaded = await uploadWeeklyPdfToStorage(file);
-      if (!uploaded || !uploaded.url) {
-        throw new Error('PDF를 Storage에 저장하지 못했습니다.');
-      }
-      asset.url = uploaded.url;
-      asset.path = uploaded.path;
+      asset.url = URL.createObjectURL(file);
       asset.conclusion = 'PDF 문서는 카드 내부 뷰어로 표시됩니다.';
     } else if (n.endsWith('.txt') || n.endsWith('.csv')) {
       const raw = await file.text();
