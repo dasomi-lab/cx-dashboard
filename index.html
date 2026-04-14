@@ -489,22 +489,23 @@ function fmtN(v){ if(v===null||v===undefined||isNaN(v)) return '-'; return Numbe
 function topN(obj,n=5){ return Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([name,value])=>({name,value})); }
 
 function modelAlias(v) {
-  const t = String(v||'').toUpperCase().replace(/\s/g,'');
+  const raw = String(v||'').trim();
+  const t = raw.toUpperCase().replace(/\s/g,'');
+  if (t.includes('GT500W')||t.includes('GRAVITYW')||t.includes('그래비티W')||t.includes('그래비티 W')||t.includes('(W)')) return '그래비티 W';
   if (t.includes('RCEASY100')||t.includes('EASY100')||t.includes('EASY')||t.includes('이지')) return '이지';
-  if (t.includes('GT500W')||t.includes('GRAVITYW')||t.includes('그래비티W')||t.includes('(W)')) return '그래비티W';
   if (t.includes('PRIME300')||t.includes('RCPRIME300')||t.includes('PRIME')||t.includes('프라임')) return '프라임';
   if (t.includes('GT500')||t.includes('GRAVITY')||t.includes('그래비티')) return '그래비티';
   if (t.includes('RC-02')||t.includes('RC02')) return 'RC-02';
   if (t.includes('소모품')||t.includes('푸드클리너')||t.includes('미생물')) return '소모품';
-  const s = String(v||'').trim();
-  return s || '기타';
+  return raw || '기타';
 }
 function normalizeModelBucket(name){
   const m = modelAlias(name);
+  if (m === 'RC-02') return 'RC-02';
   if (m === '프라임') return '프라임';
   if (m === '그래비티') return '그래비티';
+  if (m === '그래비티 W') return '그래비티 W';
   if (m === '이지') return '이지';
-  if (m === 'RC-02') return 'RC-02';
   return '기타';
 }
 function normalizeAsType(v){
@@ -583,10 +584,11 @@ function statPill(v, l, color){
 }
 function getModelColor(name){
   const map = {
+    'RC-02': {base:'#D9A514', light:'#FFF2C8'},
     '프라임': {base:'#5D86F7', light:'#DFE8FF'},
     '그래비티': {base:'#47A786', light:'#D7F0E7'},
+    '그래비티 W': {base:'#3FA9F5', light:'#D8F0FF'},
     '이지': {base:'#826AF1', light:'#E7E1FF'},
-    'RC-02': {base:'#D9A514', light:'#FFF2C8'},
     '기타': {base:'#C24646', light:'#FADDDD'},
   };
   return map[name] || map['기타'];
@@ -821,7 +823,7 @@ function renderReviews(){
   document.getElementById('rvTbl').innerHTML = tbl(['제품','평점','내용'], rows, '리뷰 파일을 업로드해 주세요');
 }
 function renderByModel(){
-  const orderedNames = ['프라임', '그래비티', '이지', 'RC-02', '기타'];
+  const orderedNames = ['RC-02', '프라임', '그래비티', '그래비티 W', '이지', '기타'];
   const modelDist = orderedNames.map(name=>{
     const found = (D.modelDist||[]).find(item=>item.name===name);
     return {name, value: found ? Number(found.value)||0 : 0};
@@ -872,7 +874,6 @@ function renderByModel(){
           <div class="model-top-name">${item.name}</div>
           <div class="model-top-sub">CS ${fmtN(item.value)}건 · AS 재인입 ${fmtN(reinMap[item.name] || 0)}건</div>
         </div>
-        <div class="model-top-badge">구조 통일</div>
       </div>
 
       <div class="model-section-title">AS 유형별</div>
@@ -1039,7 +1040,7 @@ function applyFiles(){
       });
     });
 
-    const orderedModels = ['프라임', '그래비티', '이지', 'RC-02', '기타'];
+    const orderedModels = ['RC-02', '프라임', '그래비티', '그래비티 W', '이지', '기타'];
     D.csTotal = csR.length;
     D.completed = completed;
     D.complRate = +((completed / csR.length) * 100).toFixed(1);
