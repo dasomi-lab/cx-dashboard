@@ -981,9 +981,7 @@ function renderWeekly(text){
     </div>`;
   }
 
-  el.innerHTML = asset
-    ? renderAssetCard(asset)
-    : `<div class="card"><div class="empty-msg">공유 자료 1개를 업로드해 주세요</div></div>`;
+  el.innerHTML = asset ? renderAssetCard(asset) : '';
 
   document.getElementById('wFileInfo').textContent = asset
     ? '공유 자료 1개가 Weekly 이슈에 별도 반영되었습니다'
@@ -1366,10 +1364,16 @@ function goTab(tab){
   document.getElementById('topTitle').textContent = ({
     dashboard:'Dashboard', reviews:'Reviews', bymodel:'By Model', exchange_refund:'교환 / 환불', weekly:'Weekly 이슈'
   })[tab];
+
   if(tab==='reviews') renderReviews();
   if(tab==='bymodel') renderByModel();
   if(tab==='exchange_refund') renderExchangeRefund();
-  if(tab==='weekly') renderWeekly();
+  if(tab==='weekly'){
+    const weeklyEl = document.getElementById('weeklyReport');
+    if(weeklyEl) weeklyEl.innerHTML = '';
+    renderWeekly();
+  }
+
   closeMobileMenu();
   lucide.createIcons();
 }
