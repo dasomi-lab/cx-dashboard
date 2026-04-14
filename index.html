@@ -1340,13 +1340,13 @@ async function handleFiles(fileList){
   if(!files.length) return;
 
   document.getElementById('ldr').classList.add('on');
-  let weeklyFiles = [];
+  let latestWeeklyFile = null;
 
   for(const file of files){
     const n = file.name.toLowerCase();
 
     if (n.endsWith('.pdf') || n.endsWith('.ppt') || n.endsWith('.pptx') || n.endsWith('.docx') || n.endsWith('.txt')) {
-      weeklyFiles.push(file);
+      latestWeeklyFile = file;
       continue;
     }
 
@@ -1364,16 +1364,16 @@ async function handleFiles(fileList){
       if(type !== 'unknown') {
         FILES.set(type, {name:file.name, rows, headers});
       } else {
-        weeklyFiles.push(file);
+        latestWeeklyFile = file;
       }
     }catch(e){
       console.error(e);
     }
   }
 
-for (const file of weeklyFiles) {
-  await renderSharedFile(file);
-}
+  if (latestWeeklyFile) {
+    await parseWeeklyFiles([latestWeeklyFile]);
+  }
 
   document.getElementById('fi').value = '';
   document.getElementById('ldr').classList.remove('on');
