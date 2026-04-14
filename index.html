@@ -12,6 +12,7 @@
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
@@ -738,6 +739,58 @@ function bdg(s, type){
   return `<span class="badge bb">${t}</span>`;
 }
 
+
+const SB_URL = 'https://wvyxzmcazsrhdvkykwkd.supabase.co';
+const SB_KEY = 'sb_publishable_C2vdOTNA1DAkAVZPk5sxsQ_j2E8WvBT';
+let sbClient = null;
+
+function initSupabase(){
+  try{
+    if(window.supabase && window.supabase.createClient){
+      sbClient = window.supabase.createClient(SB_URL, SB_KEY);
+    }
+  }catch(e){
+    console.error('Supabase 초기화 실패:', e);
+  }
+}
+
+async function uploadWeeklyPdfToStorage(file) {
+  if (!sbClient) return null;
+
+  const safeName = String(file.name || 'weekly.pdf').replace(/[^a-zA-Z0-9._-]/g, '_');
+  const filePath = `weekly/${Date.now()}_${safeName}`;
+
+  const { error } = await sbClient.storage
+    .from('Hate-Monday')
+    .upload(filePath, file, {
+      upsert: true,
+      contentType: 'application/pdf'
+    });
+
+  if (error) {
+    console.error('PDF 업로드 실패:', error);
+    return null;
+  }
+
+  const { data } = sbClient.storage
+    .from('Hate-Monday')
+    .getPublicUrl(filePath);
+
+  return {
+    path: filePath,
+    url: data.publicUrl
+  };
+}
+
+async function deleteWeeklyPdfFromStorage(path) {
+  if (!sbClient || !path) return;
+  try{
+    await sbClient.storage.from('Hate-Monday').remove([path]);
+  }catch(e){
+    console.error('PDF 삭제 실패:', e);
+  }
+}
+
 function renderDashboard(){
   const kpis = [
     {label:'총 CS 인입', value:`${fmtN(D.csTotal)}건`, sub:`처리완료 ${fmtN(D.completed)}건`, icon:'headset'},
@@ -1006,7 +1059,7 @@ function renderWeekly(text){
           </div>
         </div>
         <div class="weekly-preview-box" style="padding:0;overflow:hidden">
-          <embed src="${asset.url}" type="application/pdf" width="100%" height="720px" />
+          <embed src="${asset.url}" type="application/pdf" width="100%" height="1000px" />
         </div>
       </div>`;
     }
@@ -1045,15 +1098,19 @@ function renderWeekly(text){
   if(window.lucide) lucide.createIcons();
 }
 
-function clearWeeklyAsset(){
-  if (WEEKLY_ASSET && WEEKLY_ASSET.url && String(WEEKLY_ASSET.ext||'').toUpperCase() === 'PDF') {
+async function clearWeeklyAsset(){
+  if (WEEKLY_ASSET?.path) {
+    await deleteWeeklyPdfFromStorage(WEEKLY_ASSET.path);
+  } else if (WEEKLY_ASSET && WEEKLY_ASSET.url && String(WEEKLY_ASSET.ext||'').toUpperCase() === 'PDF') {
     try { URL.revokeObjectURL(WEEKLY_ASSET.url); } catch(e) {}
   }
+
   WEEKLY_ASSET = null;
   WEEKLY_FILE = null;
   renderWeekly();
   updateChips();
   rebuildUList();
+  saveData();
 }
 
 function renderAll(){
@@ -1251,12 +1308,19 @@ async function parseWeeklyFiles(fileList){
       name:file.name,
       ext:n.split('.').pop().toUpperCase(),
       uploadedAt:new Date().toLocaleString('ko-KR'),
-      preview:[], metrics:[], tableHeaders:[], tableRows:[], conclusion:'', url:''
+      preview:[], metrics:[], tableHeaders:[], tableRows:[], conclusion:'', url:'', path:''
     };
     let combined = `\n\n### ${file.name}\n`;
 
     if (n.endsWith('.pdf')) {
-      asset.url = URL.createObjectURL(file);
+      const uploaded = await uploadWeeklyPdfToStorage(file);
+
+      if (!uploaded) {
+        throw new Error('PDF를 Supabase Storage에 업로드하지 못했습니다.');
+      }
+
+      asset.url = uploaded.url;
+      asset.path = uploaded.path;
       asset.conclusion = 'PDF 문서는 카드 내부 뷰어로 표시됩니다.';
     } else if (n.endsWith('.txt') || n.endsWith('.csv')) {
       const raw = await file.text();
@@ -1528,6 +1592,7 @@ async function dlPDF(){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  initSupabase();
   lucide.createIcons();
   loadFromLS();
   updateChips();
