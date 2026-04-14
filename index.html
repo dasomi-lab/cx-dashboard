@@ -632,7 +632,7 @@ const COLORS = ['#5D86F7','#47A786','#826AF1','#D9A514','#C24646','#5F6673'];
 // 기본 데이터 (3월 5주차 보고서 기준)
 // ═══════════════════════════════════════════
 const DEFAULT = {
-  period: '2026년 3월 5주차 (3/29 ~ 4/4)',
+  period: '기간 없음',
   csTotal: 883, completed: 377, complRate: 42.7,
   asRein: 56, asReinRate: 6.3,
   exTotal: 5, rfTotal: 5,
@@ -1702,10 +1702,10 @@ function dzDp2(e){e.preventDefault();const files=e.dataTransfer.files;if(files?.
 // ═══════════════════════════════════════════
 function renderAll() {
   renderDashboard();
-  if(curTab==='reviews') renderReviews();
-  else if(curTab==='bymodel') renderByModel();
-  else if(curTab==='exchange_refund') renderExchangeRefund();
-  else if(curTab==='weekly') renderWeekly();
+  renderReviews();
+  renderByModel();
+  renderExchangeRefund();
+  renderWeekly();
   lucide.createIcons();
 }
 
