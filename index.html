@@ -27,7 +27,7 @@
   --warning-bg:#FFF5E8; --warning-text:#B26A12; --warning-border:#F7DFC2;
   --danger-bg:#FDEEEE; --danger-text:#C24646; --danger-border:#F7D2D2;
   --special-bg:#F3F0FF; --special-text:#6A55D9; --special-border:#DDD5FF;
-  --mint-500:#47A786; --lavender-500:#826AF1; --yellow-500:#D9A514;
+  --mint-500:#47A786; --lavender-500:#826AF1; --yellow-500:#D9A514;sbPeriodBadge
   --r-xs:10px; --r-sm:14px; --r-md:20px; --r-lg:24px; --r-xl:28px;
   --sh-soft:0 4px 12px rgba(23,24,28,.04);
   --sh-card:0 10px 24px rgba(23,24,28,.06);
@@ -62,7 +62,11 @@ html,body{height:100%;font-family:var(--font-sans);background:var(--bg-page);col
 .btn-done{width:100%;background:var(--primary-500);color:#fff;border:none;border-radius:var(--r-sm);padding:13px;font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;transition:background .15s;}
 .btn-done:hover{background:var(--primary-600);}
 #fi{display:none;}
-
+#sbPeriodBadge{
+  white-space: normal !important;
+  line-height: 1.45;
+  text-align: center;
+}
 .app{display:flex;height:100vh;overflow:hidden;}
 .sb{width:240px;flex-shrink:0;background:var(--bg-sidebar);border-right:1px solid var(--border-subtle);display:flex;flex-direction:column;overflow-y:auto;transition:transform .25s ease;}
 .sb-logo-wrap{padding:22px 20px 18px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:12px;}
