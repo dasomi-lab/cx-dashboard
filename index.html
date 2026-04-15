@@ -565,19 +565,21 @@ function normalizeRows(json){
 function detectType(fname, headers){
   const n = fname.toLowerCase().replace(/\s/g,'');
   const h = headers.join('|');
-  if (n.includes('cs관리') || n.includes('cs_') || n.includes('202604')) return 'cs';
+
   if (n.includes('교환')) return 'exchange';
   if (n.includes('환불')) return 'refund';
   if (n.includes('review') || n.includes('리뷰')) return 'review';
-  if (n.includes('chat') || n.includes('채널')) return 'channel';
+  if (n.includes('chat') || n.includes('채널') || n.includes('user_chat')) return 'channel';
+  if (n.includes('cs관리') || n.startsWith('cs') || n.includes('cs_')) return 'cs';
 
-  if (h.includes('A/S증상') || h.includes('증상') || h.includes('AS유형') || h.includes('A/S유형')
-      || h.includes('처리상태') || h.includes('접수상태') || h.includes('모델명')
-      || h.includes('품명') || h.includes('상품명') || h.includes('접수번호')) return 'cs';
   if (h.includes('교환유형')) return 'exchange';
   if (h.includes('환불유형')) return 'refund';
   if (h.includes('구매자평점')) return 'review';
-  if (h.includes('mediumType')) return 'channel';
+  if (h.includes('mediumType') || h.includes('summarizedMessage')) return 'channel';
+  if (h.includes('A/S증상') || h.includes('증상') || h.includes('AS유형') || h.includes('A/S유형')
+      || h.includes('처리상태') || h.includes('접수상태') || h.includes('모델명')
+      || h.includes('품명') || h.includes('상품명') || h.includes('접수번호')) return 'cs';
+
   return 'unknown';
 }
 function parseMonthDay(raw){
