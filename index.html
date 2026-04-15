@@ -505,9 +505,11 @@ let modelDonutChart = null;
 let WEEKLY_TEXT = '';
 let WEEKLY_FILE = null;
 let WEEKLY_ASSET = null;
+let WEEKLY_SOURCE_FILE = null;
 
 const SUPABASE_URL = 'https://iauawbrdkbghmvdcngxu.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_JJ5Hn9J5uK2Bf5Jb-IsrIQ_Ti5xhlLJ';
+const SUPABASE_STORAGE_BUCKET = 'cx-weekly-assets';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 let ACTIVE_REPORT_KEY = null;
 
@@ -700,6 +702,58 @@ function deriveReportKey(){
   ACTIVE_REPORT_KEY = `report-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${now.getTime()}`;
   return ACTIVE_REPORT_KEY;
 }
+
+function sanitizeFileName(name='file'){
+  return String(name || 'file')
+    .normalize('NFKD')
+    .replace(/[^\w.\-가-힣]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+function cloneWeeklyAssetForSave(asset){
+  if(!asset) return null;
+  const cloned = JSON.parse(JSON.stringify(asset));
+  if(cloned.url && /^blob:/i.test(cloned.url)) delete cloned.url;
+  return cloned;
+}
+async function uploadWeeklyAssetToStorage(reportKey){
+  if(!WEEKLY_ASSET) return null;
+
+  const current = cloneWeeklyAssetForSave(WEEKLY_ASSET);
+  if(current?.publicUrl && current?.storagePath && !WEEKLY_SOURCE_FILE) return current;
+
+  if(!WEEKLY_SOURCE_FILE){
+    return current;
+  }
+
+  const safeName = sanitizeFileName(WEEKLY_SOURCE_FILE.name || current?.name || 'weekly_asset');
+  const storagePath = `${reportKey}/${safeName}`;
+
+  const { error: uploadError } = await sb
+    .storage
+    .from(SUPABASE_STORAGE_BUCKET)
+    .upload(storagePath, WEEKLY_SOURCE_FILE, {
+      upsert: true,
+      contentType: WEEKLY_SOURCE_FILE.type || 'application/octet-stream',
+      cacheControl: '3600'
+    });
+
+  if(uploadError) {
+    throw new Error(`공유 자료 업로드 실패: ${uploadError.message}. Supabase Storage 버킷 ${SUPABASE_STORAGE_BUCKET} 이(가) public 으로 생성되어 있는지 확인해 주세요.`);
+  }
+
+  const { data: publicData } = sb
+    .storage
+    .from(SUPABASE_STORAGE_BUCKET)
+    .getPublicUrl(storagePath);
+
+  current.storagePath = storagePath;
+  current.publicUrl = publicData?.publicUrl || '';
+  current.url = current.publicUrl || current.url || '';
+  current.bucket = SUPABASE_STORAGE_BUCKET;
+  return current;
+}
+
 function getPersistPayload(){
   return {
     D,
@@ -719,6 +773,7 @@ function applyPersistPayload(payload){
   WEEKLY_TEXT = payload.weeklyText || '';
   WEEKLY_FILE = payload.weeklyFile || null;
   WEEKLY_ASSET = payload.weeklyAsset || null;
+  WEEKLY_SOURCE_FILE = null;
   FILES.clear();
   (payload.uploadedFiles || []).forEach(item => {
     if(item?.kind) FILES.set(item.kind, { name: item.name || item.kind, rows: [] });
@@ -738,11 +793,17 @@ async function saveReportToSupabase(){
 
   try{
     const reportKey = deriveReportKey();
+    const weeklyAssetForSave = await uploadWeeklyAssetToStorage(reportKey);
+    if(weeklyAssetForSave) WEEKLY_ASSET = weeklyAssetForSave;
+
+    const persistPayload = getPersistPayload();
+    persistPayload.weeklyAsset = weeklyAssetForSave;
+
     const payload = {
       report_key: reportKey,
       title: `CX Dashboard ${D.period || ''}`.trim(),
       period: D.period || '',
-      data: getPersistPayload(),
+      data: persistPayload,
       updated_at: new Date().toISOString()
     };
 
@@ -812,6 +873,7 @@ function loadFromLS(){
     WEEKLY_TEXT = parsed.weeklyText || '';
     WEEKLY_FILE = parsed.weeklyFile || null;
     WEEKLY_ASSET = parsed.weeklyAsset || null;
+    WEEKLY_SOURCE_FILE = null;
     return true;
   }catch(e){ return false; }
 }
@@ -1129,11 +1191,15 @@ function renderWeekly(text){
 
   function renderAssetCard(asset){
     const isPdf = String(asset.ext||'').toUpperCase() === 'PDF';
+    const openUrl = asset.publicUrl || asset.url || '';
+    const downloadBtn = openUrl ? `<a class="btn btn-outline" style="margin-left:8px" href="${openUrl}" target="_blank" rel="noopener noreferrer">
+      <i data-lucide="external-link" class="icon"></i>열기
+    </a>` : '';
     const deleteBtn = `<button class="btn btn-outline" style="margin-left:8px" onclick="clearWeeklyAsset()">
       <i data-lucide="trash-2" class="icon"></i>삭제
     </button>`;
 
-    if(isPdf && asset.url){
+    if(isPdf && openUrl){
       return `<div class="weekly-file-card" style="min-height:auto">
         <div class="weekly-file-top">
           <div>
@@ -1142,11 +1208,12 @@ function renderWeekly(text){
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <div class="weekly-file-badge">PDF</div>
+            ${downloadBtn}
             ${deleteBtn}
           </div>
         </div>
         <div class="weekly-preview-box" style="padding:0;overflow:hidden">
-          <embed src="${asset.url}" type="application/pdf" width="100%" height="1000px" />
+          <embed src="${openUrl}" type="application/pdf" width="100%" height="1000px" />
         </div>
       </div>`;
     }
@@ -1186,11 +1253,12 @@ function renderWeekly(text){
 }
 
 function clearWeeklyAsset(){
-  if (WEEKLY_ASSET && WEEKLY_ASSET.url && String(WEEKLY_ASSET.ext||'').toUpperCase() === 'PDF') {
+  if (WEEKLY_ASSET && WEEKLY_ASSET.url && /^blob:/i.test(WEEKLY_ASSET.url) && String(WEEKLY_ASSET.ext||'').toUpperCase() === 'PDF') {
     try { URL.revokeObjectURL(WEEKLY_ASSET.url); } catch(e) {}
   }
   WEEKLY_ASSET = null;
   WEEKLY_FILE = null;
+  WEEKLY_SOURCE_FILE = null;
   renderWeekly();
   updateChips();
   rebuildUList();
@@ -1461,6 +1529,7 @@ async function parseWeeklyFiles(fileList){
     }
 
     WEEKLY_FILE = file.name;
+    WEEKLY_SOURCE_FILE = file;
     WEEKLY_ASSET = asset;
     renderWeekly(combined.trim());
     document.getElementById('wFileInfo').textContent = '공유 자료 1개 반영 완료';
