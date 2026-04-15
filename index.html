@@ -10,6 +10,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
@@ -340,6 +341,7 @@ tr:hover td{background:var(--bg-alt);}
           <i data-lucide="folder-input" class="icon"></i>가져오기
           <input type="file" accept=".json" style="display:none" onchange="importJSON(this)">
         </label>
+        <button class="btn btn-outline" id="saveDbBtn" onclick="saveReportToSupabase()"><i data-lucide="cloud-upload" class="icon"></i>DB 저장</button>
         <button class="btn btn-primary" id="pdfBtn" onclick="dlPDF()"><i data-lucide="file-down" class="icon"></i>PDF</button>
       </div>
     </div>
@@ -504,6 +506,11 @@ let WEEKLY_TEXT = '';
 let WEEKLY_FILE = null;
 let WEEKLY_ASSET = null;
 
+const SUPABASE_URL = 'https://iauawbrdkbghmvdcngxu.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_JJ5Hn9J5uK2Bf5Jb-IsrIQ_Ti5xhlLJ';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+let ACTIVE_REPORT_KEY = null;
+
 function fmtN(v){ if(v===null||v===undefined||isNaN(v)) return '-'; return Number(v).toLocaleString('ko-KR'); }
 function topN(obj,n=5){ return Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([name,value])=>({name,value})); }
 
@@ -665,6 +672,131 @@ function showSaveToast(msg){
   clearTimeout(t._timer);
   t._timer = setTimeout(()=>{t.style.opacity='0';}, 2200);
 }
+
+function deriveReportKey(){
+  if (ACTIVE_REPORT_KEY) return ACTIVE_REPORT_KEY;
+
+  const range = String(D.periodRange || '').trim();
+  let m = range.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (m) {
+    const year = Number(m[1]);
+    const month = Number(m[2]);
+    const day = Number(m[3]);
+    ACTIVE_REPORT_KEY = `${year}-${String(month).padStart(2,'0')}-w${Math.ceil(day / 7)}`;
+    return ACTIVE_REPORT_KEY;
+  }
+
+  const period = String(D.period || '').trim();
+  m = period.match(/(\d{1,2})월\s*(\d)주차/);
+  if (m) {
+    const year = new Date().getFullYear();
+    const month = Number(m[1]);
+    const week = Number(m[2]);
+    ACTIVE_REPORT_KEY = `${year}-${String(month).padStart(2,'0')}-w${week}`;
+    return ACTIVE_REPORT_KEY;
+  }
+
+  const now = new Date();
+  ACTIVE_REPORT_KEY = `report-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${now.getTime()}`;
+  return ACTIVE_REPORT_KEY;
+}
+function getPersistPayload(){
+  return {
+    D,
+    weeklyText: WEEKLY_TEXT,
+    weeklyFile: WEEKLY_FILE,
+    weeklyAsset: WEEKLY_ASSET,
+    uploadedFiles: Array.from(FILES.entries()).map(([kind, file]) => ({
+      kind,
+      name: file?.name || '',
+      rowsCount: Array.isArray(file?.rows) ? file.rows.length : 0
+    }))
+  };
+}
+function applyPersistPayload(payload){
+  if(!payload || !payload.D) throw new Error('저장 데이터 형식이 올바르지 않습니다.');
+  D = payload.D;
+  WEEKLY_TEXT = payload.weeklyText || '';
+  WEEKLY_FILE = payload.weeklyFile || null;
+  WEEKLY_ASSET = payload.weeklyAsset || null;
+  FILES.clear();
+  (payload.uploadedFiles || []).forEach(item => {
+    if(item?.kind) FILES.set(item.kind, { name: item.name || item.kind, rows: [] });
+  });
+  updateChips();
+  rebuildUList();
+  renderAll();
+  renderWeekly();
+  saveToLS();
+}
+async function saveReportToSupabase(){
+  const btn = document.getElementById('saveDbBtn');
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i data-lucide="loader-circle" class="icon"></i>저장 중';
+  lucide.createIcons();
+
+  try{
+    const reportKey = deriveReportKey();
+    const payload = {
+      report_key: reportKey,
+      title: `CX Dashboard ${D.period || ''}`.trim(),
+      period: D.period || '',
+      data: getPersistPayload(),
+      updated_at: new Date().toISOString()
+    };
+
+    const { error } = await sb
+      .from('cx_reports')
+      .upsert(payload, { onConflict: 'report_key' });
+
+    if(error) throw error;
+
+    ACTIVE_REPORT_KEY = reportKey;
+    const shareUrl = `${location.origin}${location.pathname}?report=${encodeURIComponent(reportKey)}`;
+    if(navigator.clipboard?.writeText){
+      await navigator.clipboard.writeText(shareUrl);
+      showSaveToast('DB 저장 완료 · 공유 링크가 복사되었습니다');
+    }else{
+      showSaveToast('DB 저장 완료');
+    }
+    alert(`DB 저장이 완료되었습니다.\n공유 링크:\n${shareUrl}`);
+    history.replaceState({}, '', `${location.pathname}?report=${encodeURIComponent(reportKey)}`);
+  }catch(e){
+    console.error(e);
+    alert('DB 저장 실패: ' + (e?.message || e));
+  }finally{
+    btn.disabled = false;
+    btn.innerHTML = original;
+    lucide.createIcons();
+  }
+}
+async function loadReportFromUrl(){
+  const params = new URLSearchParams(location.search);
+  const reportKey = params.get('report');
+  if(!reportKey) return false;
+
+  try{
+    const { data, error } = await sb
+      .from('cx_reports')
+      .select('report_key, data, updated_at')
+      .eq('report_key', reportKey)
+      .single();
+
+    if(error) throw error;
+    if(!data?.data) throw new Error('저장된 보고서를 찾지 못했습니다.');
+
+    ACTIVE_REPORT_KEY = data.report_key;
+    applyPersistPayload(data.data);
+    document.getElementById('sbSavedTime').textContent = `공유 보고서 로드: ${new Date(data.updated_at).toLocaleString('ko-KR')}`;
+    return true;
+  }catch(e){
+    console.error(e);
+    alert('공유 보고서를 불러오지 못했습니다: ' + (e?.message || e));
+    return false;
+  }
+}
+
 function saveToLS(){
   localStorage.setItem('cx_dashboard_local', JSON.stringify({
     D, weeklyText: WEEKLY_TEXT, weeklyFile: WEEKLY_FILE, weeklyAsset: WEEKLY_ASSET
@@ -695,6 +827,7 @@ function exportJSON(){
   URL.revokeObjectURL(a.href);
 }
 function importJSON(input){
+  ACTIVE_REPORT_KEY = null;
   const file = input.files[0];
   if(!file) return;
   const reader = new FileReader();
@@ -1339,6 +1472,7 @@ async function parseWeeklyFiles(fileList){
 }
 
 async function handleFiles(fileList){
+  ACTIVE_REPORT_KEY = null;
   const files = Array.from(fileList || []);
   if(!files.length) return;
 
@@ -1532,14 +1666,15 @@ async function dlPDF(){
   lucide.createIcons();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   lucide.createIcons();
-  loadFromLS();
+  const hasLocal = loadFromLS();
   updateChips();
   rebuildUList();
   renderAll();
   renderWeekly();
-  document.getElementById('sbSavedTime').textContent = localStorage.getItem('cx_dashboard_local') ? '로컬 데이터 표시 중' : '기본 데이터 표시 중';
+  document.getElementById('sbSavedTime').textContent = hasLocal ? '로컬 데이터 표시 중' : '기본 데이터 표시 중';
+  await loadReportFromUrl();
 });
 </script>
 </body>
