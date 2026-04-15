@@ -481,6 +481,7 @@ const DEFAULT = {
   exTotal: 0, rfTotal: 0,
   rvTotal: 0, avgRating: 0, negReviews: 0,
   topModel: '-', topModelCnt: 0, topModelPct: 0,
+  channelTotal: 0, phoneTotal: 0,
   topSym: '-', topSymCnt: 0,
   modelDist: [], symptomTop: [], symptomAll: [],
   asReinByModel: [], asTypeTable: [], statusDist: [],
@@ -942,12 +943,12 @@ function bdg(s, type){
 
 function renderDashboard(){
   const kpis = [
-    {label:'총 CS 인입', value:`${fmtN(D.csTotal)}건`, sub:`처리완료 ${fmtN(D.completed)}건`, icon:'headset'},
-    {label:'처리완료율', value:`${D.complRate || 0}%`, sub:'CS 기준', icon:'badge-check'},
-    {label:'AS 재인입', value:`${fmtN(D.asRein)}건`, sub:`비율 ${D.asReinRate || 0}%`, icon:'rotate-ccw'},
+    {label:'총 채널톡 인입량', value:`${fmtN(D.channelTotal || 0)}건`, sub:'채널톡 기준', icon:'messages-square'},
+    {label:'전화량', value:`${fmtN(D.phoneTotal || 0)}건`, sub:'전화 인입', icon:'phone-call'},
+    {label:'AS 재인입', value:`${fmtN(D.asRein)}건`, sub:`전체 대비 ${D.asReinRate || 0}%`, icon:'rotate-ccw'},
     {label:'교환 / 환불', value:`${fmtN((D.exTotal||0)+(D.rfTotal||0))}건`, sub:`교환 ${fmtN(D.exTotal)} · 환불 ${fmtN(D.rfTotal)}`, icon:'repeat'},
     {label:'리뷰 저평점', value:`${fmtN(D.negReviews)}건`, sub:`평균평점 ${D.avgRating || 0}`, icon:'message-square-warning'},
-    {label:'최다 모델', value:`${D.topModel || '-'}`, sub:`${fmtN(D.topModelCnt)}건 · ${D.topModelPct || 0}%`, icon:'box'},
+    {label:'평균 평점', value:`${D.avgRating || 0}점`, sub:`전체 ${fmtN(D.rvTotal || 0)}개`, icon:'star'},
   ];
   document.getElementById('kpiGrid').innerHTML = kpis.map(k=>`
     <div class="kpi-card">
@@ -1378,6 +1379,19 @@ function applyFiles(){
       part:String(pickCol(r,['부품']) || '—'),
       store:String(pickCol(r,['구매처']) || '—'),
     }));
+  }
+
+  if (chR.length) {
+    const phoneSet = new Set(['phone', 'call', 'tel', 'telephone', 'voice']);
+    D.channelTotal = chR.length;
+    D.phoneTotal = chR.filter(r=>{
+      const mediumType = String(pickCol(r,['mediumType','채널유형','상담유형']) || '').trim().toLowerCase();
+      const mediumName = String(pickCol(r,['mediumName','채널명']) || '').trim().toLowerCase();
+      return phoneSet.has(mediumType) || mediumName.includes('전화') || mediumName.includes('phone') || mediumName.includes('call');
+    }).length;
+  } else {
+    D.channelTotal = 0;
+    D.phoneTotal = 0;
   }
 
   if (rvR.length) {
