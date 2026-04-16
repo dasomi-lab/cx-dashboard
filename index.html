@@ -104,7 +104,7 @@ html,body{height:100%;font-family:var(--font-sans);background:var(--bg-page);col
 .btn-primary:hover{background:var(--primary-600);}
 .btn-primary:disabled{opacity:.5;cursor:not-allowed;}
 
-.content{flex:1;overflow-y:auto;padding:24px 24px 32px;}
+.content{flex:1;overflow-y:auto;overflow-x:hidden;padding:24px 24px 32px;}
 .content::-webkit-scrollbar{width:5px;}
 .content::-webkit-scrollbar-thumb{background:var(--border-subtle);border-radius:3px;}
 .pane{display:none;}
@@ -297,24 +297,47 @@ tr:hover td{background:var(--bg-alt);}
   .vbars{height:240px;}
 }
 @media(max-width:768px){
-  html,body{font-size:15.4px;}
+  html,body{font-size:13px;}
   .mobile-menu-btn{display:flex;}
   .sb{position:fixed;top:0;left:0;height:100vh;z-index:200;transform:translateX(-100%);}
   .sb.mobile-open{transform:translateX(0);}
-  .content{overflow:visible;padding:14px 14px 24px;}
-  .topbar{padding:10px 14px;}
-  .topbar-r{gap:4px;flex-wrap:wrap;}
+  .content{overflow:visible;padding:12px 12px 24px;}
+
+  /* topbar */
+  .topbar{padding:8px 12px;flex-wrap:wrap;gap:6px;}
+  .topbar-l{width:100%;}
+  .topbar-breadcrumb{font-size:16px;}
+  .topbar-r{width:100%;gap:4px;flex-wrap:wrap;justify-content:flex-start;}
+  .topbar-r .btn{padding:6px 10px;font-size:12px;}
   .topbar-r .btn span.btn-label{display:none;}
-  .card{padding:14px 16px;}
-  .kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
-  .kpi-value{font-size:22px;}
-  .stat-pill-value{font-size:22px;}
-  .daily-main-title{font-size:20px;}
-  .model-symptom-grid{grid-template-columns:1fr;}
+  .chip-group{display:none;}
+
+  /* KPI */
+  .kpi-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .kpi-card{padding:12px 12px 10px;}
+  .kpi-value{font-size:20px;}
+  .kpi-label{font-size:11px;}
+  .kpi-sub{font-size:11px;}
+
+  /* 카드 */
+  .card{padding:12px 14px;}
+  .card-title{font-size:14px;}
+
+  /* 차트 */
   .donut-panel{grid-template-columns:1fr;}
-  .donut-wrap{max-width:240px;}
-  .stats-row{gap:8px;}
-  .stat-pill{padding:10px 12px;}
+  .donut-wrap{max-width:220px;}
+  .stat-pill-value{font-size:20px;}
+  .daily-main-title{font-size:18px;}
+  .model-symptom-grid{grid-template-columns:1fr;}
+  .stats-row{gap:6px;}
+  .stat-pill{padding:8px 10px;}
+
+  /* 교환/환불 테이블 */
+  .er-grid{grid-template-columns:1fr;}
+  .er-model-meta{display:none;}
+
+  /* 리뷰 */
+  .review-grid-two{grid-template-columns:1fr;}
 }
 .er-legend{display:flex;gap:16px;margin-bottom:14px;}
 .er-legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary);}
