@@ -301,7 +301,7 @@ tr:hover td{background:var(--bg-alt);}
   .mobile-menu-btn{display:flex;}
   .sb{position:fixed;top:0;left:0;height:100vh;z-index:200;transform:translateX(-100%);}
   .sb.mobile-open{transform:translateX(0);}
-  .content{overflow:visible;padding:12px 12px 24px;}
+  .content{overflow-y:auto;overflow-x:hidden;padding:12px 12px 24px;}
 
   /* topbar */
   .topbar{padding:8px 12px;flex-wrap:wrap;gap:6px;}
@@ -409,7 +409,7 @@ tr:hover td{background:var(--bg-alt);}
         <div class="chip-group" id="fileChips"></div>
         <button class="btn btn-outline" onclick="openUB()"><i data-lucide="upload" class="icon"></i>업로드</button>
         <button class="btn btn-outline" onclick="exportJSON()"><i data-lucide="download" class="icon"></i>내보내기</button>
-        <label class="btn btn-outline" style="cursor:pointer;">
+        <label class="btn btn-outline" style="cursor:pointer;display:inline-flex;">
           <i data-lucide="folder-input" class="icon"></i><span class="btn-label">가져오기</span>
           <input type="file" accept=".json" style="display:none" onchange="importJSON(this)">
         </label>
