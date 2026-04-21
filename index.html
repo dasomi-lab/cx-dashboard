@@ -229,17 +229,17 @@ tr:hover td{background:var(--bg-alt);}
 .model-symptom-card{background:var(--bg-surface);border-radius:var(--r-md);box-shadow:var(--sh-card);padding:20px 22px;border:1px solid var(--border-soft);}
 .model-top-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
 .model-top-left{display:flex;flex-direction:column;gap:4px;}
-.model-top-name{font-size:22.5px;font-weight:700;color:var(--text-primary);letter-spacing:-.03em;}
-.model-top-sub{font-size:15px;color:var(--text-tertiary);font-weight:500;}
+.model-top-name{font-size:26px;font-weight:700;color:var(--text-primary);letter-spacing:-.03em;}
+.model-top-sub{font-size:16px;color:var(--text-tertiary);font-weight:500;}
 .model-top-badge{padding:6px 12px;border-radius:999px;background:var(--primary-50);color:var(--primary-600);font-size:15px;font-weight:700;border:1px solid var(--primary-100);}
-.model-section-title{font-size:15px;font-weight:700;color:var(--text-secondary);margin-bottom:10px;}
+.model-section-title{font-size:16px;font-weight:700;color:var(--text-secondary);margin-bottom:10px;}
 .model-empty{font-size:16.25px;color:var(--text-tertiary);padding:8px 0;}
 .type-bars{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
 .type-row{display:grid;grid-template-columns:88px 1fr auto;align-items:center;gap:10px;}
-.type-label{font-size:15px;font-weight:600;color:var(--text-secondary);}
+.type-label{font-size:16px;font-weight:600;color:var(--text-secondary);}
 .type-track{height:10px;background:var(--bg-alt);border-radius:999px;overflow:hidden;border:1px solid var(--border-soft);}
 .type-fill{height:100%;border-radius:999px;transition:width .8s ease;}
-.type-num{font-size:15px;font-weight:700;color:var(--text-primary);}
+.type-num{font-size:16px;font-weight:700;color:var(--text-primary);}
 .symptom-split{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:center;}
 @media(max-width:768px){.symptom-split{grid-template-columns:1fr;}}
 .mini-donut{width:120px;height:120px;border-radius:50%;position:relative;margin:0 auto;}
@@ -249,13 +249,19 @@ tr:hover td{background:var(--bg-alt);}
 .mini-donut-center span{font-size:12.5px;color:var(--text-tertiary);margin-top:4px;}
 .rank-list{display:flex;flex-direction:column;gap:8px;}
 .rank-item{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;padding:8px 10px;background:var(--bg-alt);border:1px solid var(--border-soft);border-radius:var(--r-xs);}
-.rank-no{font-size:15px;font-weight:800;color:var(--text-primary);text-align:center;}
-.rank-name{font-size:15px;font-weight:600;color:var(--text-secondary);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.rank-val{font-size:15px;font-weight:700;color:var(--text-primary);}
+.rank-no{font-size:16px;font-weight:800;color:var(--text-primary);text-align:center;}
+.rank-name{font-size:16px;font-weight:600;color:var(--text-secondary);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rank-val{font-size:16px;font-weight:700;color:var(--text-primary);}
 
-#exrf-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:stretch;}
-#exrf-stats .stat-pill{min-width:0;}
-@media(max-width:640px){#exrf-stats{grid-template-columns:1fr;}}
+#exrf-stats{display:block;margin-bottom:20px;}
+.er-stat-row{display:flex;gap:8px;align-items:stretch;margin-bottom:10px;}
+.er-stat-total{border-radius:var(--r-sm);padding:12px 20px;text-align:center;min-width:110px;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;box-shadow:var(--sh-soft);}
+.er-stat-total-label{font-size:12px;font-weight:600;color:rgba(255,255,255,0.88);margin-bottom:3px;letter-spacing:.02em;}
+.er-stat-total-val{font-size:26px;font-weight:700;color:#fff;line-height:1.1;}
+.er-model-pill{background:var(--bg-surface);border:1px solid var(--border-soft);box-shadow:var(--sh-soft);border-radius:var(--r-sm);padding:11px 8px;text-align:center;flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:4px;transition:box-shadow .15s;}
+.er-model-pill-name{font-size:11.5px;font-weight:500;color:var(--text-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.er-model-pill-val{font-size:20px;font-weight:700;line-height:1.1;}
+@media(max-width:900px){.er-stat-row{flex-wrap:wrap;}.er-model-pill{min-width:calc(25% - 8px);}}
 
 .exrf-product-header{background:#5D86F7;color:#fff;padding:10px 16px;font-size:16.25px;font-weight:700;border-radius:var(--r-xs);margin-bottom:12px;margin-top:20px;}
 .exrf-product-header:first-child{margin-top:0;}
@@ -464,6 +470,7 @@ tr:hover td{background:var(--bg-alt);}
             <div id="symptomBars"><div class="empty-msg">—</div></div>
           </div>
         </div>
+
       </div>
 
       <div id="pane-reviews" class="pane">
@@ -501,13 +508,7 @@ tr:hover td{background:var(--bg-alt);}
 
       <div id="pane-exchange_refund" class="pane">
         <div class="stats-row" id="exrf-stats"></div>
-        <div class="card">
-          <div class="card-hdr">
-            <i data-lucide="repeat-2" class="icon card-hdr-icon-lc"></i>
-            <div class="card-title">교환 / 환불 상세 내역 (제품별)</div>
-          </div>
-          <div id="exrf-detail"></div>
-        </div>
+        <div id="exrf-detail"></div>
       </div>
 
       <div id="pane-weekly" class="pane">
@@ -637,8 +638,26 @@ function normalizeAsType(v){
   return t;
 }
 function pickCol(row, keys){
+  // 1차: 정확한 키 매칭
   for(const k of keys){
     if(k in row && row[k]!==null && row[k]!==undefined && String(row[k]).trim()!=='') return row[k];
+  }
+  // 2차: 공백 제거 후 매칭 (예: "고객명 (접수/구매)" ↔ "고객명(접수/구매)")
+  const normMap={};
+  Object.keys(row).forEach(rk=>{ normMap[rk.replace(/\s/g,'')]=row[rk]; });
+  for(const k of keys){
+    const kn=k.replace(/\s/g,'');
+    if(kn in normMap && normMap[kn]!==null && normMap[kn]!==undefined && String(normMap[kn]).trim()!=='') return normMap[kn];
+  }
+  // 3차: 키가 검색어를 포함하는지 부분 매칭 (예: "고객명" → "고객명(접수/구매)" 매칭)
+  const rowKeys=Object.keys(row);
+  for(const k of keys){
+    const kn=k.replace(/\s/g,'').toLowerCase();
+    const hit=rowKeys.find(rk=>{
+      const rkn=rk.replace(/\s/g,'').toLowerCase();
+      return rkn.startsWith(kn)||rkn===kn;
+    });
+    if(hit && row[hit]!==null && row[hit]!==undefined && String(row[hit]).trim()!=='') return row[hit];
   }
   return null;
 }
@@ -717,12 +736,14 @@ function statPill(v, l, color){
 }
 function getModelColor(name){
   const map = {
-    'RC-02': {base:'#D9A514', light:'#FFF2C8'},
-    '프라임': {base:'#5D86F7', light:'#DFE8FF'},
-    '그래비티': {base:'#47A786', light:'#D7F0E7'},
+    'RC-02':      {base:'#D9A514', light:'#FFF2C8'},
+    'RT220':      {base:'#0AABBD', light:'#D6F5F9'},
+    '프라임':     {base:'#5D86F7', light:'#DFE8FF'},
+    '프라임S':    {base:'#E8723A', light:'#FDEADE'},
+    '그래비티':   {base:'#47A786', light:'#D7F0E7'},
     '그래비티 W': {base:'#3FA9F5', light:'#D8F0FF'},
-    '이지': {base:'#826AF1', light:'#E7E1FF'},
-    '기타': {base:'#C24646', light:'#FADDDD'},
+    '이지':       {base:'#826AF1', light:'#E7E1FF'},
+    '기타':       {base:'#C24646', light:'#FADDDD'},
   };
   return map[name] || map['기타'];
 }
@@ -1053,6 +1074,7 @@ function renderDashboard(){
 
   renderModelDonut();
   bars(D.symptomAll || [], 'symptomBars');
+
 }
 function renderDailyBars(id, items){
   const el = document.getElementById(id);
@@ -1248,89 +1270,103 @@ function renderByModel(){
 function renderExchangeRefund(){
   const exList = D.exchangeList || [];
   const rfList = D.refundList || [];
-  const exDone = exList.filter(r=>String(r.status).includes('완료')).length;
-  const rfDone = rfList.filter(r=>String(r.status).includes('완료')).length;
 
-  document.getElementById('exrf-stats').innerHTML = [
-    statPill(fmtN(exDone)+'건','교환 완료','#E8A838'),
-    statPill(fmtN(rfDone)+'건','환불 완료','#D96060'),
-  ].join('');
+  // 교환완료 / 환불완료만 (회수완료 제외)
+  const exDone = exList.filter(r=>String(r.status).includes('교환완료'));
+  const rfDone = rfList.filter(r=>String(r.status).includes('환불완료'));
+
+  const ER_MODELS = ['RC-02','RT220','프라임','프라임S','그래비티','그래비티 W','이지'];
+  const exByModel={}, rfByModel={};
+  ER_MODELS.forEach(m=>{exByModel[m]=0; rfByModel[m]=0;});
+  exDone.forEach(r=>{
+    const b=normalizeModelBucket(modelAlias(r.product));
+    if(b in exByModel) exByModel[b]++;
+  });
+  rfDone.forEach(r=>{
+    const b=normalizeModelBucket(modelAlias(r.product));
+    if(b in rfByModel) rfByModel[b]++;
+  });
+
+  const makePillRow = (label, total, byModel, color, bgColor)=>{
+    const totalPill = `<div class="er-stat-total" style="background:${bgColor};">
+      <div class="er-stat-total-label">${label}</div>
+      <div class="er-stat-total-val">${fmtN(total)}건</div>
+    </div>`;
+    const modelPills = ER_MODELS.map(m=>{
+      const cnt = byModel[m]||0;
+      const hasData = cnt > 0;
+      const mc = getModelColor(m);
+      return `<div class="er-model-pill" style="border-bottom:3px solid ${hasData ? mc.base : 'var(--border-soft)'};">
+        <div class="er-model-pill-name">${m}</div>
+        <div class="er-model-pill-val" style="color:${hasData ? mc.base : 'var(--text-tertiary)'};">${fmtN(cnt)}건</div>
+      </div>`;
+    }).join('');
+    return `<div class="er-stat-row">${totalPill}${modelPills}</div>`;
+  };
+
+  document.getElementById('exrf-stats').innerHTML =
+    makePillRow('교환완료', exDone.length, exByModel, '#C47A0E', '#E8A838') +
+    makePillRow('환불완료', rfDone.length, rfByModel, '#C04040', '#D96060');
 
   if(!exList.length && !rfList.length){
     document.getElementById('exrf-detail').innerHTML = '<div class="empty-msg">교환/환불 파일을 업로드해 주세요</div>';
     return;
   }
 
-  const allItems = [
-    ...exList.map(r=>({...r, _kind:'교환'})),
-    ...rfList.map(r=>({...r, _kind:'환불'})),
-  ];
-
-  const groups = {};
-  allItems.forEach(r=>{
-    const p = r.product || '—';
-    if(!groups[p]) groups[p] = {교환:[], 환불:[]};
-    groups[p][r._kind].push(r);
-  });
-
-  const legend = `<div class="er-legend">
-    <div class="er-legend-item"><div class="er-legend-line ex"></div>교환</div>
-    <div class="er-legend-item"><div class="er-legend-line re"></div>환불</div>
-  </div>`;
-
-  const statusBadge = (s)=>{
-    const t = String(s||'');
-    if(t.includes('교환완료') || t.includes('환불완료'))
-      return `<span style="background:#EAF7EF;color:#2E7D50;display:inline-block;padding:3px 9px;border-radius:999px;font-size:14.4px;font-weight:500;">${t}</span>`;
-    if(t.includes('회수완료'))
-      return `<span style="background:#F2F4F3;color:#888888;display:inline-block;padding:3px 9px;border-radius:999px;font-size:14.4px;font-weight:500;">${t}</span>`;
-    return `<span style="background:#F2F4F3;color:#555555;display:inline-block;padding:3px 9px;border-radius:999px;font-size:14.4px;font-weight:500;">${t}</span>`;
+  const statusBadge = s=>{
+    const t=String(s||'');
+    if(t.includes('교환완료')) return `<span style="background:#EAF7EF;color:#2E7D50;display:inline-block;padding:3px 9px;border-radius:999px;font-size:13px;font-weight:500;">${t}</span>`;
+    if(t.includes('환불완료')) return `<span style="background:#FDE8E8;color:#C04040;display:inline-block;padding:3px 9px;border-radius:999px;font-size:13px;font-weight:500;">${t}</span>`;
+    return `<span style="background:#F2F4F3;color:#555;display:inline-block;padding:3px 9px;border-radius:999px;font-size:13px;font-weight:500;">${t}</span>`;
   };
 
-  const cards = Object.entries(groups).map(([product, items])=>{
-    const exRows = items.교환 || [];
-    const rfRows = items.환불 || [];
-    const totalRows = exRows.length + rfRows.length;
+  const TH=`padding:10px 12px;text-align:left;font-size:13px;font-weight:500;color:var(--text-tertiary);border-bottom:1px solid var(--border-subtle);white-space:nowrap;`;
+  const TD=`padding:9px 12px;font-size:13.5px;border-bottom:1px solid var(--border-subtle);vertical-align:top;`;
 
-    const tableRows = [
-      ...exRows.map(r=>`
-        <tr class="ex-row">
-          <td>${statusBadge(r.status)}</td>
-          <td>${r.type||'—'}</td>
-          <td><div class="review-content-full">${r.symptom||'—'}</div></td>
-          <td style="white-space:nowrap;">${r.store||'—'}</td>
-        </tr>`),
-      ...rfRows.map(r=>`
-        <tr class="re-row">
-          <td>${statusBadge(r.status)}</td>
-          <td>${r.type||'—'}</td>
-          <td><div class="review-content-full">${r.symptom||'—'}</div></td>
-          <td style="white-space:nowrap;">${r.store||'—'}</td>
-        </tr>`)
-    ].join('');
+  const buildTable = (list, emptyMsg)=>{
+    if(!list.length) return `<div class="empty-msg" style="padding:20px 0;">${emptyMsg}</div>`;
+    return `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
+      <thead><tr style="background:var(--bg-alt);">
+        <th style="${TH}">제품</th>
+        <th style="${TH}">고객</th>
+        <th style="${TH}">날짜</th>
+        <th style="${TH}">처리상태</th>
+        <th style="${TH}">유형</th>
+        <th style="${TH}">증상·사유</th>
+        <th style="${TH}">구매처</th>
+      </tr></thead>
+      <tbody>${list.map(r=>`<tr>
+        <td style="${TD}white-space:nowrap;">${r.product||'—'}</td>
+        <td style="${TD}white-space:nowrap;">${r.name||'—'}</td>
+        <td style="${TD}white-space:nowrap;">${r.date||'—'}</td>
+        <td style="${TD}">${statusBadge(r.status)}</td>
+        <td style="${TD}white-space:nowrap;">${r.type||'—'}</td>
+        <td style="${TD}">${r.symptom||'—'}</td>
+        <td style="${TD}white-space:nowrap;">${r.store||'—'}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  };
 
-    return `<div class="er-card">
-      <div class="er-model-header">
-        <div class="er-model-name">${product}</div>
-        <div class="er-model-meta">교환 ${exRows.length} · 환불 ${rfRows.length} · 총 ${totalRows}건</div>
-      </div>
-      <table style="width:100%;border-collapse:collapse;font-size:14.375px;">
-        <thead>
-          <tr style="background:var(--bg-alt);">
-            <th style="width:120px;padding:10px 12px;text-align:left;font-size:14px;font-weight:500;color:var(--text-tertiary);border-bottom:1px solid var(--border-subtle);">처리상태</th>
-            <th style="width:110px;padding:10px 12px;text-align:left;font-size:14px;font-weight:500;color:var(--text-tertiary);border-bottom:1px solid var(--border-subtle);">유형</th>
-            <th style="padding:10px 12px;text-align:left;font-size:14px;font-weight:500;color:var(--text-tertiary);border-bottom:1px solid var(--border-subtle);">증상·사유</th>
-            <th style="width:160px;padding:10px 12px;text-align:left;font-size:14px;font-weight:500;color:var(--text-tertiary);border-bottom:1px solid var(--border-subtle);">구매처</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${tableRows}
-        </tbody>
-      </table>
-    </div>`;
-  }).join('');
+  const exCard=`<div class="card">
+    <div class="card-hdr">
+      <i data-lucide="repeat-2" class="icon card-hdr-icon-lc"></i>
+      <div class="card-title">교환 상세 내역</div>
+    </div>
+    <div style="margin-bottom:10px;font-size:13.5px;color:#C47A0E;font-weight:600;">총 ${fmtN(exDone.length)}건</div>
+    ${buildTable(exDone,'교환완료 건 없음')}
+  </div>`;
 
-  document.getElementById('exrf-detail').innerHTML = legend + `<div class="er-grid">${cards}</div>`;
+  const rfCard=`<div class="card">
+    <div class="card-hdr">
+      <i data-lucide="rotate-ccw" class="icon card-hdr-icon-lc"></i>
+      <div class="card-title">환불 상세 내역</div>
+    </div>
+    <div style="margin-bottom:10px;font-size:13.5px;color:#C04040;font-weight:600;">총 ${fmtN(rfDone.length)}건</div>
+    ${buildTable(rfDone,'환불완료 건 없음')}
+  </div>`;
+
+  document.getElementById('exrf-detail').innerHTML=
+    `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">${exCard}${rfCard}</div>`;
 }
 function renderWeekly(text){
   if(text!==undefined && text!==null) WEEKLY_TEXT = text;
@@ -1505,6 +1541,8 @@ function applyFiles(){
     D.exTotal = exR.length;
     D.exchangeList = exR.map(r=>({
       product:String(pickCol(r,['품명','상품명']) || '—'),
+      name:String(pickCol(r,['고객명(접수/구매)','고객명','성함','이름','수령인','고객성함','고객이름']) || '—'),
+      date:String(pickCol(r,['출하일자','교환일','처리일','완료일','교환처리일','처리일자','교환일자']) || '—'),
       status:String(pickCol(r,['처리상태']) || '처리중'),
       type:String(pickCol(r,['교환유형','A/S유형']) || '—'),
       store:String(pickCol(r,['구매처']) || '—'),
@@ -1519,6 +1557,8 @@ function applyFiles(){
     D.rfTotal = rfR.length;
     D.refundList = rfR.map(r=>({
       product:String(pickCol(r,['품명','상품명']) || '—'),
+      name:String(pickCol(r,['고객명(접수/구매)','고객명','성함','이름','수령인','고객성함','고객이름']) || '—'),
+      date:String(pickCol(r,['회수일자','환불일','처리일','완료일','환불처리일','처리일자','환불일자']) || '—'),
       status:String(pickCol(r,['처리상태']) || '처리중'),
       type:String(pickCol(r,['환불유형','A/S유형']) || '—'),
       cost:String(pickCol(r,['고객부담비용','비용']) || '—'),
@@ -1863,14 +1903,12 @@ async function dlPDF(){
   try{
     const {jsPDF}=window.jspdf;
     const prev=curTab;
-
-    const PAGE_W=210, PAGE_H=297;
-    const MARGIN=12;
+    const PAGE_W=210, MARGIN=12, LABEL_H=7;
     const PRINT_W=PAGE_W-MARGIN*2;
-    const SLICE_H=PAGE_H-MARGIN*2;
     const RENDER_W=1200;
 
-    const pdf=new jsPDF('p','mm','a4');
+    // ── Step 1: 모든 섹션 캡처 (페이지 분할 없이 전체 높이로) ──
+    const captured=[];
     let lastTab=null;
 
     for(let pi=0;pi<PDF_SECTIONS.length;pi++){
@@ -1884,24 +1922,21 @@ async function dlPDF(){
 
       const wrapper=document.createElement('div');
       wrapper.style.cssText=
-        `position:fixed;left:-30000px;top:0;width:${RENDER_W}px;`+
-        'background:#F5F6F8;padding:20px 24px;box-sizing:border-box;z-index:-1;';
+        `position:absolute;left:-${RENDER_W+200}px;top:0;width:${RENDER_W}px;`+
+        'height:auto;overflow:visible;background:#F5F6F8;padding:20px 24px;box-sizing:border-box;';
 
       let hasContent=false;
       for(const sel of sels){
         const el=document.querySelector(sel);
         if(!el) continue;
-
         let node;
         if(modelFilter && el.id==='modelCardGrid'){
-          /* 버킷명 정확 일치 필터 — '프라임'과 '프라임S' 혼용 방지 */
           node=document.createElement('div');
           node.className='model-symptom-grid';
           node.style.cssText='display:grid;grid-template-columns:repeat(2,1fr);gap:16px;';
           Array.from(el.children).forEach(card=>{
             const nm=card.dataset.bucket||'';
-            if(modelFilter.includes(nm.trim()))
-              node.appendChild(card.cloneNode(true));
+            if(modelFilter.includes(nm.trim())) node.appendChild(card.cloneNode(true));
           });
           if(!node.children.length) continue;
         } else {
@@ -1914,9 +1949,10 @@ async function dlPDF(){
 
       if(!hasContent) continue;
       document.body.appendChild(wrapper);
-      await new Promise(r=>setTimeout(r,150));
+      await new Promise(r=>setTimeout(r,300));
 
-      const contentH=wrapper.scrollHeight;
+      // getBoundingClientRect으로 실제 렌더링 높이 측정 (scrollHeight는 fixed일때 부정확)
+      const contentH=Math.round(wrapper.getBoundingClientRect().height)||wrapper.offsetHeight||wrapper.scrollHeight;
       const cv=await html2canvas(wrapper,{
         scale:2,useCORS:true,backgroundColor:'#F5F6F8',
         logging:false,windowWidth:RENDER_W,
@@ -1928,30 +1964,28 @@ async function dlPDF(){
       const imgData=cv.toDataURL('image/png');
       const imgW=PRINT_W;
       const imgH=cv.height*PRINT_W/cv.width;
+      // 페이지 높이 = 내용 높이에 맞게 자동 설정 (잘림 없음)
+      const pageH=MARGIN+LABEL_H+imgH+MARGIN;
 
-      if(pi>0) pdf.addPage();
-
-      const addLabel=()=>{
-        pdf.setFontSize(8);
-        pdf.setTextColor(180,180,180);
-        pdf.text(label,PAGE_W-MARGIN,MARGIN-3,{align:'right'});
-      };
-
-      addLabel();
-      let yPos=MARGIN, remaining=imgH;
-      pdf.addImage(imgData,'PNG',MARGIN,yPos,imgW,imgH);
-      remaining-=SLICE_H;
-      while(remaining>0){
-        yPos-=SLICE_H;
-        pdf.addPage();
-        addLabel();
-        pdf.addImage(imgData,'PNG',MARGIN,yPos,imgW,imgH);
-        remaining-=SLICE_H;
-      }
+      captured.push({label,imgData,imgW,imgH,pageH});
     }
 
     goTab(prev);
+    if(!captured.length){ alert('캡처된 내용이 없습니다.'); return; }
+
+    // ── Step 2: 섹션별 커스텀 높이 페이지로 PDF 생성 ──
+    const pdf=new jsPDF({orientation:'p',unit:'mm',format:[PAGE_W, captured[0].pageH]});
+
+    captured.forEach(({label,imgData,imgW,imgH,pageH},i)=>{
+      if(i>0) pdf.addPage([PAGE_W, pageH]);
+      pdf.setFontSize(8);
+      pdf.setTextColor(180,180,180);
+      pdf.text(label, PAGE_W-MARGIN, MARGIN-2, {align:'right'});
+      pdf.addImage(imgData,'PNG', MARGIN, MARGIN+LABEL_H-2, imgW, imgH);
+    });
+
     pdf.save('cx_dashboard.pdf');
+
   } catch(e){
     alert('PDF 생성 오류: '+e.message);
   }
