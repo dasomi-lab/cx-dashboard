@@ -585,28 +585,51 @@ function topN(obj,n=5){ return Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(
 function modelAlias(v) {
   const raw = String(v||'').trim();
   const t = raw.toUpperCase().replace(/\s/g,'');
+  /* GT500(W) 먼저 — GT500보다 앞에 있어야 함 */
   if (t.includes('GT500W')||t.includes('GRAVITYW')||t.includes('그래비티W')||t.includes('그래비티 W')||t.includes('(W)')) return '그래비티 W';
-  if (t.includes('RCEASY100')||t.includes('EASY100')||t.includes('EASY')||t.includes('이지')) return '이지';
-  if (t.includes('PRIME300')||t.includes('RCPRIME300')||t.includes('PRIME')||t.includes('프라임')) return '프라임';
   if (t.includes('GT500')||t.includes('GRAVITY')||t.includes('그래비티')) return '그래비티';
+  if (t.includes('RCEASY100')||t.includes('EASY100')||t.includes('EASY')||t.includes('이지')) return '이지';
+  /* Prime S320 먼저 — 일반 PRIME보다 앞에 있어야 함 */
+  if (t.includes('S320')||t.includes('PRIMES320')||t.includes('RCPRIMES320')) return '프라임S';
+  if (t.includes('PRIME300')||t.includes('RCPRIME300')||t.includes('PRIME')||t.includes('프라임')) return '프라임';
   if (t.includes('RC-02')||t.includes('RC02')) return 'RC-02';
+  /* RT220 / RT200 / 스마트 휴지통 */
+  if (t.includes('RT220')||t.includes('RT-220')||t.includes('RT200')||t.includes('RT-200')||t.includes('스마트휴지통')||t.includes('휴지통')) return 'RT220';
   if (t.includes('소모품')||t.includes('푸드클리너')||t.includes('미생물')) return '소모품';
   return raw || '기타';
 }
 function normalizeModelBucket(name){
   const m = modelAlias(name);
-  if (m === 'RC-02') return 'RC-02';
-  if (m === '프라임') return '프라임';
-  if (m === '그래비티') return '그래비티';
+  /* 표시 순서: RC-02 → RT220 → 프라임 → 프라임S → 그래비티 → 그래비티 W → 이지 → 기타 */
+  if (m === 'RC-02')      return 'RC-02';
+  if (m === 'RT220')      return 'RT220';
+  if (m === '프라임')     return '프라임';
+  if (m === '프라임S')    return '프라임S';
+  if (m === '그래비티')   return '그래비티';
   if (m === '그래비티 W') return '그래비티 W';
-  if (m === '이지') return '이지';
+  if (m === '이지')       return '이지';
   return '기타';
+}
+/* 버킷명 → UI 표시명 (데이터 키는 버킷명 그대로 유지) */
+function modelDisplayName(bucket){
+  const MAP = {
+    'RC-02':      'RC-02',
+    'RT220':      'RT220 (스마트휴지통)',
+    '프라임':      'RC-Prime300 (프라임)',
+    '프라임S':     'RC-Prime S320 (프라임 S)',
+    '그래비티':    'RC-GT500 (그래비티)',
+    '그래비티 W':  'RC-GT500(W) (그래비티 W)',
+    '이지':       'RC-Easy100 (이지)',
+    '기타':       '기타',
+  };
+  return MAP[bucket] || bucket;
 }
 function normalizeAsType(v){
   const t = String(v || '').trim();
   if (!t) return '미분류';
   if (/^AS\(재/.test(t) || t === 'AS(재)') return '재인입';
   if (t.includes('유상')) return '유상수리';
+  if (t.includes('변심')) return '단순변심';
   if (t.includes('단순')) return '단순문의';
   if (t.includes('방문')) return '방문점검';
   if (t.includes('추가발송')) return '추가발송';
@@ -1060,7 +1083,7 @@ function renderModelDonut(){
     <div class="legend-row">
       <div class="legend-left">
         <div class="legend-dot" style="background:${COLORS[idx % COLORS.length]}"></div>
-        <div class="legend-label">${item.name}</div>
+        <div class="legend-label">${modelDisplayName(item.name)}</div>
       </div>
       <div class="legend-right">${((item.value/total)*100).toFixed(1)}% <span>${fmtN(item.value)}건</span></div>
     </div>`).join('');
@@ -1129,7 +1152,7 @@ function renderReviews(){
   document.getElementById('rvTbl').innerHTML = tbl(['제품','평점','내용'], rows, '리뷰 파일을 업로드해 주세요');
 }
 function renderByModel(){
-  const orderedNames = ['RC-02', '프라임', '그래비티', '그래비티 W', '이지', '기타'];
+  const orderedNames = ['RC-02', 'RT220', '프라임', '프라임S', '그래비티', '그래비티 W', '이지', '기타'];
   const modelDist = orderedNames.map(name=>{
     const found = (D.modelDist||[]).find(item=>item.name===name);
     return {name, value: found ? Number(found.value)||0 : 0};
@@ -1174,10 +1197,10 @@ function renderByModel(){
     const maxType = Math.max(...typeEntries.map(i=>i.value),1);
     const donut = buildMiniDonut(symptoms, palette.base);
 
-    return `<div class="model-symptom-card">
+    return `<div class="model-symptom-card" data-bucket="${item.name}">
       <div class="model-top-meta">
         <div class="model-top-left">
-          <div class="model-top-name">${item.name}</div>
+          <div class="model-top-name">${modelDisplayName(item.name)}</div>
           <div class="model-top-sub">CS ${fmtN(item.value)}건 · AS 재인입 ${fmtN(reinMap[item.name] || 0)}건</div>
         </div>
       </div>
@@ -1436,7 +1459,7 @@ function applyFiles(){
       });
     });
 
-    const orderedModels = ['RC-02', '프라임', '그래비티', '그래비티 W', '이지', '기타'];
+    const orderedModels = ['RC-02', 'RT220', '프라임', '프라임S', '그래비티', '그래비티 W', '이지', '기타'];
     D.csTotal = csR.length;
     D.completed = completed;
     D.complRate = +((completed / csR.length) * 100).toFixed(1);
@@ -1802,6 +1825,35 @@ function goTab(tab){
   lucide.createIcons();
 }
 
+/* ═══════════════════════════════════════════════════
+   PDF 페이지 정의 — 순서 = 페이지 번호
+   sels        : 한 페이지에 합칠 요소 셀렉터 (위→아래)
+   modelFilter : bymodel 탭 카드를 버킷명 정확 일치로 필터
+   label       : 우상단 표시 텍스트
+   ═══════════════════════════════════════════════════ */
+const PDF_SECTIONS = [
+  /* 1p */ { tab:'dashboard',       label:'Dashboard — KPI',
+             sels:['#kpiGrid'] },
+  /* 2p */ { tab:'dashboard',       label:'Dashboard — 일별 추이',
+             sels:['.daily-card'] },
+  /* 3p */ { tab:'dashboard',       label:'Dashboard — 모델별 분포 & AS 증상',
+             sels:['.equal-card-grid'] },
+  /* 4p */ { tab:'bymodel',         label:'By Model — RC-02 · RT220',
+             sels:['#modelCardGrid'], modelFilter:['RC-02','RT220'] },
+  /* 5p */ { tab:'bymodel',         label:'By Model — 프라임 · 프라임S',
+             sels:['#modelCardGrid'], modelFilter:['프라임','프라임S'] },
+  /* 6p */ { tab:'bymodel',         label:'By Model — 그래비티 · 그래비티W',
+             sels:['#modelCardGrid'], modelFilter:['그래비티','그래비티 W'] },
+  /* 7p */ { tab:'bymodel',         label:'By Model — 이지 · 기타',
+             sels:['#modelCardGrid'], modelFilter:['이지','기타'] },
+  /* 7p */ { tab:'exchange_refund', label:'교환 / 환불',
+             sels:['#exrf-stats','#exrf-detail'] },
+  /* 8p */ { tab:'reviews',         label:'Reviews — 통계',
+             sels:['#rv-stats'] },
+  /* 9p */ { tab:'reviews',         label:'Reviews — 대표 리뷰',
+             sels:['.review-grid-two'] },
+];
+
 async function dlPDF(){
   const btn=document.getElementById('pdfBtn');
   btn.innerHTML='<i data-lucide="loader" class="icon"></i>';
@@ -1810,63 +1862,98 @@ async function dlPDF(){
 
   try{
     const {jsPDF}=window.jspdf;
-    const tabs=['dashboard','bymodel','exchange_refund','reviews','weekly'];
     const prev=curTab;
-    const wrapper=document.createElement('div');
-    wrapper.style.position='fixed';
-    wrapper.style.left='-20000px';
-    wrapper.style.top='0';
-    wrapper.style.width='1440px';
-    wrapper.style.background='#F5F6F8';
-    wrapper.style.padding='24px';
-    wrapper.style.zIndex='-1';
-    document.body.appendChild(wrapper);
 
-    for(const tab of tabs){
-      goTab(tab);
-      await new Promise(r=>setTimeout(r,250));
-      const pane=document.querySelector(`#pane-${tab}`);
-      if(!pane) continue;
-      const section=document.createElement('div');
-      section.style.background='#F5F6F8';
-      section.style.paddingBottom='24px';
+    const PAGE_W=210, PAGE_H=297;
+    const MARGIN=12;
+    const PRINT_W=PAGE_W-MARGIN*2;
+    const SLICE_H=PAGE_H-MARGIN*2;
+    const RENDER_W=1200;
 
-      const title=document.createElement('div');
-      title.style.fontFamily='Pretendard, sans-serif';
-      title.style.fontSize='24px';
-      title.style.fontWeight='700';
-      title.style.margin='0 0 14px 0';
-      title.textContent=({dashboard:'Dashboard',reviews:'Reviews',bymodel:'By Model',exchange_refund:'교환 / 환불',weekly:'Weekly 이슈'})[tab];
-      section.appendChild(title);
-
-      const clone=pane.cloneNode(true);
-      clone.style.display='block';
-      section.appendChild(clone);
-      wrapper.appendChild(section);
-    }
-
-    await new Promise(r=>setTimeout(r,300));
-    const cv=await html2canvas(wrapper,{scale:1.4,useCORS:true,backgroundColor:'#F5F6F8',logging:false,windowWidth:1600});
-    document.body.removeChild(wrapper);
-    goTab(prev);
-
-    const img=cv.toDataURL('image/png');
     const pdf=new jsPDF('p','mm','a4');
-    const pageW=210, pageH=297;
-    const imgW=pageW;
-    const imgH=cv.height * pageW / cv.width;
-    let heightLeft=imgH, position=0;
-    pdf.addImage(img,'PNG',0,position,imgW,imgH);
-    heightLeft-=pageH;
-    while(heightLeft>0){
-      position -= pageH;
-      pdf.addPage();
-      pdf.addImage(img,'PNG',0,position,imgW,imgH);
-      heightLeft -= pageH;
+    let lastTab=null;
+
+    for(let pi=0;pi<PDF_SECTIONS.length;pi++){
+      const {tab,label,sels,modelFilter}=PDF_SECTIONS[pi];
+
+      if(tab!==lastTab){
+        goTab(tab);
+        await new Promise(r=>setTimeout(r,400));
+        lastTab=tab;
+      }
+
+      const wrapper=document.createElement('div');
+      wrapper.style.cssText=
+        `position:fixed;left:-30000px;top:0;width:${RENDER_W}px;`+
+        'background:#F5F6F8;padding:20px 24px;box-sizing:border-box;z-index:-1;';
+
+      let hasContent=false;
+      for(const sel of sels){
+        const el=document.querySelector(sel);
+        if(!el) continue;
+
+        let node;
+        if(modelFilter && el.id==='modelCardGrid'){
+          /* 버킷명 정확 일치 필터 — '프라임'과 '프라임S' 혼용 방지 */
+          node=document.createElement('div');
+          node.className='model-symptom-grid';
+          node.style.cssText='display:grid;grid-template-columns:repeat(2,1fr);gap:16px;';
+          Array.from(el.children).forEach(card=>{
+            const nm=card.dataset.bucket||'';
+            if(modelFilter.includes(nm.trim()))
+              node.appendChild(card.cloneNode(true));
+          });
+          if(!node.children.length) continue;
+        } else {
+          node=el.cloneNode(true);
+          node.style.marginBottom='16px';
+        }
+        wrapper.appendChild(node);
+        hasContent=true;
+      }
+
+      if(!hasContent) continue;
+      document.body.appendChild(wrapper);
+      await new Promise(r=>setTimeout(r,150));
+
+      const contentH=wrapper.scrollHeight;
+      const cv=await html2canvas(wrapper,{
+        scale:2,useCORS:true,backgroundColor:'#F5F6F8',
+        logging:false,windowWidth:RENDER_W,
+        width:RENDER_W,height:contentH,
+        scrollX:0,scrollY:0,x:0,y:0
+      });
+      document.body.removeChild(wrapper);
+
+      const imgData=cv.toDataURL('image/png');
+      const imgW=PRINT_W;
+      const imgH=cv.height*PRINT_W/cv.width;
+
+      if(pi>0) pdf.addPage();
+
+      const addLabel=()=>{
+        pdf.setFontSize(8);
+        pdf.setTextColor(180,180,180);
+        pdf.text(label,PAGE_W-MARGIN,MARGIN-3,{align:'right'});
+      };
+
+      addLabel();
+      let yPos=MARGIN, remaining=imgH;
+      pdf.addImage(imgData,'PNG',MARGIN,yPos,imgW,imgH);
+      remaining-=SLICE_H;
+      while(remaining>0){
+        yPos-=SLICE_H;
+        pdf.addPage();
+        addLabel();
+        pdf.addImage(imgData,'PNG',MARGIN,yPos,imgW,imgH);
+        remaining-=SLICE_H;
+      }
     }
+
+    goTab(prev);
     pdf.save('cx_dashboard.pdf');
   } catch(e){
-    alert('PDF 생성 오류: ' + e.message);
+    alert('PDF 생성 오류: '+e.message);
   }
 
   btn.innerHTML='<i data-lucide="file-down" class="icon"></i>PDF';
