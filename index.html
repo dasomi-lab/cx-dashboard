@@ -211,12 +211,7 @@ tr:hover td{background:var(--bg-alt);}
 .daily-panel{background:var(--bg-alt);border:1px solid var(--border-subtle);border-radius:var(--r-sm);padding:16px 16px 18px;}
 .daily-panel-title{font-size:16.25px;font-weight:700;color:#25306E;margin-bottom:12px;}
 .daily-panel-title.accent{color:#6C5CE7;}
-.vbars{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;height:300px;padding:14px 8px 6px;border-left:2px solid #A7AFBC;border-bottom:2px solid #A7AFBC;background:
-  linear-gradient(to top, transparent 0, transparent calc(20% - 0.5px), #E5E9F2 calc(20% - 0.5px), #E5E9F2 20%, transparent 20%),
-  linear-gradient(to top, transparent 0, transparent calc(40% - 0.5px), #E5E9F2 calc(40% - 0.5px), #E5E9F2 40%, transparent 40%),
-  linear-gradient(to top, transparent 0, transparent calc(60% - 0.5px), #E5E9F2 calc(60% - 0.5px), #E5E9F2 60%, transparent 60%),
-  linear-gradient(to top, transparent 0, transparent calc(80% - 0.5px), #E5E9F2 calc(80% - 0.5px), #E5E9F2 80%, transparent 80%);
-}
+.vbars{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;height:300px;padding:14px 8px 6px;border-left:2px solid #A7AFBC;border-bottom:2px solid #A7AFBC;}
 .vbar-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;}
 .vbar-track{width:min(38px,100%);height:100%;display:flex;align-items:flex-end;justify-content:center;position:relative;}
 .vbar-fill{width:100%;min-height:4px;border-radius:10px 10px 0 0;transition:height .7s ease;}
@@ -362,6 +357,18 @@ tr:hover td{background:var(--bg-alt);}
 .re-row{background:rgba(253,238,238,0.35);}
 .er-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 @media(max-width:960px){.er-grid{grid-template-columns:1fr;}}
+
+@media print{
+  @page{size:A4 landscape;margin:8mm;}
+  html,body{overflow:visible !important;height:auto !important;}
+  .topbar-r,#pdfBtn,.chip-group{display:none !important;}
+  .main{overflow:visible !important;}
+  .content{overflow:visible !important;height:auto !important;max-height:none !important;padding:8px !important;}
+  .pane{display:none !important;}
+  .pane.on{display:block !important;}
+  .card,.kpi-card,.model-symptom-card,.daily-card,.er-card{break-inside:avoid;page-break-inside:avoid;}
+  *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
+}
 </style>
 </head>
 <body>
@@ -1896,98 +1903,75 @@ const PDF_SECTIONS = [
 
 async function dlPDF(){
   const btn=document.getElementById('pdfBtn');
-  btn.innerHTML='<i data-lucide="loader" class="icon"></i>';
+  btn.innerHTML='<i data-lucide="loader" class="icon"></i> 생성중...';
   btn.disabled=true;
   lucide.createIcons();
 
   try{
     const {jsPDF}=window.jspdf;
     const prev=curTab;
-    const PAGE_W=210, MARGIN=12, LABEL_H=7;
-    const PRINT_W=PAGE_W-MARGIN*2;
-    const RENDER_W=1200;
 
-    // ── Step 1: 모든 섹션 캡처 (페이지 분할 없이 전체 높이로) ──
-    const captured=[];
-    let lastTab=null;
+    // A4 가로 기준
+    const PW=297, MARGIN=10, PRINT_W=PW-MARGIN*2;
 
-    for(let pi=0;pi<PDF_SECTIONS.length;pi++){
-      const {tab,label,sels,modelFilter}=PDF_SECTIONS[pi];
+    const TAB_NAMES={
+      dashboard:'Dashboard', bymodel:'By Model',
+      exchange_refund:'교환/환불', reviews:'Reviews', weekly:'Weekly'
+    };
+    // PDF_SECTIONS에서 탭 순서 유지하며 중복 제거
+    const tabs=[...new Set(PDF_SECTIONS.map(s=>s.tab))];
+    const pages=[];
 
-      if(tab!==lastTab){
-        goTab(tab);
-        await new Promise(r=>setTimeout(r,400));
-        lastTab=tab;
-      }
+    for(const tab of tabs){
+      goTab(tab);
+      await new Promise(r=>setTimeout(r,700)); // 차트 렌더 대기
 
-      const wrapper=document.createElement('div');
-      wrapper.style.cssText=
-        `position:absolute;left:-${RENDER_W+200}px;top:0;width:${RENDER_W}px;`+
-        'height:auto;overflow:visible;background:#F5F6F8;padding:20px 24px;box-sizing:border-box;';
+      const el=document.querySelector('.content');
+      if(!el) continue;
+      el.scrollTop=0;
 
-      let hasContent=false;
-      for(const sel of sels){
-        const el=document.querySelector(sel);
-        if(!el) continue;
-        let node;
-        if(modelFilter && el.id==='modelCardGrid'){
-          node=document.createElement('div');
-          node.className='model-symptom-grid';
-          node.style.cssText='display:grid;grid-template-columns:repeat(2,1fr);gap:16px;';
-          Array.from(el.children).forEach(card=>{
-            const nm=card.dataset.bucket||'';
-            if(modelFilter.includes(nm.trim())) node.appendChild(card.cloneNode(true));
-          });
-          if(!node.children.length) continue;
-        } else {
-          node=el.cloneNode(true);
-          node.style.marginBottom='16px';
-        }
-        wrapper.appendChild(node);
-        hasContent=true;
-      }
+      const fw=el.offsetWidth;
+      const fh=el.scrollHeight;
 
-      if(!hasContent) continue;
-      document.body.appendChild(wrapper);
-      await new Promise(r=>setTimeout(r,300));
+      // overflow 임시 해제 → 전체 높이 캡처
+      const savedCSS=el.style.cssText;
+      el.style.height=fh+'px';
+      el.style.overflow='visible';
+      el.style.overflowY='visible';
+      el.style.maxHeight='none';
+      await new Promise(r=>setTimeout(r,200));
 
-      // getBoundingClientRect으로 실제 렌더링 높이 측정 (scrollHeight는 fixed일때 부정확)
-      const contentH=Math.round(wrapper.getBoundingClientRect().height)||wrapper.offsetHeight||wrapper.scrollHeight;
-      const cv=await html2canvas(wrapper,{
-        scale:2,useCORS:true,backgroundColor:'#F5F6F8',
-        logging:false,windowWidth:RENDER_W,
-        width:RENDER_W,height:contentH,
-        scrollX:0,scrollY:0,x:0,y:0
+      const cv=await html2canvas(el,{
+        scale:1.5, useCORS:true, backgroundColor:'#F5F6F8',
+        logging:false, width:fw, height:fh,
+        scrollX:0, scrollY:0, x:0, y:0,
+        windowWidth:fw
       });
-      document.body.removeChild(wrapper);
 
-      const imgData=cv.toDataURL('image/png');
-      const imgW=PRINT_W;
-      const imgH=cv.height*PRINT_W/cv.width;
-      // 페이지 높이 = 내용 높이에 맞게 자동 설정 (잘림 없음)
-      const pageH=MARGIN+LABEL_H+imgH+MARGIN;
+      el.style.cssText=savedCSS; // 원복
 
-      captured.push({label,imgData,imgW,imgH,pageH});
+      const iw=PRINT_W;
+      const ih=cv.height*PRINT_W/cv.width;
+      pages.push({label:TAB_NAMES[tab]||tab, data:cv.toDataURL('image/png'), iw, ih, ph:ih+MARGIN*2+6});
     }
 
     goTab(prev);
-    if(!captured.length){ alert('캡처된 내용이 없습니다.'); return; }
+    if(!pages.length){alert('캡처된 내용이 없습니다.');return;}
 
-    // ── Step 2: 섹션별 커스텀 높이 페이지로 PDF 생성 ──
-    const pdf=new jsPDF({orientation:'p',unit:'mm',format:[PAGE_W, captured[0].pageH]});
-
-    captured.forEach(({label,imgData,imgW,imgH,pageH},i)=>{
-      if(i>0) pdf.addPage([PAGE_W, pageH]);
-      pdf.setFontSize(8);
-      pdf.setTextColor(180,180,180);
-      pdf.text(label, PAGE_W-MARGIN, MARGIN-2, {align:'right'});
-      pdf.addImage(imgData,'PNG', MARGIN, MARGIN+LABEL_H-2, imgW, imgH);
+    // 탭별 페이지 높이를 컨텐츠에 맞게 설정 → 잘림 없음
+    const pdf=new jsPDF({orientation:'l',unit:'mm',format:[PW,pages[0].ph]});
+    pages.forEach(({label,data,iw,ih,ph},i)=>{
+      if(i>0) pdf.addPage([PW,ph]);
+      pdf.setFontSize(7);
+      pdf.setTextColor(160,160,160);
+      pdf.text(label,PW-MARGIN,MARGIN-2,{align:'right'});
+      pdf.addImage(data,'PNG',MARGIN,MARGIN,iw,ih);
     });
 
     pdf.save('cx_dashboard.pdf');
 
-  } catch(e){
-    alert('PDF 생성 오류: '+e.message);
+  }catch(e){
+    alert('PDF 오류: '+e.message);
   }
 
   btn.innerHTML='<i data-lucide="file-down" class="icon"></i>PDF';
