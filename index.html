@@ -795,22 +795,16 @@ function showSaveToast(msg){
 function deriveReportKey(){
   if (ACTIVE_REPORT_KEY) return ACTIVE_REPORT_KEY;
 
-  const range = String(D.periodRange || '').trim();
-  let m = range.match(/(\d{4})-(\d{2})-(\d{2})/);
-  if (m) {
-    const year = Number(m[1]);
-    const month = Number(m[2]);
-    const day = Number(m[3]);
-    ACTIVE_REPORT_KEY = `${year}-${String(month).padStart(2,'0')}-w${Math.ceil(day / 7)}`;
-    return ACTIVE_REPORT_KEY;
-  }
-
+  // D.period("4월 3주차" 등)에서 주차를 직접 읽음 → 하단 배지와 동일한 값 사용
   const period = String(D.period || '').trim();
-  m = period.match(/(\d{1,2})월\s*(\d)주차/);
-  if (m) {
-    const year = new Date().getFullYear();
-    const month = Number(m[1]);
-    const week = Number(m[2]);
+  const mPeriod = period.match(/(\d{1,2})월\s*(\d)주차/);
+  if (mPeriod) {
+    // 연도는 D.periodRange 날짜에서 추출 (주차 재계산 없이 연도만 사용)
+    const range = String(D.periodRange || '').trim();
+    const mYear = range.match(/(\d{4})-/);
+    const year = mYear ? Number(mYear[1]) : new Date().getFullYear();
+    const month = Number(mPeriod[1]);
+    const week  = Number(mPeriod[2]);
     ACTIVE_REPORT_KEY = `${year}-${String(month).padStart(2,'0')}-w${week}`;
     return ACTIVE_REPORT_KEY;
   }
@@ -1062,7 +1056,7 @@ function renderDashboard(){
     {label:'총 채널톡 인입량', value:`${fmtN(D.channelTotal || 0)}건`, sub:'채널톡 기준', icon:'messages-square'},
     {label:'전화량', value:`${fmtN(D.phoneTotal || 0)}건`, sub:'전화 인입', icon:'phone-call'},
     {label:'AS 재인입', value:`${fmtN(D.asRein)}건`, sub:`전체 대비 ${D.asReinRate || 0}%`, icon:'rotate-ccw'},
-    {label:'교환 / 환불', value:`${fmtN((D.exTotal||0)+(D.rfTotal||0))}건`, sub:`교환 ${fmtN(D.exTotal)} · 환불 ${fmtN(D.rfTotal)}`, icon:'repeat'},
+    {label:'교환 / 환불', value:`${fmtN((D.exTotal||0)+(D.rfTotal||0))}건`, sub:`교환완료 ${fmtN(D.exTotal)} · 환불완료 ${fmtN(D.rfTotal)}${((D.exPending||0)+(D.rfPending||0))>0?' · 진행중 '+fmtN((D.exPending||0)+(D.rfPending||0)):''}`, icon:'repeat'},
     {label:'리뷰 저평점', value:`${fmtN(D.negReviews)}건`, sub:`평균평점 ${D.avgRating || 0}`, icon:'message-square-warning'},
     {label:'평균 평점', value:`${D.avgRating || 0}점`, sub:`전체 ${fmtN(D.rvTotal || 0)}개`, icon:'star'},
   ];
@@ -1545,7 +1539,6 @@ function applyFiles(){
   }
 
   if (exR.length) {
-    D.exTotal = exR.length;
     D.exchangeList = exR.map(r=>({
       product:String(pickCol(r,['품명','상품명']) || '—'),
       name:String(pickCol(r,['고객명(접수/구매)','고객명','성함','이름','수령인','고객성함','고객이름']) || '—'),
@@ -1558,10 +1551,12 @@ function applyFiles(){
       part:String(pickCol(r,['부품']) || '—'),
       cost:String(pickCol(r,['고객부담비용','비용']) || '—'),
     }));
+    // 대시보드 집계: 교환완료 기준 (상세 탭과 동일)
+    D.exTotal = D.exchangeList.filter(r=>String(r.status).includes('교환완료')).length;
+    D.exPending = D.exchangeList.filter(r=>!String(r.status).includes('교환완료')).length;
   }
 
   if (rfR.length) {
-    D.rfTotal = rfR.length;
     D.refundList = rfR.map(r=>({
       product:String(pickCol(r,['품명','상품명']) || '—'),
       name:String(pickCol(r,['고객명(접수/구매)','고객명','성함','이름','수령인','고객성함','고객이름']) || '—'),
@@ -1574,6 +1569,9 @@ function applyFiles(){
       part:String(pickCol(r,['부품']) || '—'),
       store:String(pickCol(r,['구매처']) || '—'),
     }));
+    // 대시보드 집계: 환불완료 기준 (상세 탭과 동일)
+    D.rfTotal = D.refundList.filter(r=>String(r.status).includes('환불완료')).length;
+    D.rfPending = D.refundList.filter(r=>!String(r.status).includes('환불완료')).length;
   }
 
   if (chR.length) {
@@ -1911,63 +1909,102 @@ async function dlPDF(){
     const {jsPDF}=window.jspdf;
     const prev=curTab;
 
-    // A4 가로 기준
-    const PW=297, MARGIN=10, PRINT_W=PW-MARGIN*2;
+    // A4 가로 규격 (mm)
+    const PW=297, PH=210, MG=12;
+    const AW=PW-MG*2, AH=PH-MG*2; // 출력 가능 영역
 
-    const TAB_NAMES={
-      dashboard:'Dashboard', bymodel:'By Model',
-      exchange_refund:'교환/환불', reviews:'Reviews', weekly:'Weekly'
-    };
-    // PDF_SECTIONS에서 탭 순서 유지하며 중복 제거
-    const tabs=[...new Set(PDF_SECTIONS.map(s=>s.tab))];
-    const pages=[];
+    const pdf=new jsPDF({orientation:'l',unit:'mm',format:'a4'});
+    let pageN=0;
 
-    for(const tab of tabs){
-      goTab(tab);
-      await new Promise(r=>setTimeout(r,700)); // 차트 렌더 대기
+    const ct=document.getElementById('mainContent');
 
-      const el=document.querySelector('.content');
-      if(!el) continue;
-      el.scrollTop=0;
-
-      const fw=el.offsetWidth;
-      const fh=el.scrollHeight;
-
-      // overflow 임시 해제 → 전체 높이 캡처
-      const savedCSS=el.style.cssText;
-      el.style.height=fh+'px';
-      el.style.overflow='visible';
-      el.style.overflowY='visible';
-      el.style.maxHeight='none';
-      await new Promise(r=>setTimeout(r,200));
-
-      const cv=await html2canvas(el,{
-        scale:1.5, useCORS:true, backgroundColor:'#F5F6F8',
+    // .content overflow 임시 해제 → 전체 높이 캡처
+    const capture=async()=>{
+      const fw=ct.offsetWidth;
+      const fh=ct.scrollHeight;
+      ct.scrollTop=0;
+      ct.style.height=fh+'px';
+      ct.style.overflow='visible';
+      ct.style.maxHeight='none';
+      await new Promise(r=>setTimeout(r,180));
+      const cv=await html2canvas(ct,{
+        scale:2, useCORS:true, backgroundColor:'#F5F6F8',
         logging:false, width:fw, height:fh,
-        scrollX:0, scrollY:0, x:0, y:0,
-        windowWidth:fw
+        scrollX:0, scrollY:0, x:0, y:0, windowWidth:fw
       });
+      ct.style.height='';
+      ct.style.overflow='';
+      ct.style.maxHeight='';
+      return cv;
+    };
 
-      el.style.cssText=savedCSS; // 원복
+    const lbl=(txt)=>{
+      pdf.setFontSize(7);pdf.setTextColor(160,160,160);
+      pdf.text(txt,PW-MG,MG-2,{align:'right'});
+    };
 
-      const iw=PRINT_W;
-      const ih=cv.height*PRINT_W/cv.width;
-      pages.push({label:TAB_NAMES[tab]||tab, data:cv.toDataURL('image/png'), iw, ih, ph:ih+MARGIN*2+6});
+    // A4 한 페이지에 꽉 채워 맞춤 (비율 유지, 가운데 정렬)
+    const addFit=(cv,text)=>{
+      const asp=cv.height/cv.width;
+      let iw=AW, ih=asp*AW;
+      if(ih>AH){ih=AH; iw=AH/asp;}
+      const x=MG+(AW-iw)/2, y=MG+(AH-ih)/2;
+      if(pageN++>0) pdf.addPage('a4','l');
+      lbl(text);
+      pdf.addImage(cv.toDataURL('image/png'),'PNG',x,y,iw,ih);
+    };
+
+    // 세로가 길면 A4 단위로 슬라이스해서 여러 페이지
+    const addSlice=(cv,text)=>{
+      const pxMm=cv.width/AW;
+      const pageHpx=Math.round(AH*pxMm);
+      let yPx=0;
+      while(yPx<cv.height){
+        const sh=Math.min(pageHpx,cv.height-yPx);
+        const s=document.createElement('canvas');
+        s.width=cv.width; s.height=sh;
+        s.getContext('2d').drawImage(cv,0,-yPx);
+        if(pageN++>0) pdf.addPage('a4','l');
+        lbl(text);
+        pdf.addImage(s.toDataURL('image/png'),'PNG',MG,MG,AW,sh/pxMm);
+        yPx+=pageHpx;
+      }
+    };
+
+    // ① 대시보드 — 1페이지, fit
+    goTab('dashboard');
+    await new Promise(r=>setTimeout(r,700));
+    addFit(await capture(),'Dashboard');
+
+    // ② By Model — 4개씩 2페이지
+    goTab('bymodel');
+    await new Promise(r=>setTimeout(r,700));
+    const cards=[...document.querySelectorAll('#modelCardGrid .model-symptom-card')];
+    if(cards.length){
+      const half=Math.ceil(cards.length/2); // 8개면 4
+      // 1페이지: 앞 4개
+      cards.slice(half).forEach(c=>c.style.display='none');
+      await new Promise(r=>setTimeout(r,120));
+      addFit(await capture(),'By Model (1/2)');
+      cards.slice(half).forEach(c=>c.style.display='');
+      // 2페이지: 뒤 4개
+      cards.slice(0,half).forEach(c=>c.style.display='none');
+      await new Promise(r=>setTimeout(r,120));
+      addFit(await capture(),'By Model (2/2)');
+      cards.slice(0,half).forEach(c=>c.style.display='');
     }
 
+    // ③ 교환/환불 — 1페이지, fit
+    goTab('exchange_refund');
+    await new Promise(r=>setTimeout(r,700));
+    addFit(await capture(),'교환 / 환불');
+
+    // ④ 리뷰 — 내용 길면 자동 분할
+    goTab('reviews');
+    await new Promise(r=>setTimeout(r,700));
+    addSlice(await capture(),'Reviews');
+
     goTab(prev);
-    if(!pages.length){alert('캡처된 내용이 없습니다.');return;}
-
-    // 탭별 페이지 높이를 컨텐츠에 맞게 설정 → 잘림 없음
-    const pdf=new jsPDF({orientation:'l',unit:'mm',format:[PW,pages[0].ph]});
-    pages.forEach(({label,data,iw,ih,ph},i)=>{
-      if(i>0) pdf.addPage([PW,ph]);
-      pdf.setFontSize(7);
-      pdf.setTextColor(160,160,160);
-      pdf.text(label,PW-MARGIN,MARGIN-2,{align:'right'});
-      pdf.addImage(data,'PNG',MARGIN,MARGIN,iw,ih);
-    });
-
     pdf.save('cx_dashboard.pdf');
 
   }catch(e){
