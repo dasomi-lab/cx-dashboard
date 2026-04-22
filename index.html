@@ -1911,14 +1911,27 @@ async function dlPDF(){
 
     // A4 가로 규격 (mm)
     const PW=297, PH=210, MG=12;
-    const AW=PW-MG*2, AH=PH-MG*2; // 출력 가능 영역
+    const AW=PW-MG*2, AH=PH-MG*2;
 
-    const pdf=new jsPDF({orientation:'l',unit:'mm',format:'a4'});
+    // compress:true → jsPDF 내부 스트림 압축
+    const pdf=new jsPDF({orientation:'l',unit:'mm',format:'a4',compress:true});
     let pageN=0;
 
     const ct=document.getElementById('mainContent');
 
-    // .content overflow 임시 해제 → 전체 높이 캡처
+    // JPEG 변환 헬퍼 — PNG 대비 60~70% 용량 절감
+    const toJpeg=(cv,q=0.72)=>{
+      // 배경이 투명하면 JPEG가 검게 나오므로 흰색 합성
+      const tmp=document.createElement('canvas');
+      tmp.width=cv.width; tmp.height=cv.height;
+      const ctx=tmp.getContext('2d');
+      ctx.fillStyle='#F5F6F8';
+      ctx.fillRect(0,0,tmp.width,tmp.height);
+      ctx.drawImage(cv,0,0);
+      return tmp.toDataURL('image/jpeg',q);
+    };
+
+    // .content overflow 임시 해제 → 전체 높이 캡처 (scale 1.2 고정)
     const capture=async()=>{
       const fw=ct.offsetWidth;
       const fh=ct.scrollHeight;
@@ -1928,8 +1941,11 @@ async function dlPDF(){
       ct.style.maxHeight='none';
       await new Promise(r=>setTimeout(r,180));
       const cv=await html2canvas(ct,{
-        scale:2, useCORS:true, backgroundColor:'#F5F6F8',
-        logging:false, width:fw, height:fh,
+        scale:1.2,          // 1~1.5 사이, 가독성·용량 균형
+        useCORS:true,
+        backgroundColor:'#F5F6F8',
+        logging:false,
+        width:fw, height:fh,
         scrollX:0, scrollY:0, x:0, y:0, windowWidth:fw
       });
       ct.style.height='';
@@ -1951,7 +1967,7 @@ async function dlPDF(){
       const x=MG+(AW-iw)/2, y=MG+(AH-ih)/2;
       if(pageN++>0) pdf.addPage('a4','l');
       lbl(text);
-      pdf.addImage(cv.toDataURL('image/png'),'PNG',x,y,iw,ih);
+      pdf.addImage(toJpeg(cv),'JPEG',x,y,iw,ih);
     };
 
     // 세로가 길면 A4 단위로 슬라이스해서 여러 페이지
@@ -1966,7 +1982,7 @@ async function dlPDF(){
         s.getContext('2d').drawImage(cv,0,-yPx);
         if(pageN++>0) pdf.addPage('a4','l');
         lbl(text);
-        pdf.addImage(s.toDataURL('image/png'),'PNG',MG,MG,AW,sh/pxMm);
+        pdf.addImage(toJpeg(s),'JPEG',MG,MG,AW,sh/pxMm);
         yPx+=pageHpx;
       }
     };
@@ -1981,13 +1997,11 @@ async function dlPDF(){
     await new Promise(r=>setTimeout(r,700));
     const cards=[...document.querySelectorAll('#modelCardGrid .model-symptom-card')];
     if(cards.length){
-      const half=Math.ceil(cards.length/2); // 8개면 4
-      // 1페이지: 앞 4개
+      const half=Math.ceil(cards.length/2);
       cards.slice(half).forEach(c=>c.style.display='none');
       await new Promise(r=>setTimeout(r,120));
       addFit(await capture(),'By Model (1/2)');
       cards.slice(half).forEach(c=>c.style.display='');
-      // 2페이지: 뒤 4개
       cards.slice(0,half).forEach(c=>c.style.display='none');
       await new Promise(r=>setTimeout(r,120));
       addFit(await capture(),'By Model (2/2)');
