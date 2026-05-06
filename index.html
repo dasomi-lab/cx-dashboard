@@ -1,6 +1,3 @@
-
-
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -25,13 +22,13 @@
   --bg-page:#F5F6F8; --bg-surface:#FFFFFF; --bg-alt:#F8F9FC; --bg-sidebar:#F2F3F6;
   --text-primary:#17181C; --text-secondary:#5F6673; --text-tertiary:#8B93A1; --text-disabled:#B4BBC7;
   --border-subtle:#E7E9EE; --border-soft:#EEF0F4;
-  --primary-50:#EEF3FF; --primary-100:#DFE8FF; --primary-200:#C5D6FF;
+  --primary-50:#EEF3FF; --primary-100:#DFE8FF; --primary-200:#C5D6FF; --primary-300:#A5BCFF;
   --primary-500:#5D86F7; --primary-600:#4A70DB; --primary-700:#3558B8;
   --success-bg:#EAF7EF; --success-text:#2E7D50; --success-border:#CDECD8;
   --warning-bg:#FFF5E8; --warning-text:#B26A12; --warning-border:#F7DFC2;
   --danger-bg:#FDEEEE; --danger-text:#C24646; --danger-border:#F7D2D2;
   --special-bg:#F3F0FF; --special-text:#6A55D9; --special-border:#DDD5FF;
-  --mint-500:#47A786; --lavender-500:#826AF1; --yellow-500:#D9A514;sbPeriodBadge
+  --mint-500:#47A786; --lavender-500:#826AF1; --yellow-500:#D9A514;
   --r-xs:10px; --r-sm:14px; --r-md:20px; --r-lg:24px; --r-xl:28px;
   --sh-soft:0 4px 12px rgba(23,24,28,.04);
   --sh-card:0 10px 24px rgba(23,24,28,.06);
@@ -83,7 +80,14 @@ html,body{height:100%;font-family:var(--font-sans);background:var(--bg-page);col
 .nv.on{background:var(--primary-50);color:var(--primary-500);}
 .nv-label{flex:1;}
 .sb-bottom{padding:16px 16px 20px;border-top:1px solid var(--border-subtle);display:flex;flex-direction:column;gap:4px;}
-.period-badge{font-size:11px;font-weight:600;color:var(--text-primary);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--r-xs);padding:6px 10px;text-align:center;white-space:nowrap;}
+.period-badge{font-size:11px;font-weight:600;color:var(--text-primary);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--r-xs);padding:6px 10px;text-align:center;white-space:nowrap;cursor:pointer;transition:border-color .15s,background .15s;}
+.period-badge:hover{border-color:var(--primary-300);background:var(--primary-50);}
+.period-edit-pop{display:none;flex-direction:column;gap:8px;margin-top:8px;padding:10px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--r-xs);}
+.period-edit-pop.on{display:flex;}
+.period-edit-pop label{font-size:12px;color:var(--text-tertiary);line-height:1.45;}
+.period-edit-pop input[type="date"]{font-size:13px;padding:6px 8px;border:1px solid var(--border-subtle);border-radius:var(--r-xs);font-family:inherit;background:var(--bg-alt);color:var(--text-primary);}
+.period-edit-pop .reset-btn{font-size:12px;padding:6px;border-radius:var(--r-xs);border:1px solid var(--border-subtle);background:var(--bg-surface);cursor:pointer;font-family:inherit;color:var(--text-tertiary);}
+.period-edit-pop .reset-btn:hover{color:var(--text-primary);background:var(--bg-alt);}
 #sbSavedTime{font-size:13.75px;color:var(--text-tertiary);text-align:center;}
 .sb-overlay{display:none;position:fixed;inset:0;background:rgba(23,24,28,.4);z-index:199;}
 .sb-overlay.on{display:block;}
@@ -305,7 +309,6 @@ tr:hover td{background:var(--bg-alt);}
   .sb.mobile-open{transform:translateX(0);}
   .content{overflow-y:auto;overflow-x:hidden;padding:12px 12px 24px;}
 
-  /* topbar */
   .topbar{padding:8px 12px;flex-wrap:wrap;gap:6px;}
   .topbar-l{width:100%;}
   .topbar-breadcrumb{font-size:16px;}
@@ -314,18 +317,15 @@ tr:hover td{background:var(--bg-alt);}
   .topbar-r .btn span.btn-label{display:none;}
   .chip-group{display:none;}
 
-  /* KPI */
   .kpi-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
   .kpi-card{padding:12px 12px 10px;}
   .kpi-value{font-size:20px;}
   .kpi-label{font-size:11px;}
   .kpi-sub{font-size:11px;}
 
-  /* 카드 */
   .card{padding:12px 14px;}
   .card-title{font-size:14px;}
 
-  /* 차트 */
   .donut-panel{grid-template-columns:1fr;}
   .donut-wrap{max-width:220px;}
   .stat-pill-value{font-size:20px;}
@@ -334,11 +334,9 @@ tr:hover td{background:var(--bg-alt);}
   .stats-row{gap:6px;}
   .stat-pill{padding:8px 10px;}
 
-  /* 교환/환불 테이블 */
   .er-grid{grid-template-columns:1fr;}
   .er-model-meta{display:none;}
 
-  /* 리뷰 */
   .review-grid-two{grid-template-columns:1fr;}
 }
 .er-legend{display:flex;gap:16px;margin-bottom:14px;}
@@ -406,7 +404,12 @@ tr:hover td{background:var(--bg-alt);}
       <button class="nv" id="nv-weekly" onclick="goTab('weekly')"><i data-lucide="file-text" class="icon"></i><span class="nv-label">Weekly 이슈</span></button>
     </nav>
     <div class="sb-bottom">
-      <div class="period-badge" id="sbPeriodBadge">—</div>
+      <div class="period-badge" id="sbPeriodBadge" onclick="togglePeriodEdit()" title="클릭하여 주차 변경">—</div>
+      <div class="period-edit-pop" id="periodEditPop">
+        <label for="periodDateInput">주차에 포함될 날짜를 선택하면 일~토 기준으로 자동 설정됩니다.</label>
+        <input type="date" id="periodDateInput" onchange="onPeriodDateChange(this.value)">
+        <button class="reset-btn" type="button" onclick="clearManualPeriod()">자동 (파일 기준)으로 되돌리기</button>
+      </div>
       <div id="sbSavedTime">마지막 저장: —</div>
     </div>
   </aside>
@@ -543,8 +546,8 @@ tr:hover td{background:var(--bg-alt);}
 <script>
 Chart.register(ChartDataLabels);
 const COLORS = ['#5D86F7','#47A786','#826AF1','#D9A514','#C24646','#5F6673'];
-const REPORT_WEEK_LABEL = '4월 3주차';
-const REPORT_DATE_RANGE = '2026-04-12 ~ 2026-04-18';
+const REPORT_WEEK_LABEL = '4월 4주차';
+const REPORT_DATE_RANGE = '2026-04-19 ~ 2026-04-25';
 
 const DEFAULT = {
   period: '2026년 4월 3주차 · 4/12 ~ 4/18',
@@ -592,22 +595,18 @@ function topN(obj,n=5){ return Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(
 function modelAlias(v) {
   const raw = String(v||'').trim();
   const t = raw.toUpperCase().replace(/\s/g,'');
-  /* GT500(W) 먼저 — GT500보다 앞에 있어야 함 */
   if (t.includes('GT500W')||t.includes('GRAVITYW')||t.includes('그래비티W')||t.includes('그래비티 W')||t.includes('(W)')) return '그래비티 W';
   if (t.includes('GT500')||t.includes('GRAVITY')||t.includes('그래비티')) return '그래비티';
   if (t.includes('RCEASY100')||t.includes('EASY100')||t.includes('EASY')||t.includes('이지')) return '이지';
-  /* Prime S320 먼저 — 일반 PRIME보다 앞에 있어야 함 */
   if (t.includes('S320')||t.includes('PRIMES320')||t.includes('RCPRIMES320')) return '프라임S';
   if (t.includes('PRIME300')||t.includes('RCPRIME300')||t.includes('PRIME')||t.includes('프라임')) return '프라임';
   if (t.includes('RC-02')||t.includes('RC02')) return 'RC-02';
-  /* RT220 / RT200 / 스마트 휴지통 */
   if (t.includes('RT220')||t.includes('RT-220')||t.includes('RT200')||t.includes('RT-200')||t.includes('스마트휴지통')||t.includes('휴지통')) return 'RT220';
   if (t.includes('소모품')||t.includes('푸드클리너')||t.includes('미생물')) return '소모품';
   return raw || '기타';
 }
 function normalizeModelBucket(name){
   const m = modelAlias(name);
-  /* 표시 순서: RC-02 → RT220 → 프라임 → 프라임S → 그래비티 → 그래비티 W → 이지 → 기타 */
   if (m === 'RC-02')      return 'RC-02';
   if (m === 'RT220')      return 'RT220';
   if (m === '프라임')     return '프라임';
@@ -617,7 +616,6 @@ function normalizeModelBucket(name){
   if (m === '이지')       return '이지';
   return '기타';
 }
-/* 버킷명 → UI 표시명 (데이터 키는 버킷명 그대로 유지) */
 function modelDisplayName(bucket){
   const MAP = {
     'RC-02':      'RC-02',
@@ -658,18 +656,15 @@ function normalizeAsType(v){
   return t;
 }
 function pickCol(row, keys){
-  // 1차: 정확한 키 매칭
   for(const k of keys){
     if(k in row && row[k]!==null && row[k]!==undefined && String(row[k]).trim()!=='') return row[k];
   }
-  // 2차: 공백 제거 후 매칭 (예: "고객명 (접수/구매)" ↔ "고객명(접수/구매)")
   const normMap={};
   Object.keys(row).forEach(rk=>{ normMap[rk.replace(/\s/g,'')]=row[rk]; });
   for(const k of keys){
     const kn=k.replace(/\s/g,'');
     if(kn in normMap && normMap[kn]!==null && normMap[kn]!==undefined && String(normMap[kn]).trim()!=='') return normMap[kn];
   }
-  // 3차: 키가 검색어를 포함하는지 부분 매칭 (예: "고객명" → "고객명(접수/구매)" 매칭)
   const rowKeys=Object.keys(row);
   for(const k of keys){
     const kn=k.replace(/\s/g,'').toLowerCase();
@@ -702,13 +697,11 @@ function normalizeRows(json){
 function detectType(fname, headers){
   const n = fname.toLowerCase().replace(/\s/g,'');
   const h = headers.join('|');
-
   if (n.includes('교환')) return 'exchange';
   if (n.includes('환불')) return 'refund';
   if (n.includes('review') || n.includes('리뷰')) return 'review';
   if (n.includes('chat') || n.includes('채널') || n.includes('user_chat')) return 'channel';
   if (n.includes('cs관리') || n.startsWith('cs') || n.includes('cs_')) return 'cs';
-
   if (h.includes('교환유형')) return 'exchange';
   if (h.includes('환불유형')) return 'refund';
   if (h.includes('구매자평점')) return 'review';
@@ -716,7 +709,6 @@ function detectType(fname, headers){
   if (h.includes('A/S증상') || h.includes('증상') || h.includes('AS유형') || h.includes('A/S유형')
       || h.includes('처리상태') || h.includes('접수상태') || h.includes('모델명')
       || h.includes('품명') || h.includes('상품명') || h.includes('접수번호')) return 'cs';
-
   return 'unknown';
 }
 function parseMonthDay(raw){
@@ -729,6 +721,7 @@ function parseMonthDay(raw){
   return null;
 }
 function updateDerivedPeriod(){
+  if(D.manualPeriod) return;
   const ds = D.dailyStats || [];
   if(!ds.length) return;
 
@@ -737,16 +730,73 @@ function updateDerivedPeriod(){
     return new Date(2026, (m||1)-1, d||1);
   }
 
+  function weekOfMonthSun(d){
+    const first = new Date(d.getFullYear(), d.getMonth(), 1);
+    const firstSundayDay = 1 + ((7 - first.getDay()) % 7);
+    if (d.getDate() < firstSundayDay) return 1;
+    return Math.floor((d.getDate() - firstSundayDay) / 7) + 2;
+  }
+
   const startObj = toDateObj(ds[0].date);
   const endObj = toDateObj(ds[ds.length-1].date);
 
   const month = startObj.getMonth() + 1;
-  const week = Math.ceil(startObj.getDate() / 7);
+  const week = weekOfMonthSun(startObj);
 
   const ymd = dt => `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
 
   D.period = `${month}월 ${week}주차`;
   D.periodRange = `${ymd(startObj)} ~ ${ymd(endObj)}`;
+}
+function togglePeriodEdit(forceState){
+  const pop = document.getElementById('periodEditPop');
+  if(!pop) return;
+  if(forceState === false){ pop.classList.remove('on'); return; }
+  if(forceState === true){ pop.classList.add('on'); }
+  else { pop.classList.toggle('on'); }
+  if(pop.classList.contains('on')){
+    const inp = document.getElementById('periodDateInput');
+    if(inp){
+      const m = String(D.periodRange || '').match(/(\d{4}-\d{2}-\d{2})/);
+      inp.value = m ? m[1] : '';
+    }
+  }
+}
+function onPeriodDateChange(v){
+  if(!v) return;
+  const d = new Date(v + 'T00:00:00');
+  if(isNaN(d.getTime())) return;
+
+  const start = new Date(d);
+  start.setDate(d.getDate() - d.getDay());
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+
+  const first = new Date(start.getFullYear(), start.getMonth(), 1);
+  const firstSundayDay = 1 + ((7 - first.getDay()) % 7);
+  const week = start.getDate() < firstSundayDay
+    ? 1
+    : Math.floor((start.getDate() - firstSundayDay) / 7) + 2;
+  const month = start.getMonth() + 1;
+  const ymd = dt => `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+
+  D.period = `${month}월 ${week}주차`;
+  D.periodRange = `${ymd(start)} ~ ${ymd(end)}`;
+  D.manualPeriod = true;
+  ACTIVE_REPORT_KEY = null;
+  updateChips();
+  saveToLS();
+  togglePeriodEdit(false);
+  showSaveToast(`주차가 ${D.period}로 변경되었습니다`);
+}
+function clearManualPeriod(){
+  D.manualPeriod = false;
+  ACTIVE_REPORT_KEY = null;
+  updateDerivedPeriod();
+  updateChips();
+  saveToLS();
+  togglePeriodEdit(false);
+  showSaveToast('자동 모드로 전환되었습니다');
 }
 function statPill(v, l, color){
   return `<div class="stat-pill" style="--pill-color:${color || 'var(--primary-500)'}">
@@ -806,24 +856,21 @@ function showSaveToast(msg){
 }
 
 function deriveReportKey(){
-  // 항상 D.period 기준으로 재계산 — 캐시 사용 안 함
-  // (DB 로드 시 ACTIVE_REPORT_KEY가 이전 값으로 덮여도 무시)
+  if (ACTIVE_REPORT_KEY) return ACTIVE_REPORT_KEY;
   const period = String(D.period || '').trim();
-  const mPeriod = period.match(/(\d{1,2})월\s*(\d)주차/);
+  const mPeriod = period.match(/(\d{1,2})월\s*(\d{1,2})주차/);
   if (mPeriod) {
-    // 연도는 D.periodRange 날짜에서 추출 (주차 재계산 없이 연도만 사용)
     const range = String(D.periodRange || '').trim();
     const mYear = range.match(/(\d{4})-/);
     const year = mYear ? Number(mYear[1]) : new Date().getFullYear();
     const month = Number(mPeriod[1]);
     const week  = Number(mPeriod[2]);
-    return `${year}-${String(month).padStart(2,'0')}-w${week}`;
+    ACTIVE_REPORT_KEY = `${year}-${String(month).padStart(2,'0')}-w${week}`;
+    return ACTIVE_REPORT_KEY;
   }
-
-  // fallback: 기존 캐시 키가 있으면 재사용, 없으면 타임스탬프
-  if (ACTIVE_REPORT_KEY) return ACTIVE_REPORT_KEY;
   const now = new Date();
-  return `report-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${now.getTime()}`;
+  ACTIVE_REPORT_KEY = `report-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${now.getTime()}`;
+  return ACTIVE_REPORT_KEY;
 }
 
 function sanitizeFileName(name='file'){
@@ -841,13 +888,9 @@ function cloneWeeklyAssetForSave(asset){
 }
 async function uploadWeeklyAssetToStorage(reportKey){
   if(!WEEKLY_ASSET) return null;
-
   const current = cloneWeeklyAssetForSave(WEEKLY_ASSET);
   if(current?.publicUrl && current?.storagePath && !WEEKLY_SOURCE_FILE) return current;
-
-  if(!WEEKLY_SOURCE_FILE){
-    return current;
-  }
+  if(!WEEKLY_SOURCE_FILE){ return current; }
 
   const safeName = sanitizeFileName(WEEKLY_SOURCE_FILE.name || current?.name || 'weekly_asset');
   const storagePath = `${reportKey}/${safeName}`;
@@ -1087,7 +1130,6 @@ function renderDashboard(){
 
   renderModelDonut();
   bars(D.symptomAll || [], 'symptomBars');
-
 }
 function renderDailyBars(id, items){
   const el = document.getElementById(id);
@@ -1284,7 +1326,6 @@ function renderExchangeRefund(){
   const exList = D.exchangeList || [];
   const rfList = D.refundList || [];
 
-  // 교환완료 / 환불완료만 (회수완료 제외)
   const exDone = exList.filter(r=>String(r.status).includes('교환완료'));
   const rfDone = rfList.filter(r=>String(r.status).includes('환불완료'));
 
@@ -1563,7 +1604,6 @@ function applyFiles(){
       part:String(pickCol(r,['부품']) || '—'),
       cost:String(pickCol(r,['고객부담비용','비용']) || '—'),
     }));
-    // 대시보드 집계: 교환완료 기준 (상세 탭과 동일)
     D.exTotal = D.exchangeList.filter(r=>String(r.status).includes('교환완료')).length;
     D.exPending = D.exchangeList.filter(r=>!String(r.status).includes('교환완료')).length;
   }
@@ -1581,7 +1621,6 @@ function applyFiles(){
       part:String(pickCol(r,['부품']) || '—'),
       store:String(pickCol(r,['구매처']) || '—'),
     }));
-    // 대시보드 집계: 환불완료 기준 (상세 탭과 동일)
     D.rfTotal = D.refundList.filter(r=>String(r.status).includes('환불완료')).length;
     D.rfPending = D.refundList.filter(r=>!String(r.status).includes('환불완료')).length;
   }
@@ -1845,7 +1884,16 @@ function updateChips(){
 
   const badge = document.getElementById('sbPeriodBadge');
   if (badge) {
-    badge.innerHTML = `${REPORT_WEEK_LABEL}<br>${REPORT_DATE_RANGE}`;
+    let periodLabel, dateRange;
+    if (D.manualPeriod && D.period && D.periodRange) {
+      const m = String(D.period).match(/(\d{1,2})월\s*(\d{1,2})주차/);
+      periodLabel = m ? `${m[1]}월 ${m[2]}주차` : REPORT_WEEK_LABEL;
+      dateRange = D.periodRange;
+    } else {
+      periodLabel = REPORT_WEEK_LABEL;
+      dateRange = REPORT_DATE_RANGE;
+    }
+    badge.innerHTML = `${periodLabel}<br>${dateRange}`;
   }
 }
 
@@ -1882,33 +1930,17 @@ function goTab(tab){
   lucide.createIcons();
 }
 
-/* ═══════════════════════════════════════════════════
-   PDF 페이지 정의 — 순서 = 페이지 번호
-   sels        : 한 페이지에 합칠 요소 셀렉터 (위→아래)
-   modelFilter : bymodel 탭 카드를 버킷명 정확 일치로 필터
-   label       : 우상단 표시 텍스트
-   ═══════════════════════════════════════════════════ */
 const PDF_SECTIONS = [
-  /* 1p */ { tab:'dashboard',       label:'Dashboard — KPI',
-             sels:['#kpiGrid'] },
-  /* 2p */ { tab:'dashboard',       label:'Dashboard — 일별 추이',
-             sels:['.daily-card'] },
-  /* 3p */ { tab:'dashboard',       label:'Dashboard — 모델별 분포 & AS 증상',
-             sels:['.equal-card-grid'] },
-  /* 4p */ { tab:'bymodel',         label:'By Model — RC-02 · RT220',
-             sels:['#modelCardGrid'], modelFilter:['RC-02','RT220'] },
-  /* 5p */ { tab:'bymodel',         label:'By Model — 프라임 · 프라임S',
-             sels:['#modelCardGrid'], modelFilter:['프라임','프라임S'] },
-  /* 6p */ { tab:'bymodel',         label:'By Model — 그래비티 · 그래비티W',
-             sels:['#modelCardGrid'], modelFilter:['그래비티','그래비티 W'] },
-  /* 7p */ { tab:'bymodel',         label:'By Model — 이지 · 기타',
-             sels:['#modelCardGrid'], modelFilter:['이지','기타'] },
-  /* 7p */ { tab:'exchange_refund', label:'교환 / 환불',
-             sels:['#exrf-stats','#exrf-detail'] },
-  /* 8p */ { tab:'reviews',         label:'Reviews — 통계',
-             sels:['#rv-stats'] },
-  /* 9p */ { tab:'reviews',         label:'Reviews — 대표 리뷰',
-             sels:['.review-grid-two'] },
+  { tab:'dashboard',       label:'Dashboard — KPI',                              sels:['#kpiGrid'] },
+  { tab:'dashboard',       label:'Dashboard — 일별 추이',                        sels:['.daily-card'] },
+  { tab:'dashboard',       label:'Dashboard — 모델별 분포 & AS 증상',            sels:['.equal-card-grid'] },
+  { tab:'bymodel',         label:'By Model — RC-02 · RT220',                     sels:['#modelCardGrid'], modelFilter:['RC-02','RT220'] },
+  { tab:'bymodel',         label:'By Model — 프라임 · 프라임S',                  sels:['#modelCardGrid'], modelFilter:['프라임','프라임S'] },
+  { tab:'bymodel',         label:'By Model — 그래비티 · 그래비티W',              sels:['#modelCardGrid'], modelFilter:['그래비티','그래비티 W'] },
+  { tab:'bymodel',         label:'By Model — 이지 · 기타',                       sels:['#modelCardGrid'], modelFilter:['이지','기타'] },
+  { tab:'exchange_refund', label:'교환 / 환불',                                  sels:['#exrf-stats','#exrf-detail'] },
+  { tab:'reviews',         label:'Reviews — 통계',                               sels:['#rv-stats'] },
+  { tab:'reviews',         label:'Reviews — 대표 리뷰',                          sels:['.review-grid-two'] },
 ];
 
 async function dlPDF(){
@@ -1921,19 +1953,15 @@ async function dlPDF(){
     const {jsPDF}=window.jspdf;
     const prev=curTab;
 
-    // A4 가로 규격 (mm)
     const PW=297, PH=210, MG=12;
     const AW=PW-MG*2, AH=PH-MG*2;
 
-    // compress:true → jsPDF 내부 스트림 압축
     const pdf=new jsPDF({orientation:'l',unit:'mm',format:'a4',compress:true});
     let pageN=0;
 
     const ct=document.getElementById('mainContent');
 
-    // JPEG 변환 헬퍼 — PNG 대비 60~70% 용량 절감
     const toJpeg=(cv,q=0.72)=>{
-      // 배경이 투명하면 JPEG가 검게 나오므로 흰색 합성
       const tmp=document.createElement('canvas');
       tmp.width=cv.width; tmp.height=cv.height;
       const ctx=tmp.getContext('2d');
@@ -1943,7 +1971,6 @@ async function dlPDF(){
       return tmp.toDataURL('image/jpeg',q);
     };
 
-    // .content overflow 임시 해제 → 전체 높이 캡처 (scale 1.2 고정)
     const capture=async()=>{
       const fw=ct.offsetWidth;
       const fh=ct.scrollHeight;
@@ -1953,7 +1980,7 @@ async function dlPDF(){
       ct.style.maxHeight='none';
       await new Promise(r=>setTimeout(r,180));
       const cv=await html2canvas(ct,{
-        scale:1.2,          // 1~1.5 사이, 가독성·용량 균형
+        scale:1.2,
         useCORS:true,
         backgroundColor:'#F5F6F8',
         logging:false,
@@ -1971,7 +1998,6 @@ async function dlPDF(){
       pdf.text(txt,PW-MG,MG-2,{align:'right'});
     };
 
-    // A4 한 페이지에 꽉 채워 맞춤 (비율 유지, 가운데 정렬)
     const addFit=(cv,text)=>{
       const asp=cv.height/cv.width;
       let iw=AW, ih=asp*AW;
@@ -1982,7 +2008,6 @@ async function dlPDF(){
       pdf.addImage(toJpeg(cv),'JPEG',x,y,iw,ih);
     };
 
-    // 세로가 길면 A4 단위로 슬라이스해서 여러 페이지
     const addSlice=(cv,text)=>{
       const pxMm=cv.width/AW;
       const pageHpx=Math.round(AH*pxMm);
@@ -1999,12 +2024,10 @@ async function dlPDF(){
       }
     };
 
-    // ① 대시보드 — 1페이지, fit
     goTab('dashboard');
     await new Promise(r=>setTimeout(r,700));
     addFit(await capture(),'Dashboard');
 
-    // ② By Model — 4개씩 2페이지
     goTab('bymodel');
     await new Promise(r=>setTimeout(r,700));
     const cards=[...document.querySelectorAll('#modelCardGrid .model-symptom-card')];
@@ -2020,12 +2043,10 @@ async function dlPDF(){
       cards.slice(0,half).forEach(c=>c.style.display='');
     }
 
-    // ③ 교환/환불 — 1페이지, fit
     goTab('exchange_refund');
     await new Promise(r=>setTimeout(r,700));
     addFit(await capture(),'교환 / 환불');
 
-    // ④ 리뷰 — 내용 길면 자동 분할
     goTab('reviews');
     await new Promise(r=>setTimeout(r,700));
     addSlice(await capture(),'Reviews');
