@@ -652,7 +652,7 @@ function normalizeAsType(v){
   if (t.includes('단순')) return '단순문의';
   if (t.includes('방문')) return '방문점검';
   if (t.includes('추가발송')) return '추가발송';
-  if (t === 'AS' || t.includes('무상') || t.includes('점검') || t.includes('수리')) return 'AS';
+  if (t === 'AS' || t === '점검' || t.includes('무상') || (t.includes('수리') && t.length <= 10)) return 'AS';
   return t;
 }
 function pickCol(row, keys){
