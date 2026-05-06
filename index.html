@@ -1333,11 +1333,11 @@ function renderExchangeRefund(){
   const exByModel={}, rfByModel={};
   ER_MODELS.forEach(m=>{exByModel[m]=0; rfByModel[m]=0;});
   exDone.forEach(r=>{
-    const b=normalizeModelBucket(modelAlias(r.product));
+    const b=normalizeModelBucket(r.product);
     if(b in exByModel) exByModel[b]++;
   });
   rfDone.forEach(r=>{
-    const b=normalizeModelBucket(modelAlias(r.product));
+    const b=normalizeModelBucket(r.product);
     if(b in rfByModel) rfByModel[b]++;
   });
 
