@@ -1718,6 +1718,38 @@ function renderPartTab() {
   if (btnB) btnB.className = 'reentry-part-tab-btn'+(partTabMode==='B'?' on':'');
 }
 
+function rtComputeAnomalies(csArr) {
+  const bktPartTotal = {}, bktTotal = {};
+  for (const rec of csArr) {
+    const b = rec.모델버킷;
+    if (!bktPartTotal[b]) { bktPartTotal[b]={}; bktTotal[b]=0; }
+    bktTotal[b]++;
+    if (rec.부품Set) rec.부품Set.forEach(p => { if(p) bktPartTotal[b][p]=(bktPartTotal[b][p]||0)+1; });
+  }
+  const prodMap = {};
+  for (const rec of csArr) {
+    if (!rec.생산년월) continue;
+    const k = `${rec.모델버킷}|${rec.생산년월}`;
+    if (!prodMap[k]) prodMap[k] = { bucket:rec.모델버킷, ym:rec.생산년월, cs:0, parts:{} };
+    prodMap[k].cs++;
+    if (rec.부품Set) rec.부품Set.forEach(p => { if(p) prodMap[k].parts[p]=(prodMap[k].parts[p]||0)+1; });
+  }
+  const out = [];
+  for (const [,v] of Object.entries(prodMap)) {
+    const { bucket:b, ym, cs:tot, parts } = v;
+    if (tot < 3) continue;
+    const avgBase = bktTotal[b] || 1;
+    for (const [part, cnt] of Object.entries(parts)) {
+      const lr = cnt / tot;
+      const gr = (bktPartTotal[b]?.[part]||0) / avgBase;
+      if (gr > 0 && lr >= gr * 1.5 && cnt >= 2)
+        out.push({ 모델:modelDisplayName(b), 버킷:b, 생산년월:ym, 부품:part, 건수:cnt, 전체:tot,
+          비율:(lr*100).toFixed(1), 평균비율:(gr*100).toFixed(1), 배율:(lr/gr).toFixed(1) });
+    }
+  }
+  return out.sort((a,b) => +b.배율 - +a.배율).slice(0, 30);
+}
+
 function renderReentry(){
   // ── 데이터 없음 상태 ──
   if (!REENTRY_DATA) {
@@ -1776,7 +1808,19 @@ function renderReentry(){
     re.partOverlap.forEach(p => { if(p) _reentryViewPartB[b][p] = (_reentryViewPartB[b][p]||0)+1; });
   });
 
-  const filtAnomalies  = (isAll ? D2.anomalies : D2.anomalies.filter(a => a.버킷 === sel)).slice(0, 30);
+  // 증상 필터 (클릭된 증상이 있으면 해당 CS만)
+  const symFiltCS = reentrySymFilter
+    ? filtCS.filter(r => r.증상Set && r.증상Set.has(reentrySymFilter))
+    : filtCS;
+  const symBadge = reentrySymFilter
+    ? `<span style="display:inline-flex;align-items:center;gap:4px;background:var(--primary-50);border:1px solid var(--primary-200);color:var(--primary-600,var(--primary-500));font-size:11px;font-weight:700;padding:2px 10px;border-radius:999px;margin-left:8px">
+        증상: ${reentrySymFilter}
+        <span onclick="setReentrySym('${reentrySymFilter.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}');renderReentry()" style="cursor:pointer;font-size:12px;margin-left:2px;opacity:.6" title="필터 해제">×</span>
+      </span>` : '';
+
+  const filtAnomalies = reentrySymFilter
+    ? rtComputeAnomalies(symFiltCS)
+    : (isAll ? D2.anomalies : D2.anomalies.filter(a => a.버킷 === sel)).slice(0, 30);
   const filtPriority   = isAll ? D2.priorityList : D2.priorityList.filter(r => r.curr.모델버킷 === sel);
   const filtModelStats = isAll
     ? Object.values(D2.modelStats).sort((a,b) => +b.m1r - +a.m1r)
@@ -1902,9 +1946,9 @@ function renderReentry(){
   renderPartTab();
 
   // ── 교체 원인 분석 ──
-  // 원인 → 부품 역방향 인덱스 (내외부부품손상 등 부품 표기용)
-  const causePartIndex = {}; // cause → { part → count }
-  filtCS.forEach(rec => {
+  // 원인 → 부품 역방향 인덱스 (내외부부품손상 등 부품 표기용) — 증상 필터 적용
+  const causePartIndex = {};
+  symFiltCS.forEach(rec => {
     if (!rec.부품Set || !rec.원인Set) return;
     rec.원인Set.forEach(c => {
       if (!c) return;
@@ -1915,9 +1959,9 @@ function renderReentry(){
     });
   });
 
-  // 모델별 원인 TOP
+  // 모델별 원인 TOP — 증상 필터 적용
   const filtCauseMap = {};
-  filtCS.forEach(rec => {
+  symFiltCS.forEach(rec => {
     const b = rec.모델버킷;
     if (!filtCauseMap[b]) filtCauseMap[b] = {};
     if (rec.원인Set) rec.원인Set.forEach(c => { if(c) filtCauseMap[b][c] = (filtCauseMap[b][c]||0)+1; });
@@ -1935,9 +1979,9 @@ function renderReentry(){
     <div class="card-hdr" style="justify-content:space-between">
       <div style="display:flex;align-items:center;gap:10px">
         <i data-lucide="flask-conical" class="icon card-hdr-icon-lc"></i>
-        <div class="card-title">원인 TOP${!isAll?' — '+modelDisplayName(sel):' (모델별)'}</div>
+        <div class="card-title">원인 TOP${!isAll?' — '+modelDisplayName(sel):' (모델별)'}${symBadge}</div>
       </div>
-      <div style="background:var(--bg-alt);border:1px solid var(--border-subtle);border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600;color:var(--text-secondary)">전체 CS 기준</div>
+      <div style="background:var(--bg-alt);border:1px solid var(--border-subtle);border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600;color:var(--text-secondary)">${reentrySymFilter?'증상 필터 기준':'전체 CS 기준'}</div>
     </div>
     <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:16px">부품 교체 원인 분포</div>
     ${causeBuckets.length ? causeBuckets.map(b => {
@@ -1967,9 +2011,9 @@ function renderReentry(){
       </div>`;
     }).join('') : '<div class="empty-msg">원인 데이터 없음</div>'}`;
 
-  // 부품별 원인 TOP (슬라이서 필터 적용)
+  // 부품별 원인 TOP — 증상 필터 적용
   const filtPartCause = {};
-  filtCS.forEach(rec => {
+  symFiltCS.forEach(rec => {
     if (!rec.부품Set || !rec.원인Set) return;
     rec.부품Set.forEach(p => {
       if (!p) return;
@@ -1985,7 +2029,7 @@ function renderReentry(){
   document.getElementById('reentryPartCause').innerHTML = `
     <div class="card-hdr">
       <i data-lucide="wrench" class="icon card-hdr-icon-lc"></i>
-      <div class="card-title">부품별 교체 원인</div>
+      <div class="card-title">부품별 교체 원인${symBadge}</div>
     </div>
     <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:16px">교체 빈도 높은 부품의 주요 원인</div>
     ${topParts.length ? topParts.map(({part, total, causes}) => `
@@ -2007,7 +2051,7 @@ function renderReentry(){
   // ── 생산월별 부품 집중도 ──
   document.getElementById('reentryProdAnomalySection').innerHTML = `
     <div class="card-hdr"><i data-lucide="calendar-search" class="icon card-hdr-icon-lc"></i>
-      <div class="card-title">생산월별 부품 집중도${!isAll?' — '+modelDisplayName(sel):''}</div>
+      <div class="card-title">생산월별 부품 집중도${!isAll?' — '+modelDisplayName(sel):''}${symBadge}</div>
     </div>
     <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:14px">모델 평균 대비 1.5배 이상 교체율을 보이는 (생산월 + 부품) 조합</div>
     ${filtAnomalies.length ? `<div class="tbl-wrap"><table class="prod-anomaly-tbl" style="width:100%;border-collapse:collapse;min-width:700px">
