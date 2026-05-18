@@ -2883,55 +2883,52 @@ function exportReentryExcel() {
   ws2['!views'] = [{ state:'frozen', ySplit:1 }];
   XLSX.utils.book_append_sheet(wb, ws2, '재인입케이스');
 
-  /* ══ Sheet 3: 부품×원인 매트릭스 (피벗용) ══ */
-  const allCS3 = [...REENTRY_RAW.values()].filter(r => r.회수일자 && !isNaN(r.회수일자));
-  const reentryCSNos = new Set(D2.reentries.map(r => r.curr.csNo));
+  /* ══ Sheet 3+4: 피벗 원시데이터 ══ */
+  const allCS3   = [...REENTRY_RAW.values()].filter(r => r.회수일자 && !isNaN(r.회수일자));
+  const reTypeMap = new Map(D2.reentries.map(r => [r.curr.csNo, r.type])); // O(n) 룩업
+
+  // Sheet 3: 부품 원인 (1행 = 모델·CS·부품·원인)
   const hdrs3 = ['모델','CS번호','회수일자','부품','원인','재인입여부','재인입유형','생산년월'];
   const rows3 = [];
   allCS3.forEach(rec => {
-    const isRe = reentryCSNos.has(rec.csNo);
-    const reType = isRe ? (D2.reentries.find(r=>r.curr.csNo===rec.csNo)?.type||'') : '';
-    const parts = rec.부품Set ? [...rec.부품Set].filter(Boolean) : ['(없음)'];
-    const causes = rec.원인Set ? [...rec.원인Set].filter(Boolean) : [''];
-    parts.forEach(p => {
-      causes.forEach(c => {
-        rows3.push([
-          modelDisplayName(rec.모델버킷), rec.csNo,
-          fmtDate(rec.회수일자), p, c,
-          isRe ? '재인입' : '일반', reType,
-          rec.생산년월 || '',
-        ]);
-      });
-    });
+    const reType = reTypeMap.get(rec.csNo) || '';
+    const isRe   = !!reType;
+    const parts  = rec.부품Set && rec.부품Set.size ? [...rec.부품Set].filter(Boolean) : [''];
+    const causes = rec.원인Set && rec.원인Set.size ? [...rec.원인Set].filter(Boolean) : [''];
+    parts.forEach(p => causes.forEach(c => rows3.push([
+      modelDisplayName(rec.모델버킷), rec.csNo, fmtDate(rec.회수일자),
+      p, c, isRe?'재인입':'일반', reType, rec.생산년월||'',
+    ])));
   });
   const ws3 = XLSX.utils.aoa_to_sheet([hdrs3, ...rows3]);
   ws3['!cols'] = [20,18,12,24,16,10,20,12].map(w=>({wch:w}));
-  ws3['!freeze'] = { xSplit:0, ySplit:1 };
-  XLSX.utils.book_append_sheet(wb, ws3, '부품×원인(피벗용)');
+  ws3['!views'] = [{ state:'frozen', ySplit:1 }];
+  XLSX.utils.book_append_sheet(wb, ws3, '부품-원인(피벗용)');
 
-  /* ══ Sheet 4: 증상×모델 매트릭스 (피벗용) ══ */
+  // Sheet 4: 증상 (1행 = 모델·CS·증상)
   const hdrs4 = ['모델','CS번호','회수일자','증상','재인입여부','재인입유형','생산년월'];
   const rows4 = [];
   allCS3.forEach(rec => {
-    const isRe = reentryCSNos.has(rec.csNo);
-    const reType = isRe ? (D2.reentries.find(r=>r.curr.csNo===rec.csNo)?.type||'') : '';
-    const syms = rec.증상Set ? [...rec.증상Set].filter(Boolean) : ['(없음)'];
-    syms.forEach(s => {
-      rows4.push([
-        modelDisplayName(rec.모델버킷), rec.csNo,
-        fmtDate(rec.회수일자), s,
-        isRe ? '재인입' : '일반', reType,
-        rec.생산년월 || '',
-      ]);
-    });
+    const reType = reTypeMap.get(rec.csNo) || '';
+    const isRe   = !!reType;
+    const syms   = rec.증상Set && rec.증상Set.size ? [...rec.증상Set].filter(Boolean) : [''];
+    syms.forEach(s => rows4.push([
+      modelDisplayName(rec.모델버킷), rec.csNo, fmtDate(rec.회수일자),
+      s, isRe?'재인입':'일반', reType, rec.생산년월||'',
+    ]));
   });
   const ws4 = XLSX.utils.aoa_to_sheet([hdrs4, ...rows4]);
   ws4['!cols'] = [20,18,12,24,10,20,12].map(w=>({wch:w}));
-  ws4['!freeze'] = { xSplit:0, ySplit:1 };
-  XLSX.utils.book_append_sheet(wb, ws4, '증상×모델(피벗용)');
+  ws4['!views'] = [{ state:'frozen', ySplit:1 }];
+  XLSX.utils.book_append_sheet(wb, ws4, '증상-모델(피벗용)');
 
   const today = new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb, `Reencle_재인입분석_${today}.xlsx`);
+  try {
+    XLSX.writeFile(wb, `Reencle_재인입분석_${today}.xlsx`);
+  } catch(e) {
+    console.error('Excel 저장 오류:', e);
+    alert('Excel 생성 오류: ' + e.message);
+  }
 }
 
 async function handleReentryFiles(fileList){
