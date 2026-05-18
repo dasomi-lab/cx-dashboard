@@ -477,20 +477,18 @@ tr:hover td{background:var(--bg-alt);}
 .kpi-rate-bar{flex:1;height:5px;background:var(--bg-alt);border-radius:999px;overflow:hidden;}
 .kpi-rate-fill{height:100%;border-radius:999px;background:var(--kpi-color);}
 
-/* 모델별 재인입률 시각 바 */
-.model-rate-vis{padding:14px 0;border-bottom:1px solid var(--border-soft);}
-.model-rate-vis:last-child{border-bottom:none;}
-.model-rate-vis-hdr{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
-.model-rate-vis-name{font-size:14px;font-weight:700;color:var(--text-primary);}
-.model-rate-vis-total{font-size:12px;color:var(--text-tertiary);}
-.model-rate-vis-bars{display:flex;flex-direction:column;gap:6px;}
-.model-rate-vis-row{display:flex;align-items:center;gap:8px;}
-.model-rate-vis-lbl{font-size:10px;font-weight:600;color:var(--text-tertiary);width:34px;flex-shrink:0;text-align:right;}
-.model-rate-vis-track{flex:1;height:9px;background:var(--bg-alt);border-radius:999px;overflow:hidden;}
-.model-rate-vis-fill{height:100%;border-radius:999px;}
-.model-rate-vis-val{font-size:12px;font-weight:700;width:40px;text-align:right;flex-shrink:0;}
-.mrvf-1m{background:var(--danger-text);}  .mrvf-3m{background:var(--warning-text);} .mrvf-6m{background:var(--primary-500);} .mrvf-12m{background:var(--primary-200);}
-.mrvf-v1{color:var(--danger-text);}        .mrvf-v3{color:var(--warning-text);}      .mrvf-v6{color:var(--primary-600);}      .mrvf-v12{color:var(--text-tertiary);}
+/* 모델별 재인입률 카드 그리드 */
+.model-rate-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
+.model-rate-card{background:var(--bg-alt);border:1px solid var(--border-soft);border-radius:var(--r-md);padding:16px 16px 14px;display:flex;align-items:center;gap:14px;}
+.model-rate-card-stats{flex:1;min-width:0;}
+.model-rate-card-name{font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.model-rate-card-total{font-size:11px;color:var(--text-tertiary);margin-bottom:10px;}
+.model-rate-card-rows{display:flex;flex-direction:column;gap:4px;}
+.model-rate-card-row{display:flex;align-items:center;gap:6px;}
+.model-rate-card-lbl{font-size:10px;font-weight:600;color:var(--text-tertiary);width:30px;flex-shrink:0;text-align:right;}
+.model-rate-card-track{flex:1;height:5px;background:var(--bg-surface);border-radius:999px;overflow:hidden;}
+.model-rate-card-fill{height:100%;border-radius:999px;}
+.model-rate-card-val{font-size:11px;font-weight:600;width:32px;text-align:right;flex-shrink:0;color:var(--text-secondary);}
 
 /* 재인입 유형 비율 바 */
 .type-v2{padding:12px 0;border-bottom:1px solid var(--border-soft);}
@@ -1912,43 +1910,47 @@ function renderReentry(){
       <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">${k.sub}</div>
     </div>`).join('');
 
-  // ── 모델별 재인입률 시각 바 (모델별 고유 색상) ──
+  // ── 모델별 재인입률 — 원형 링 카드 그리드 ──
   const maxRate12 = Math.max(...filtModelStats.map(r=>+r.m12r), 1);
-  const mBarRow = (lbl, pct, base, alpha) => {
-    const col = base + alpha;
-    const w   = (pct / maxRate12 * 100).toFixed(1);
-    return `<div class="model-rate-vis-row">
-      <div class="model-rate-vis-lbl">${lbl}</div>
-      <div class="model-rate-vis-track"><div class="model-rate-vis-fill" style="background:${col};width:${w}%"></div></div>
-      <div class="model-rate-vis-val" style="color:${alpha==='FF'?base:'var(--text-tertiary)'};font-weight:${alpha==='FF'?'700':'500'}">${pct}%</div>
-    </div>`;
+  const makeRing = (r12, r1, color) => {
+    const sz=72, cx=36, cy=36, rad=28, sw=8;
+    const circ = 2*Math.PI*rad;
+    const filled = Math.min(r12/100,1)*circ;
+    return `<svg viewBox="0 0 ${sz} ${sz}" width="${sz}" height="${sz}" style="flex-shrink:0">
+      <circle cx="${cx}" cy="${cy}" r="${rad}" fill="none" stroke="var(--border-subtle)" stroke-width="${sw}"/>
+      <circle cx="${cx}" cy="${cy}" r="${rad}" fill="none" stroke="${color}" stroke-width="${sw}"
+        stroke-dasharray="${filled.toFixed(2)} ${(circ-filled).toFixed(2)}"
+        stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"/>
+      <text x="${cx}" y="${cy-3}" text-anchor="middle" font-size="13" font-weight="800" fill="${color}">${r1}%</text>
+      <text x="${cx}" y="${cy+10}" text-anchor="middle" font-size="9" fill="var(--text-tertiary)">1개월</text>
+    </svg>`;
   };
   document.getElementById('reentryModelTable').innerHTML = `
     <div class="card-hdr"><i data-lucide="bar-chart-3" class="icon card-hdr-icon-lc"></i>
       <div class="card-title">모델별 재인입률</div>
       ${!isAll?`<span class="reentry-filtered-badge" style="margin-left:8px"><i data-lucide="filter" class="icon" style="width:11px;height:11px"></i>${modelDisplayName(sel)}</span>`:''}
     </div>
-    <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:14px">1개월(진) → 12개월(연) 누적 재인입 비율 / 높은 순</div>
+    <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:14px">링 = 12개월 누적 · 중앙 = 1개월 재인입률 / 높은 순</div>
+    <div class="model-rate-grid">
     ${filtModelStats.length ? filtModelStats.map(r => {
       const mc = getModelColor(r.버킷);
-      const base = mc.base.replace('#','');
-      return `<div class="model-rate-vis">
-        <div class="model-rate-vis-hdr">
-          <div class="model-rate-vis-name" style="display:flex;align-items:center;gap:7px">
-            <span style="width:9px;height:9px;border-radius:50%;background:#${base};flex-shrink:0"></span>
-            ${r.모델}
+      return `<div class="model-rate-card">
+        ${makeRing(+r.m12r, +r.m1r, mc.base)}
+        <div class="model-rate-card-stats">
+          <div class="model-rate-card-name">${r.모델}</div>
+          <div class="model-rate-card-total">전체 ${r.total.toLocaleString()}건</div>
+          <div class="model-rate-card-rows">
+            ${[['3개월',r.m3r],['6개월',r.m6r],['12개월',r.m12r]].map(([lbl,val])=>`
+              <div class="model-rate-card-row">
+                <div class="model-rate-card-lbl">${lbl}</div>
+                <div class="model-rate-card-track"><div class="model-rate-card-fill" style="background:${mc.base}99;width:${(+val/maxRate12*100).toFixed(1)}%"></div></div>
+                <div class="model-rate-card-val">${val}%</div>
+              </div>`).join('')}
           </div>
-          <div class="model-rate-vis-total">${r.total.toLocaleString()}건</div>
-        </div>
-        <div class="model-rate-vis-bars">
-          ${mBarRow('1개월', +r.m1r, '#'+base, 'FF')}
-          ${mBarRow('3개월', +r.m3r, '#'+base, 'BB')}
-          ${mBarRow('6개월', +r.m6r, '#'+base, '88')}
-          ${mBarRow('12개월', +r.m12r, '#'+base, '55')}
         </div>
       </div>`;
     }).join('') : '<div class="empty-msg">데이터 없음</div>'}
-    `;
+    </div>`;
 
   // ── 재인입 유형 분석 ──
   const typeDefs = [
