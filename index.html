@@ -636,6 +636,9 @@ tr:hover td{background:var(--bg-alt);}
               <input type="file" multiple accept=".csv,.xlsx,.xls" style="display:none"
                 onchange="handleReentryFiles(this.files);this.value=''">
             </label>
+            <button class="btn btn-outline" onclick="exportReentryExcel()">
+              <i data-lucide="file-spreadsheet" class="icon"></i>Excel 다운로드
+            </button>
             <button class="btn btn-primary" onclick="REENTRY_DATA?renderReentry():document.querySelector('#pane-reentry input[type=file]').click()">
               <i data-lucide="search" class="icon"></i>분석 실행
             </button>
@@ -2677,6 +2680,138 @@ function rtGenInsights({ reentries, modelStats, typeCount, anomalies, r1m, r3m, 
       detail:`전체 AS 중 ${r3m.toLocaleString()}건(${r3Rate}%)이 3개월 이내 재입고됩니다. 수리 완성도 및 부품 내구성 종합 점검을 권장합니다.` });
   }
   return out.slice(0, 4);
+}
+
+function exportReentryExcel() {
+  if (!REENTRY_DATA) { alert('분석 데이터가 없습니다. 파일을 먼저 업로드해 주세요.'); return; }
+  const D2 = REENTRY_DATA;
+  const wb = XLSX.utils.book_new();
+  const fmtDate = d => d instanceof Date && !isNaN(d) ? d.toLocaleDateString('ko-KR') : (d||'');
+  const joinSet = s => s ? [...s].filter(Boolean).join(', ') : '';
+
+  /* ══ Sheet 1: 요약보고서 ══ */
+  const s1 = [];
+  const H = v => ({ v, t:'s' });
+
+  // KPI
+  s1.push(['[KPI 요약]', '', '']);
+  s1.push(['항목', '값', '비율']);
+  const r1r = D2.totalCS ? ((D2.r1m/D2.totalCS)*100).toFixed(1)+'%' : '-';
+  const r3r = D2.totalCS ? ((D2.r3m/D2.totalCS)*100).toFixed(1)+'%' : '-';
+  const prr = D2.totalCS ? ((D2.partRepeat/D2.totalCS)*100).toFixed(1)+'%' : '-';
+  const crr = D2.totalCS ? ((D2.critical/D2.totalCS)*100).toFixed(1)+'%' : '-';
+  s1.push(['분석 대상 A/S', D2.totalCS, D2.fileCount+'개 파일']);
+  s1.push(['1개월 이내 재인입', D2.r1m, r1r]);
+  s1.push(['3개월 이내 재인입', D2.r3m, r3r]);
+  s1.push(['동일부품 반복', D2.partRepeat, prr]);
+  s1.push(['동일증상+동일부품 (CRITICAL)', D2.critical, crr]);
+  s1.push(['업그레이드 포함', D2.upgradeCS, '']);
+  s1.push([]);
+
+  // 모델별 재인입률
+  s1.push(['[모델별 재인입률]', '', '', '', '', '', '', '', '']);
+  s1.push(['모델', '전체AS', '1개월', '1개월%', '3개월', '3개월%', '6개월', '6개월%', '12개월%']);
+  Object.values(D2.modelStats).sort((a,b)=>+b.m1r-+a.m1r).forEach(r => {
+    s1.push([r.모델, r.total, r.m1, r.m1r+'%', r.m3, r.m3r+'%', r.m6, r.m6r+'%', r.m12r+'%']);
+  });
+  s1.push([]);
+
+  // 재인입 유형
+  s1.push(['[재인입 유형 분포]', '']);
+  s1.push(['유형', '건수']);
+  ['동일증상+동일부품','동일증상+다른부품','다른증상+동일부품','상이증상+상이부품'].forEach(t => {
+    s1.push([t, D2.typeCount[t]||0]);
+  });
+  s1.push([]);
+
+  // 생산월별 이상
+  s1.push(['[생산월별 부품 집중도 이상 탐지]', '', '', '', '', '', '']);
+  s1.push(['모델', '생산년월', '부품', '해당건수', '생산월내전체', '교체율%', '모델평균%', '배율']);
+  D2.anomalies.forEach(a => {
+    s1.push([a.모델, a.생산년월, a.부품, a.건수, a.전체, a.비율, a.평균비율, a.배율+'×']);
+  });
+
+  const ws1 = XLSX.utils.aoa_to_sheet(s1);
+  ws1['!cols'] = [32,14,14,12,14,12,14,12,12].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws1, '요약보고서');
+
+  /* ══ Sheet 2: 재인입케이스 (피벗용 원시데이터) ══ */
+  const hdrs2 = ['모델','재인입유형','경과일구간','경과일(일)','현재CS번호','현재회수일자',
+    '현재증상','현재부품','현재원인','이전CS번호','이전회수일자','이전증상','이전부품',
+    '공통증상','공통부품','생산년월','고객명(마스킹)'];
+  const rows2 = D2.reentries.map(r => [
+    modelDisplayName(r.curr.모델버킷),
+    r.type,
+    r.period,
+    r.days,
+    r.curr.csNo,
+    fmtDate(r.curr.회수일자),
+    joinSet(r.curr.증상Set),
+    joinSet(r.curr.부품Set),
+    joinSet(r.curr.원인Set),
+    r.prev.csNo,
+    fmtDate(r.prev.회수일자),
+    joinSet(r.prev.증상Set),
+    joinSet(r.prev.부품Set),
+    r.symOverlap.join(', '),
+    r.partOverlap.join(', '),
+    r.curr.생산년월 || '',
+    r.curr.고객명 ? r.curr.고객명.slice(0,1)+'**' : '',
+  ]);
+  const ws2 = XLSX.utils.aoa_to_sheet([hdrs2, ...rows2]);
+  ws2['!cols'] = [20,18,12,10,18,14,30,30,20,18,14,30,30,20,20,12,10].map(w=>({wch:w}));
+  ws2['!freeze'] = { xSplit:0, ySplit:1 };
+  XLSX.utils.book_append_sheet(wb, ws2, '재인입케이스');
+
+  /* ══ Sheet 3: 부품×원인 매트릭스 (피벗용) ══ */
+  const allCS3 = [...REENTRY_RAW.values()].filter(r => r.회수일자 && !isNaN(r.회수일자));
+  const reentryCSNos = new Set(D2.reentries.map(r => r.curr.csNo));
+  const hdrs3 = ['모델','CS번호','회수일자','부품','원인','재인입여부','재인입유형','생산년월'];
+  const rows3 = [];
+  allCS3.forEach(rec => {
+    const isRe = reentryCSNos.has(rec.csNo);
+    const reType = isRe ? (D2.reentries.find(r=>r.curr.csNo===rec.csNo)?.type||'') : '';
+    const parts = rec.부품Set ? [...rec.부품Set].filter(Boolean) : ['(없음)'];
+    const causes = rec.원인Set ? [...rec.원인Set].filter(Boolean) : [''];
+    parts.forEach(p => {
+      causes.forEach(c => {
+        rows3.push([
+          modelDisplayName(rec.모델버킷), rec.csNo,
+          fmtDate(rec.회수일자), p, c,
+          isRe ? '재인입' : '일반', reType,
+          rec.생산년월 || '',
+        ]);
+      });
+    });
+  });
+  const ws3 = XLSX.utils.aoa_to_sheet([hdrs3, ...rows3]);
+  ws3['!cols'] = [20,18,12,24,16,10,20,12].map(w=>({wch:w}));
+  ws3['!freeze'] = { xSplit:0, ySplit:1 };
+  XLSX.utils.book_append_sheet(wb, ws3, '부품×원인(피벗용)');
+
+  /* ══ Sheet 4: 증상×모델 매트릭스 (피벗용) ══ */
+  const hdrs4 = ['모델','CS번호','회수일자','증상','재인입여부','재인입유형','생산년월'];
+  const rows4 = [];
+  allCS3.forEach(rec => {
+    const isRe = reentryCSNos.has(rec.csNo);
+    const reType = isRe ? (D2.reentries.find(r=>r.curr.csNo===rec.csNo)?.type||'') : '';
+    const syms = rec.증상Set ? [...rec.증상Set].filter(Boolean) : ['(없음)'];
+    syms.forEach(s => {
+      rows4.push([
+        modelDisplayName(rec.모델버킷), rec.csNo,
+        fmtDate(rec.회수일자), s,
+        isRe ? '재인입' : '일반', reType,
+        rec.생산년월 || '',
+      ]);
+    });
+  });
+  const ws4 = XLSX.utils.aoa_to_sheet([hdrs4, ...rows4]);
+  ws4['!cols'] = [20,18,12,24,10,20,12].map(w=>({wch:w}));
+  ws4['!freeze'] = { xSplit:0, ySplit:1 };
+  XLSX.utils.book_append_sheet(wb, ws4, '증상×모델(피벗용)');
+
+  const today = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `Reencle_재인입분석_${today}.xlsx`);
 }
 
 async function handleReentryFiles(fileList){
