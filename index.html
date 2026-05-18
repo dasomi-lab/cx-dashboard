@@ -462,7 +462,7 @@ tr:hover td{background:var(--bg-alt);}
 .sym-drill-bar-name{font-size:12px;color:var(--text-primary);width:130px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .sym-drill-bar-track{flex:1;background:var(--bg-alt);border-radius:999px;height:7px;}
 .sym-drill-bar-fill{height:7px;border-radius:999px;background:var(--primary-500);}
-.sym-drill-cause-fill{background:#b45309;}
+.sym-drill-cause-fill{background:var(--warning-text);}
 .sym-drill-bar-val{font-size:12px;color:var(--text-secondary);width:32px;text-align:right;flex-shrink:0;}
 .sym-drill-model-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
 .sym-drill-model-pill{background:var(--bg-alt);border:1px solid var(--border-subtle);border-radius:999px;padding:3px 10px;font-size:12px;color:var(--text-secondary);}
@@ -489,8 +489,8 @@ tr:hover td{background:var(--bg-alt);}
 .model-rate-vis-track{flex:1;height:9px;background:var(--bg-alt);border-radius:999px;overflow:hidden;}
 .model-rate-vis-fill{height:100%;border-radius:999px;}
 .model-rate-vis-val{font-size:12px;font-weight:700;width:40px;text-align:right;flex-shrink:0;}
-.mrvf-1m{background:#ef4444;} .mrvf-3m{background:#f97316;} .mrvf-6m{background:#f59e0b;} .mrvf-12m{background:#94a3b8;}
-.mrvf-v1{color:#ef4444;} .mrvf-v3{color:#f97316;} .mrvf-v6{color:#f59e0b;} .mrvf-v12{color:#94a3b8;}
+.mrvf-1m{background:var(--danger-text);}  .mrvf-3m{background:var(--warning-text);} .mrvf-6m{background:var(--primary-500);} .mrvf-12m{background:var(--primary-200);}
+.mrvf-v1{color:var(--danger-text);}        .mrvf-v3{color:var(--warning-text);}      .mrvf-v6{color:var(--primary-600);}      .mrvf-v12{color:var(--text-tertiary);}
 
 /* 재인입 유형 비율 바 */
 .type-v2{padding:12px 0;border-bottom:1px solid var(--border-soft);}
@@ -1889,12 +1889,12 @@ function renderReentry(){
   const prRate = totalCS ? +((partRepeat/totalCS)*100).toFixed(1) : 0;
   const crRate = totalCS ? +((critical/totalCS)*100).toFixed(1) : 0;
   const kpiDefs = [
-    {label:'분석 대상 A/S',    value:totalCS.toLocaleString(),    sub:isAll?`${D2.fileCount}개 파일`:`${modelDisplayName(sel)}`, rate:null,   color:'#6366f1', danger:false},
-    {label:'1개월 이내 재인입', value:r1m.toLocaleString(),        sub:'1개월 내 재방문',  rate:r1Rate,   color:'#ef4444', danger:r1Rate>=8},
-    {label:'3개월 이내 재인입', value:r3m.toLocaleString(),        sub:'3개월 내 재방문',  rate:r3Rate,   color:'#f97316', danger:r3Rate>=15},
-    {label:'동일부품 반복',     value:partRepeat.toLocaleString(), sub:'부품 교집합 존재', rate:prRate,   color:'#f59e0b', danger:partRepeat>0},
-    {label:'동일증상+동일부품', value:critical.toLocaleString(),   sub:'CRITICAL 즉시확인',rate:crRate,   color:'#dc2626', danger:critical>0},
-    {label:'업그레이드 포함',   value:upgradeCS.toLocaleString(),  sub:'업그레이드 포함건', rate:null,   color:'#8b5cf6', danger:false},
+    {label:'분석 대상 A/S',    value:totalCS.toLocaleString(),    sub:isAll?`${D2.fileCount}개 파일`:`${modelDisplayName(sel)}`, rate:null,   color:'var(--primary-500)', danger:false},
+    {label:'1개월 이내 재인입', value:r1m.toLocaleString(),        sub:'1개월 내 재방문',  rate:r1Rate,   color:'var(--danger-text)', danger:r1Rate>=8},
+    {label:'3개월 이내 재인입', value:r3m.toLocaleString(),        sub:'3개월 내 재방문',  rate:r3Rate,   color:'var(--warning-text)', danger:r3Rate>=15},
+    {label:'동일부품 반복',     value:partRepeat.toLocaleString(), sub:'부품 교집합 존재', rate:prRate,   color:'var(--warning-text)', danger:partRepeat>0},
+    {label:'동일증상+동일부품', value:critical.toLocaleString(),   sub:'CRITICAL 즉시확인',rate:crRate,   color:'var(--danger-text)', danger:critical>0},
+    {label:'업그레이드 포함',   value:upgradeCS.toLocaleString(),  sub:'업그레이드 포함건', rate:null,   color:'var(--special-text)', danger:false},
   ];
   document.getElementById('reentryKpiGrid').innerHTML = kpiDefs.map(k=>`
     <div class="kpi-card${k.danger?' kpi-danger':''}" style="--kpi-color:${k.color}">
@@ -1923,10 +1923,10 @@ function renderReentry(){
     </div>
     <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:14px">1개월→12개월 누적 재인입 비율 / 높은 순</div>
     <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-tertiary)"><span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block"></span>1개월</span>
-      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-tertiary)"><span style="width:10px;height:10px;border-radius:50%;background:#f97316;display:inline-block"></span>3개월</span>
-      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-tertiary)"><span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block"></span>6개월</span>
-      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-tertiary)"><span style="width:10px;height:10px;border-radius:50%;background:#94a3b8;display:inline-block"></span>12개월</span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-tertiary)"><span style="width:10px;height:10px;border-radius:50%;background:var(--danger-text);display:inline-block"></span>1개월</span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-tertiary)"><span style="width:10px;height:10px;border-radius:50%;background:var(--warning-text);display:inline-block"></span>3개월</span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-tertiary)"><span style="width:10px;height:10px;border-radius:50%;background:var(--primary-500);display:inline-block"></span>6개월</span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-tertiary)"><span style="width:10px;height:10px;border-radius:50%;background:var(--primary-200);display:inline-block"></span>12개월</span>
     </div>
     ${filtModelStats.length ? filtModelStats.map(r=>`
       <div class="model-rate-vis">
@@ -1945,10 +1945,10 @@ function renderReentry(){
 
   // ── 재인입 유형 분석 ──
   const typeDefs = [
-    {name:'동일증상+동일부품', desc:'강한 재발 — 즉시 확인 필요', color:'#dc2626'},
-    {name:'동일증상+다른부품', desc:'근본 원인 미해결 의심',       color:'#f97316'},
-    {name:'다른증상+동일부품', desc:'부품 반복 교체',              color:'#f59e0b'},
-    {name:'상이증상+상이부품', desc:'일반 재인입',                 color:'#94a3b8'},
+    {name:'동일증상+동일부품', desc:'강한 재발 — 즉시 확인 필요', color:'var(--danger-text)'},
+    {name:'동일증상+다른부품', desc:'근본 원인 미해결 의심',       color:'var(--warning-text)'},
+    {name:'다른증상+동일부품', desc:'부품 반복 교체',              color:'var(--primary-500)'},
+    {name:'상이증상+상이부품', desc:'일반 재인입',                 color:'var(--text-tertiary)'},
   ];
   const typeTotal = typeDefs.reduce((s,t)=>s+(filtTypeCount[t.name]||0), 0);
   document.getElementById('reentryTypeList').innerHTML = `
