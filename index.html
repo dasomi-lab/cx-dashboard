@@ -446,6 +446,22 @@ tr:hover td{background:var(--bg-alt);}
 .reentry-slicer-chip:hover{border-color:var(--primary-300);color:var(--primary-500);}
 .reentry-slicer-chip.on{background:var(--primary-500);border-color:var(--primary-500);color:#fff;}
 .reentry-filtered-badge{display:inline-flex;align-items:center;gap:5px;background:var(--primary-50);border:1px solid var(--primary-200);color:var(--primary-600,var(--primary-500));font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;}
+.sym-clickable{cursor:pointer;transition:background .12s;}
+.sym-clickable:hover{background:var(--primary-50)!important;border-radius:var(--r-xs);}
+.drill-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:center;justify-content:center;padding:20px;}
+.drill-modal{background:var(--bg-surface);border-radius:var(--r-md);box-shadow:0 24px 64px rgba(0,0,0,.22);width:100%;max-width:680px;max-height:88vh;overflow-y:auto;display:flex;flex-direction:column;}
+.drill-hdr{display:flex;align-items:flex-start;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid var(--border-subtle);position:sticky;top:0;background:var(--bg-surface);z-index:1;}
+.drill-title{font-size:18px;font-weight:700;color:var(--text-primary);}
+.drill-sub{font-size:13px;color:var(--text-tertiary);margin-top:3px;}
+.drill-close{background:none;border:none;cursor:pointer;font-size:20px;color:var(--text-tertiary);line-height:1;padding:2px 6px;}
+.drill-body{padding:20px 24px;}
+.drill-section{margin-bottom:22px;}
+.drill-section-title{font-size:11px;font-weight:700;color:var(--text-tertiary);letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;}
+.drill-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.drill-bar-label{font-size:13px;font-weight:600;color:var(--text-primary);min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.drill-bar-track{flex:2;height:8px;background:var(--bg-alt);border-radius:4px;overflow:hidden;}
+.drill-bar-fill{height:100%;border-radius:4px;background:var(--primary-400);}
+.drill-bar-cnt{font-size:12px;color:var(--text-tertiary);white-space:nowrap;min-width:50px;text-align:right;}
 </style>
 </head>
 <body>
@@ -619,6 +635,20 @@ tr:hover td{background:var(--bg-alt);}
           </div>
         </div>
         <div id="weeklyReport"></div>
+      </div>
+
+      <!-- 증상 드릴다운 모달 -->
+      <div id="drillOverlay" class="drill-overlay" style="display:none" onclick="if(event.target===this)closeDrill()">
+        <div class="drill-modal">
+          <div class="drill-hdr">
+            <div>
+              <div class="drill-title" id="drillTitle"></div>
+              <div class="drill-sub" id="drillSub"></div>
+            </div>
+            <button class="drill-close" onclick="closeDrill()">×</button>
+          </div>
+          <div class="drill-body" id="drillBody"></div>
+        </div>
       </div>
 
       <div id="pane-reentry" class="pane">
@@ -1853,13 +1883,13 @@ function renderReentry(){
       return `<div class="reentry-model-block">
         <div class="reentry-model-block-hdr">
           <div class="reentry-model-block-name">${modelDisplayName(b)}</div>
-          <div class="reentry-model-block-sub">증상 집중 패턴</div>
+          <div class="reentry-model-block-sub">증상 클릭 → 부품·원인 드릴다운</div>
         </div>
-        ${items.map((it,i)=>`<div class="reentry-rank-row">
+        ${items.map((it,i)=>`<div class="reentry-rank-row sym-clickable" onclick="showSymptomDrill('${it.name.replace(/'/g,"\\'")}')">
           <div class="reentry-rank-num">${i+1}</div>
           <div class="reentry-rank-bar">
             <span class="reentry-rank-name">${it.name}</span>
-            <span class="reentry-rank-count">${it.value}건</span>
+            <span class="reentry-rank-count">${it.value}건 <span style="font-size:10px;color:var(--text-disabled);font-weight:400">↗</span></span>
           </div></div>`).join('')}
       </div>`;
     }).join('') : '<div class="empty-msg">재인입 케이스 없음</div>'}`;
@@ -2682,6 +2712,96 @@ function rtGenInsights({ reentries, modelStats, typeCount, anomalies, r1m, r3m, 
   return out.slice(0, 4);
 }
 
+function closeDrill() {
+  document.getElementById('drillOverlay').style.display = 'none';
+}
+
+function showSymptomDrill(sym) {
+  if (!REENTRY_DATA) return;
+  const D2  = REENTRY_DATA;
+  const sel = reentryModelFilter;
+  const isAll = sel === '전체';
+  const allCS = [...REENTRY_RAW.values()].filter(r => r.회수일자 && !isNaN(r.회수일자));
+  const filtCS = isAll ? allCS : allCS.filter(r => r.모델버킷 === sel);
+
+  // 해당 증상이 포함된 CS 추출
+  const matched = filtCS.filter(r => r.증상Set && r.증상Set.has(sym));
+  if (!matched.length) return;
+
+  const reentryNos = new Set(D2.reentries.map(r => r.curr.csNo));
+
+  // 부품 빈도
+  const partMap = {};
+  matched.forEach(r => r.부품Set && r.부품Set.forEach(p => { if(p) partMap[p] = (partMap[p]||0)+1; }));
+  const topParts = topN(partMap, 10);
+  const maxPart = topParts[0]?.value || 1;
+
+  // 원인 빈도
+  const causeMap = {};
+  matched.forEach(r => r.원인Set && r.원인Set.forEach(c => { if(c) causeMap[c] = (causeMap[c]||0)+1; }));
+  const topCauses = topN(causeMap, 7);
+  const maxCause = topCauses[0]?.value || 1;
+
+  // 모델 분포
+  const modelMap = {};
+  matched.forEach(r => { modelMap[r.모델버킷] = (modelMap[r.모델버킷]||0)+1; });
+  const topModels = topN(modelMap, 8);
+
+  // 재인입 vs 일반 비율
+  const reCount  = matched.filter(r => reentryNos.has(r.csNo)).length;
+  const reRate   = matched.length ? Math.round(reCount/matched.length*100) : 0;
+
+  // 부품 × 원인 교차 (해당 증상에서 각 부품의 주요 원인)
+  const partCause = {};
+  matched.forEach(r => {
+    if (!r.부품Set || !r.원인Set) return;
+    r.부품Set.forEach(p => {
+      if (!p) return;
+      if (!partCause[p]) partCause[p] = {};
+      r.원인Set.forEach(c => { if(c) partCause[p][c] = (partCause[p][c]||0)+1; });
+    });
+  });
+
+  const barRow = (label, val, max, cnt, color='var(--primary-400)') => `
+    <div class="drill-bar-row">
+      <div class="drill-bar-label" title="${label}">${label}</div>
+      <div class="drill-bar-track"><div class="drill-bar-fill" style="width:${Math.round(val/max*100)}%;background:${color}"></div></div>
+      <div class="drill-bar-cnt">${cnt}건</div>
+    </div>`;
+
+  document.getElementById('drillTitle').textContent = `증상: ${sym}`;
+  document.getElementById('drillSub').textContent =
+    `총 ${matched.length.toLocaleString()}건${!isAll?' — '+modelDisplayName(sel):''} · 재인입 ${reCount}건(${reRate}%)`;
+
+  document.getElementById('drillBody').innerHTML = `
+    <div class="drill-section">
+      <div class="drill-section-title">교체 부품 TOP ${topParts.length} — 많은 순</div>
+      ${topParts.map(it => {
+        const causes = topN(partCause[it.name]||{}, 2).map(c=>`<span style="font-size:10px;background:var(--bg-alt);border:1px solid var(--border-subtle);border-radius:999px;padding:1px 7px;color:var(--text-tertiary)">${c.name}</span>`).join(' ');
+        return `${barRow(it.name, it.value, maxPart, it.value)}
+          ${causes ? `<div style="margin:-4px 0 8px 0;padding-left:calc(flex + 10px);display:flex;gap:4px;flex-wrap:wrap;margin-left:0;padding-left:0">${causes}</div>` : ''}`;
+      }).join('')}
+    </div>
+
+    <div class="drill-section">
+      <div class="drill-section-title">교체 원인 TOP ${topCauses.length}</div>
+      ${topCauses.map(it => barRow(it.name, it.value, maxCause, it.value, 'var(--warning-text)')).join('')}
+    </div>
+
+    <div class="drill-section">
+      <div class="drill-section-title">모델 분포</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${topModels.map(it => `
+          <div style="background:var(--bg-alt);border:1px solid var(--border-subtle);border-radius:var(--r-sm);padding:8px 14px;text-align:center">
+            <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:3px">${modelDisplayName(it.name)}</div>
+            <div style="font-size:16px;font-weight:700;color:var(--text-primary)">${it.value}건</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+
+  document.getElementById('drillOverlay').style.display = 'flex';
+}
+
 function exportReentryExcel() {
   if (!REENTRY_DATA) { alert('분석 데이터가 없습니다. 파일을 먼저 업로드해 주세요.'); return; }
   const D2 = REENTRY_DATA;
@@ -2760,7 +2880,7 @@ function exportReentryExcel() {
   ]);
   const ws2 = XLSX.utils.aoa_to_sheet([hdrs2, ...rows2]);
   ws2['!cols'] = [20,18,12,10,18,14,30,30,20,18,14,30,30,20,20,12,10].map(w=>({wch:w}));
-  ws2['!freeze'] = { xSplit:0, ySplit:1 };
+  ws2['!views'] = [{ state:'frozen', ySplit:1 }];
   XLSX.utils.book_append_sheet(wb, ws2, '재인입케이스');
 
   /* ══ Sheet 3: 부품×원인 매트릭스 (피벗용) ══ */
