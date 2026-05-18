@@ -2753,11 +2753,7 @@ function rtGenInsights({ reentries, modelStats, typeCount, anomalies, r1m, r3m, 
 
 function setReentrySym(sym) {
   reentrySymFilter = (reentrySymFilter === sym) ? null : sym;
-  // 선택 상태 반영 (리렌더 없이)
-  document.querySelectorAll('[data-sym]').forEach(el =>
-    el.classList.toggle('selected', el.getAttribute('data-sym') === reentrySymFilter)
-  );
-  renderSymDrill();
+  renderReentry(); // 연동 섹션 전체 갱신 (renderSymDrill은 renderReentry 내에서 호출됨)
 }
 
 function renderSymDrill() {
