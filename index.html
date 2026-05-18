@@ -466,6 +466,44 @@ tr:hover td{background:var(--bg-alt);}
 .sym-drill-bar-val{font-size:12px;color:var(--text-secondary);width:32px;text-align:right;flex-shrink:0;}
 .sym-drill-model-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
 .sym-drill-model-pill{background:var(--bg-alt);border:1px solid var(--border-subtle);border-radius:999px;padding:3px 10px;font-size:12px;color:var(--text-secondary);}
+
+/* ── 재인입 시각화 강화 ── */
+/* KPI 컬러 바 + 레이트 바 */
+.kpi-card{--kpi-color:var(--primary-500);position:relative;overflow:hidden;}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--kpi-color);}
+.kpi-card.kpi-danger{background:rgba(220,38,38,.05);}
+.kpi-rate-wrap{display:flex;align-items:center;gap:8px;margin-top:6px;}
+.kpi-rate-pct{font-size:20px;font-weight:800;color:var(--kpi-color);line-height:1;}
+.kpi-rate-bar{flex:1;height:5px;background:var(--bg-alt);border-radius:999px;overflow:hidden;}
+.kpi-rate-fill{height:100%;border-radius:999px;background:var(--kpi-color);}
+
+/* 모델별 재인입률 시각 바 */
+.model-rate-vis{padding:14px 0;border-bottom:1px solid var(--border-soft);}
+.model-rate-vis:last-child{border-bottom:none;}
+.model-rate-vis-hdr{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+.model-rate-vis-name{font-size:14px;font-weight:700;color:var(--text-primary);}
+.model-rate-vis-total{font-size:12px;color:var(--text-tertiary);}
+.model-rate-vis-bars{display:flex;flex-direction:column;gap:6px;}
+.model-rate-vis-row{display:flex;align-items:center;gap:8px;}
+.model-rate-vis-lbl{font-size:10px;font-weight:600;color:var(--text-tertiary);width:34px;flex-shrink:0;text-align:right;}
+.model-rate-vis-track{flex:1;height:9px;background:var(--bg-alt);border-radius:999px;overflow:hidden;}
+.model-rate-vis-fill{height:100%;border-radius:999px;}
+.model-rate-vis-val{font-size:12px;font-weight:700;width:40px;text-align:right;flex-shrink:0;}
+.mrvf-1m{background:#ef4444;} .mrvf-3m{background:#f97316;} .mrvf-6m{background:#f59e0b;} .mrvf-12m{background:#94a3b8;}
+.mrvf-v1{color:#ef4444;} .mrvf-v3{color:#f97316;} .mrvf-v6{color:#f59e0b;} .mrvf-v12{color:#94a3b8;}
+
+/* 재인입 유형 비율 바 */
+.type-v2{padding:12px 0;border-bottom:1px solid var(--border-soft);}
+.type-v2:last-child{border-bottom:none;}
+.type-v2-top{display:flex;align-items:center;gap:12px;margin-bottom:7px;}
+.type-v2-cnt{font-size:26px;font-weight:800;line-height:1;min-width:52px;}
+.type-v2-info{flex:1;}
+.type-v2-name{font-size:13px;font-weight:700;color:var(--text-primary);}
+.type-v2-desc{font-size:11px;color:var(--text-tertiary);margin-top:2px;}
+.type-v2-bar-wrap{display:flex;align-items:center;gap:8px;}
+.type-v2-track{flex:1;height:10px;background:var(--bg-alt);border-radius:999px;overflow:hidden;}
+.type-v2-fill{height:100%;border-radius:999px;}
+.type-v2-pct{font-size:13px;font-weight:700;width:40px;text-align:right;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -1846,64 +1884,93 @@ function renderReentry(){
     </div>`;
 
   // ── KPI ──
-  const r1Rate = totalCS ? ((r1m/totalCS)*100).toFixed(1) : 0;
-  const r3Rate = totalCS ? ((r3m/totalCS)*100).toFixed(1) : 0;
+  const r1Rate = totalCS ? +((r1m/totalCS)*100).toFixed(1) : 0;
+  const r3Rate = totalCS ? +((r3m/totalCS)*100).toFixed(1) : 0;
+  const prRate = totalCS ? +((partRepeat/totalCS)*100).toFixed(1) : 0;
+  const crRate = totalCS ? +((critical/totalCS)*100).toFixed(1) : 0;
   const kpiDefs = [
-    {label:'분석 대상 A/S',    value:totalCS.toLocaleString(),    sub: isAll?`${D2.fileCount}개 파일 / 전체 CS`:`${modelDisplayName(sel)} 전체 CS`, icon:'file-text',      color:'var(--primary-500)'},
-    {label:'1개월 이내 재인입', value:r1m.toLocaleString(),        sub:`비율 ${r1Rate}%`,                  icon:'repeat-2',       color:'var(--warning-text)'},
-    {label:'3개월 이내 재인입', value:r3m.toLocaleString(),        sub:`비율 ${r3Rate}%`,                  icon:'repeat-2',       color:'var(--warning-text)'},
-    {label:'동일부품 반복',     value:partRepeat.toLocaleString(), sub:'부품 교집합 존재 케이스',            icon:'alert-triangle', color:'var(--danger-text)'},
-    {label:'동일증상+동일부품', value:critical.toLocaleString(),   sub:'최우선 확인 대상 (CRITICAL)',        icon:'alert-triangle', color:'var(--danger-text)'},
-    {label:'업그레이드 포함',   value:upgradeCS.toLocaleString(),  sub:'증상기준에 업그레이드 포함',          icon:'clipboard-list', color:'var(--special-text)'},
+    {label:'분석 대상 A/S',    value:totalCS.toLocaleString(),    sub:isAll?`${D2.fileCount}개 파일`:`${modelDisplayName(sel)}`, rate:null,   color:'#6366f1', danger:false},
+    {label:'1개월 이내 재인입', value:r1m.toLocaleString(),        sub:'1개월 내 재방문',  rate:r1Rate,   color:'#ef4444', danger:r1Rate>=8},
+    {label:'3개월 이내 재인입', value:r3m.toLocaleString(),        sub:'3개월 내 재방문',  rate:r3Rate,   color:'#f97316', danger:r3Rate>=15},
+    {label:'동일부품 반복',     value:partRepeat.toLocaleString(), sub:'부품 교집합 존재', rate:prRate,   color:'#f59e0b', danger:partRepeat>0},
+    {label:'동일증상+동일부품', value:critical.toLocaleString(),   sub:'CRITICAL 즉시확인',rate:crRate,   color:'#dc2626', danger:critical>0},
+    {label:'업그레이드 포함',   value:upgradeCS.toLocaleString(),  sub:'업그레이드 포함건', rate:null,   color:'#8b5cf6', danger:false},
   ];
   document.getElementById('reentryKpiGrid').innerHTML = kpiDefs.map(k=>`
-    <div class="kpi-card">
-      <div class="kpi-icon-wrap" style="background:${k.color}18;color:${k.color}"><i data-lucide="${k.icon}" class="icon"></i></div>
-      <div class="kpi-label">${k.label}</div>
-      <div class="kpi-value" style="color:${k.color}">${k.value}</div>
-      <div class="kpi-sub" style="color:var(--text-tertiary)">${k.sub}</div>
+    <div class="kpi-card${k.danger?' kpi-danger':''}" style="--kpi-color:${k.color}">
+      <div class="kpi-label" style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-top:6px">${k.label}</div>
+      <div class="kpi-value" style="color:${k.color};font-size:36px;font-weight:800;line-height:1.05;margin:4px 0 2px">${k.value}</div>
+      ${k.rate !== null ? `
+        <div class="kpi-rate-wrap">
+          <span class="kpi-rate-pct">${k.rate.toFixed(1)}%</span>
+          <div class="kpi-rate-bar"><div class="kpi-rate-fill" style="width:${Math.min(k.rate*4,100).toFixed(1)}%"></div></div>
+        </div>` : ''}
+      <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">${k.sub}</div>
     </div>`).join('');
 
-  // ── 모델별 재인입률 테이블 ──
-  const rateClass = r => { const v=parseFloat(r); return v>=12?'reentry-rate-hi':v>=6?'reentry-rate-mid':'reentry-rate-lo'; };
+  // ── 모델별 재인입률 시각 바 ──
+  const maxRate12 = Math.max(...filtModelStats.map(r=>+r.m12r), 1);
+  const barRow = (lbl, pct, fillCls, valCls) => `
+    <div class="model-rate-vis-row">
+      <div class="model-rate-vis-lbl">${lbl}</div>
+      <div class="model-rate-vis-track"><div class="model-rate-vis-fill ${fillCls}" style="width:${(pct/maxRate12*100).toFixed(1)}%"></div></div>
+      <div class="model-rate-vis-val ${valCls}">${pct}%</div>
+    </div>`;
   document.getElementById('reentryModelTable').innerHTML = `
     <div class="card-hdr"><i data-lucide="bar-chart-3" class="icon card-hdr-icon-lc"></i>
       <div class="card-title">모델별 재인입률</div>
       ${!isAll?`<span class="reentry-filtered-badge" style="margin-left:8px"><i data-lucide="filter" class="icon" style="width:11px;height:11px"></i>${modelDisplayName(sel)}</span>`:''}
     </div>
-    <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:14px">누적 기준 — 1개월 재인입 비율 높은 순</div>
-    <div style="overflow-x:auto">
-      <table class="reentry-model-rate-tbl" style="width:100%;border-collapse:collapse;min-width:600px">
-        <thead><tr><th>모델</th><th>전체AS</th><th>1개월</th><th>1개월%</th><th>3개월</th><th>3개월%</th><th>6개월</th><th>6개월%</th><th>12개월%</th></tr></thead>
-        <tbody>${filtModelStats.length ? filtModelStats.map(r=>`<tr${!isAll?' style="background:var(--primary-50)"':''}>
-          <td style="font-weight:600">${r.모델}</td>
-          <td>${r.total.toLocaleString()}</td>
-          <td>${r.m1}</td><td class="${rateClass(r.m1r)}">${r.m1r}%</td>
-          <td>${r.m3}</td><td class="${rateClass(r.m3r)}">${r.m3r}%</td>
-          <td>${r.m6}</td><td class="${rateClass(r.m6r)}">${r.m6r}%</td>
-          <td class="${rateClass(r.m12r)}">${r.m12r}%</td>
-        </tr>`).join('') : `<tr><td colspan="9" style="padding:20px;text-align:center;color:var(--text-tertiary)">데이터 없음</td></tr>`}</tbody>
-      </table>
-    </div>`;
+    <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:14px">1개월→12개월 누적 재인입 비율 / 높은 순</div>
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-tertiary)"><span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block"></span>1개월</span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-tertiary)"><span style="width:10px;height:10px;border-radius:50%;background:#f97316;display:inline-block"></span>3개월</span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-tertiary)"><span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block"></span>6개월</span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-tertiary)"><span style="width:10px;height:10px;border-radius:50%;background:#94a3b8;display:inline-block"></span>12개월</span>
+    </div>
+    ${filtModelStats.length ? filtModelStats.map(r=>`
+      <div class="model-rate-vis">
+        <div class="model-rate-vis-hdr">
+          <div class="model-rate-vis-name">${r.모델}</div>
+          <div class="model-rate-vis-total">${r.total.toLocaleString()}건</div>
+        </div>
+        <div class="model-rate-vis-bars">
+          ${barRow('1개월', +r.m1r, 'mrvf-1m', 'mrvf-v1')}
+          ${barRow('3개월', +r.m3r, 'mrvf-3m', 'mrvf-v3')}
+          ${barRow('6개월', +r.m6r, 'mrvf-6m', 'mrvf-v6')}
+          ${barRow('12개월', +r.m12r, 'mrvf-12m', 'mrvf-v12')}
+        </div>
+      </div>`).join('') : '<div class="empty-msg">데이터 없음</div>'}
+    `;
 
   // ── 재인입 유형 분석 ──
   const typeDefs = [
-    {name:'동일증상+동일부품', desc:'강한 재발 — 최우선 확인', badge:'reentry-badge-critical'},
-    {name:'동일증상+다른부품', desc:'근본 원인 미해결 의심',    badge:'reentry-badge-sym'},
-    {name:'다른증상+동일부품', desc:'부품 반복 교체',           badge:'reentry-badge-part'},
-    {name:'상이증상+상이부품', desc:'일반 재인입',              badge:'reentry-badge-default'},
+    {name:'동일증상+동일부품', desc:'강한 재발 — 즉시 확인 필요', color:'#dc2626'},
+    {name:'동일증상+다른부품', desc:'근본 원인 미해결 의심',       color:'#f97316'},
+    {name:'다른증상+동일부품', desc:'부품 반복 교체',              color:'#f59e0b'},
+    {name:'상이증상+상이부품', desc:'일반 재인입',                 color:'#94a3b8'},
   ];
+  const typeTotal = typeDefs.reduce((s,t)=>s+(filtTypeCount[t.name]||0), 0);
   document.getElementById('reentryTypeList').innerHTML = `
     <div class="card-hdr"><i data-lucide="layers" class="icon card-hdr-icon-lc"></i><div class="card-title">재인입 유형 분석</div></div>
-    <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:14px">중요도 순 — 동일증상·동일부품이 최우선</div>
-    ${typeDefs.map(t=>`
-      <div class="reentry-type-item">
-        <div class="reentry-type-row">
-          <div class="reentry-type-name">${t.name}</div>
-          <div class="reentry-type-count">${(filtTypeCount[t.name]||0).toLocaleString()}</div>
+    <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:16px">중요도 순 — 동일증상·동일부품이 최우선</div>
+    ${typeDefs.map(t=>{
+      const cnt = filtTypeCount[t.name]||0;
+      const pct = typeTotal ? (cnt/typeTotal*100).toFixed(1) : 0;
+      return `<div class="type-v2">
+        <div class="type-v2-top">
+          <div class="type-v2-cnt" style="color:${t.color}">${cnt.toLocaleString()}</div>
+          <div class="type-v2-info">
+            <div class="type-v2-name">${t.name}</div>
+            <div class="type-v2-desc">${t.desc}</div>
+          </div>
         </div>
-        <div class="reentry-type-desc">${t.desc}</div>
-      </div>`).join('')}`;
+        <div class="type-v2-bar-wrap">
+          <div class="type-v2-track"><div class="type-v2-fill" style="width:${pct}%;background:${t.color}"></div></div>
+          <div class="type-v2-pct" style="color:${t.color}">${pct}%</div>
+        </div>
+      </div>`;
+    }).join('')}`;
 
   // ── 모델별 증상 TOP ──
   const symBuckets = Object.keys(filtSymMap).sort((a,b) =>
