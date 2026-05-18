@@ -1877,10 +1877,14 @@ function renderReentry(){
     <div class="reentry-slicer-bar">
       <span class="reentry-slicer-label">모델</span>
       <button class="reentry-slicer-chip${isAll?' on':''}" onclick="setReentryModel('전체')">전체</button>
-      ${modelKeys.map(k=>`<button class="reentry-slicer-chip${sel===k?' on':''}" onclick="setReentryModel('${k}')">
-        ${modelDisplayName(k)}
-        <span style="opacity:.6;font-weight:400;font-size:10px;margin-left:3px">${D2.modelStats[k].m1r}%</span>
-      </button>`).join('')}
+      ${modelKeys.map(k=>{
+        const mc = getModelColor(k);
+        return `<button class="reentry-slicer-chip${sel===k?' on':''}" onclick="setReentryModel('${k}')" style="${sel===k?`background:${mc.base};border-color:${mc.base};color:#fff`:''}">
+          <span style="width:7px;height:7px;border-radius:50%;background:${sel===k?'rgba(255,255,255,.7)':mc.base};display:inline-block;flex-shrink:0"></span>
+          ${modelDisplayName(k)}
+          <span style="opacity:.65;font-weight:500;font-size:10px;margin-left:2px">${D2.modelStats[k].m1r}%</span>
+        </button>`;
+      }).join('')}
     </div>`;
 
   // ── KPI ──
@@ -1908,39 +1912,42 @@ function renderReentry(){
       <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">${k.sub}</div>
     </div>`).join('');
 
-  // ── 모델별 재인입률 시각 바 ──
+  // ── 모델별 재인입률 시각 바 (모델별 고유 색상) ──
   const maxRate12 = Math.max(...filtModelStats.map(r=>+r.m12r), 1);
-  const barRow = (lbl, pct, fillCls, valCls) => `
-    <div class="model-rate-vis-row">
+  const mBarRow = (lbl, pct, base, alpha) => {
+    const col = base + alpha;
+    const w   = (pct / maxRate12 * 100).toFixed(1);
+    return `<div class="model-rate-vis-row">
       <div class="model-rate-vis-lbl">${lbl}</div>
-      <div class="model-rate-vis-track"><div class="model-rate-vis-fill ${fillCls}" style="width:${(pct/maxRate12*100).toFixed(1)}%"></div></div>
-      <div class="model-rate-vis-val ${valCls}">${pct}%</div>
+      <div class="model-rate-vis-track"><div class="model-rate-vis-fill" style="background:${col};width:${w}%"></div></div>
+      <div class="model-rate-vis-val" style="color:${alpha==='FF'?base:'var(--text-tertiary)'};font-weight:${alpha==='FF'?'700':'500'}">${pct}%</div>
     </div>`;
+  };
   document.getElementById('reentryModelTable').innerHTML = `
     <div class="card-hdr"><i data-lucide="bar-chart-3" class="icon card-hdr-icon-lc"></i>
       <div class="card-title">모델별 재인입률</div>
       ${!isAll?`<span class="reentry-filtered-badge" style="margin-left:8px"><i data-lucide="filter" class="icon" style="width:11px;height:11px"></i>${modelDisplayName(sel)}</span>`:''}
     </div>
-    <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:14px">1개월→12개월 누적 재인입 비율 / 높은 순</div>
-    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-tertiary)"><span style="width:10px;height:10px;border-radius:50%;background:var(--danger-text);display:inline-block"></span>1개월</span>
-      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-tertiary)"><span style="width:10px;height:10px;border-radius:50%;background:var(--warning-text);display:inline-block"></span>3개월</span>
-      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-tertiary)"><span style="width:10px;height:10px;border-radius:50%;background:var(--primary-500);display:inline-block"></span>6개월</span>
-      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-tertiary)"><span style="width:10px;height:10px;border-radius:50%;background:var(--primary-200);display:inline-block"></span>12개월</span>
-    </div>
-    ${filtModelStats.length ? filtModelStats.map(r=>`
-      <div class="model-rate-vis">
+    <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:14px">1개월(진) → 12개월(연) 누적 재인입 비율 / 높은 순</div>
+    ${filtModelStats.length ? filtModelStats.map(r => {
+      const mc = getModelColor(r.버킷);
+      const base = mc.base.replace('#','');
+      return `<div class="model-rate-vis">
         <div class="model-rate-vis-hdr">
-          <div class="model-rate-vis-name">${r.모델}</div>
+          <div class="model-rate-vis-name" style="display:flex;align-items:center;gap:7px">
+            <span style="width:9px;height:9px;border-radius:50%;background:#${base};flex-shrink:0"></span>
+            ${r.모델}
+          </div>
           <div class="model-rate-vis-total">${r.total.toLocaleString()}건</div>
         </div>
         <div class="model-rate-vis-bars">
-          ${barRow('1개월', +r.m1r, 'mrvf-1m', 'mrvf-v1')}
-          ${barRow('3개월', +r.m3r, 'mrvf-3m', 'mrvf-v3')}
-          ${barRow('6개월', +r.m6r, 'mrvf-6m', 'mrvf-v6')}
-          ${barRow('12개월', +r.m12r, 'mrvf-12m', 'mrvf-v12')}
+          ${mBarRow('1개월', +r.m1r, '#'+base, 'FF')}
+          ${mBarRow('3개월', +r.m3r, '#'+base, 'BB')}
+          ${mBarRow('6개월', +r.m6r, '#'+base, '88')}
+          ${mBarRow('12개월', +r.m12r, '#'+base, '55')}
         </div>
-      </div>`).join('') : '<div class="empty-msg">데이터 없음</div>'}
+      </div>`;
+    }).join('') : '<div class="empty-msg">데이터 없음</div>'}
     `;
 
   // ── 재인입 유형 분석 ──
