@@ -2042,10 +2042,10 @@ function renderReentry(){
   const kpiDefs = [
     {label:'분석 대상 A/S',    value:totalCS.toLocaleString(),    sub:isAll?`${D2.fileCount}개 파일`:`${modelDisplayName(sel)}`, rate:null,   color:'var(--primary-500)', danger:false},
     {label:'1개월 이내 재인입', value:r1m.toLocaleString(),        sub:'0~30일 재방문',    rate:r1Rate,   color:'var(--danger-text)', danger:r1Rate>=8},
-    {label:'1~3개월 재인입',   value:r3m.toLocaleString(),        sub:'31~90일 재방문',   rate:r3Rate,   color:'var(--warning-text)', danger:r3Rate>=15},
+    {label:'1~3개월 재인입',   value:r3m.toLocaleString(),        sub:'31~90일 구간 (누적 아님)',   rate:r3Rate,   color:'var(--warning-text)', danger:r3Rate>=15},
     {label:'동일부품 반복',     value:partRepeat.toLocaleString(), sub:'부품 교집합 존재', rate:prRate,   color:'var(--warning-text)', danger:partRepeat>0},
     {label:'동일증상+동일부품', value:critical.toLocaleString(),   sub:'CRITICAL 즉시확인',rate:crRate,   color:'var(--danger-text)', danger:critical>0},
-    {label:'업그레이드 포함',   value:upgradeCS.toLocaleString(),  sub:'업그레이드 포함건', rate:null,   color:'var(--special-text)', danger:false},
+    {label:'업그레이드 방문',   value:upgradeCS.toLocaleString(),  sub:'수리 아닌 SW업그레이드 방문 — 재인입 집계 제외', rate:null, color:'var(--special-text)', danger:false},
   ];
   document.getElementById('reentryKpiGrid').innerHTML = kpiDefs.map(k=>`
     <div class="kpi-card${k.danger?' kpi-danger':''}${k.clickable?' kpi-clickable':''}"
@@ -2184,11 +2184,11 @@ function renderReentry(){
             <div class="model-rate-card-name" style="color:${mc.base}">${r.모델}${rt220Badge}</div>
             <div class="model-rate-card-total">전체 ${r.total.toLocaleString()}건</div>
             <div class="model-rate-card-rows">
-              ${[['1~3개월',r.m3r],['3~6개월',r.m6r],['6~12개월',r.m12r]].map(([lbl,val])=>`
+              ${[['1~3개월',r.m3r,r.m3],['3~6개월',r.m6r,r.m6],['6~12개월',r.m12r,r.m12]].map(([lbl,val,cnt])=>`
                 <div class="model-rate-card-row">
                   <div class="model-rate-card-lbl">${lbl}</div>
                   <div class="model-rate-card-track"><div class="model-rate-card-fill" style="background:${mc.base}99;width:${(+val/maxRateAll*100).toFixed(1)}%"></div></div>
-                  <div class="model-rate-card-val">${val}%</div>
+                  <div class="model-rate-card-val">${val}% <span style="font-size:10px;color:var(--text-tertiary);font-weight:400">${cnt}건</span></div>
                 </div>`).join('')}
             </div>
           </div>
