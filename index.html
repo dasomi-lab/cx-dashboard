@@ -1828,6 +1828,7 @@ let _drillPartCause   = {};   // 증상상세 부품→원인 맵
 let _prodAnomalyAll   = [];   // 생산월별 이상 전체 (필터용)
 let _prodAnomalySortKey = '배율'; // 기본 정렬
 let _priorityFilter   = null; // 우선확인 대상 필터 ('critical_1m' | null)
+let _c1mModelFilter   = null; // CRITICAL+1개월 카드 내부 모델 필터
 
 function setReentryModel(key) {
   reentryModelFilter = key;
@@ -2070,10 +2071,13 @@ function renderReentry(){
       // 증상 집계 (symOverlap 기준 — 실제 재발한 증상)
       const symCnt = {}, partCnt = {}, modelCnt = {};
       c1mList.forEach(r => {
-        r.symOverlap.forEach(s => { symCnt[s] = (symCnt[s]||0)+1; });
-        r.partOverlap.forEach(p => { partCnt[p] = (partCnt[p]||0)+1; });
         const m = r.curr.모델버킷||'기타';
         modelCnt[m] = (modelCnt[m]||0)+1;
+      });
+      const c1mFiltered = _c1mModelFilter ? c1mList.filter(r=>(r.curr.모델버킷||'기타')===_c1mModelFilter) : c1mList;
+      c1mFiltered.forEach(r => {
+        r.symOverlap.forEach(s => { symCnt[s] = (symCnt[s]||0)+1; });
+        r.partOverlap.forEach(p => { partCnt[p] = (partCnt[p]||0)+1; });
       });
       const topSyms  = Object.entries(symCnt).sort((a,b)=>b[1]-a[1]).slice(0,8);
       const topParts = Object.entries(partCnt).sort((a,b)=>b[1]-a[1]).slice(0,8);
@@ -2102,13 +2106,13 @@ function renderReentry(){
 
       const modelChips = topModels.map(([m,n])=>{
         const isRt = m === 'RT220';
-        const isActive = sel === m;
+        const isActive = _c1mModelFilter === m;
         const baseStyle = isActive
           ? 'background:#dc2626;border:1px solid #dc2626;color:#fff'
           : isRt
             ? 'background:#F3F4F6;border:1px solid #D1D5DB;color:#6B7280;opacity:.75'
             : 'background:#fef2f2;border:1px solid #fca5a5;color:#dc2626';
-        return `<span onclick="setReentryModel('${m}')" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;${baseStyle};border-radius:999px;padding:2px 10px;font-size:11px;font-weight:600;transition:opacity .15s" title="${modelDisplayName(m)} 필터">
+        return `<span onclick="setC1mModel('${m}')" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;${baseStyle};border-radius:999px;padding:2px 10px;font-size:11px;font-weight:600;transition:all .15s" title="클릭하여 이 모델만 보기">
           ${modelDisplayName(m)} <span style="font-weight:800">${n}건</span>${isRt?'<span style="font-size:9px;opacity:.8"> 참고</span>':''}
         </span>`;
       }).join('');
@@ -2117,7 +2121,7 @@ function renderReentry(){
         <div class="card" style="margin-bottom:20px;border:1.5px solid #fca5a5;background:rgba(254,242,242,.4)">
           <div class="card-hdr" style="margin-bottom:14px">
             <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:#dc2626;color:#fff;font-size:14px;margin-right:8px">🚨</span>
-            <div class="card-title" style="color:#dc2626">CRITICAL + 1개월 이내 — ${c1mList.length}건</div>
+            <div class="card-title" style="color:#dc2626">CRITICAL + 1개월 이내 — ${_c1mModelFilter ? `${modelDisplayName(_c1mModelFilter)} ${c1mFiltered.length}건` : `${c1mList.length}건`}</div>
             <div class="card-sub" style="margin-left:auto;font-size:11px;color:var(--text-tertiary)">동일증상+동일부품 재교체 · 30일 이내 재방문</div>
           </div>
           <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px">${modelChips}</div>
@@ -3557,6 +3561,11 @@ function setReentrySym(sym) {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && reentrySymFilter) { reentrySymFilter = null; renderReentry(); }
 });
+
+function setC1mModel(key) {
+  _c1mModelFilter = (_c1mModelFilter === key) ? null : key;
+  renderReentry();
+}
 
 function setPriorityFilter(key) {
   _priorityFilter = (_priorityFilter === key) ? null : key;
