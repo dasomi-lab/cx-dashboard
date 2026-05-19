@@ -2307,83 +2307,129 @@ function renderReentry(){
     </div>`;
 
   // ── 소음 → 후속 고장 관계 분석 ──
-  const ns = D2.noiseStats || { noiseTotal:0, noiseReentryCount:0, noiseReentryRate:'0.0', followParts:{}, followSyms:{}, followDays:{d30:0,d90:0,d180:0,d365:0}, criticalCount:0 };
-  // 모델별 필터 시 재계산
-  let nsDisplay = ns;
-  if (!isAll) {
-    const noiseReFilt = filtRe.filter(re => D2.noiseStats && re.prev && re.prev.증상Set && re.prev.증상Set.has('소음'));
-    const noiseCSFilt = new Set(filtRe.map(re=>re.prev?.csNo).filter(Boolean));
-    const fp2={}, fs2={}, fd2={d30:0,d90:0,d180:0,d365:0};
-    noiseReFilt.forEach(re=>{
-      re.curr.부품Set.forEach(p=>{if(p)fp2[p]=(fp2[p]||0)+1;});
-      re.curr.증상Set.forEach(s=>{if(s)fs2[s]=(fs2[s]||0)+1;});
-      if(re.days<=30)fd2.d30++;if(re.days<=90)fd2.d90++;if(re.days<=180)fd2.d180++;if(re.days<=365)fd2.d365++;
+  const NOISE_EXCLUDE_PARTS = ['린클'];
+  const NOISE_EXCLUDE_SYMS  = new Set(['내외부부품손상','내외부부품손상(기능)','업그레이드','추가구매','추가발송']);
+
+  // 모델별 소음 재인입 집계 헬퍼
+  const buildNoiseStats = (reList) => {
+    const fp={}, fs={}, fd={d30:0,d90:0,d180:0,d365:0};
+    const noiseRe = reList.filter(re => re.prev && re.prev.증상Set && re.prev.증상Set.has('소음'));
+    noiseRe.forEach(re=>{
+      re.curr.부품Set.forEach(p=>{ if(p && !NOISE_EXCLUDE_PARTS.some(ex=>p.includes(ex))) fp[p]=(fp[p]||0)+1; });
+      re.curr.증상Set.forEach(s=>{ if(s && !NOISE_EXCLUDE_SYMS.has(s)) fs[s]=(fs[s]||0)+1; });
+      if(re.days<=30)fd.d30++;if(re.days<=90)fd.d90++;if(re.days<=180)fd.d180++;if(re.days<=365)fd.d365++;
     });
-    nsDisplay = { noiseTotal:'—', noiseReentryCount:noiseReFilt.length, noiseReentryRate:'—',
-      followParts:fp2, followSyms:fs2, followDays:fd2, criticalCount:noiseReFilt.filter(r=>r.pri===0).length };
-  }
-  // 린클필터는 소모품으로 소음과 인과관계 없음 → 제외
-  const NOISE_EXCLUDE_PARTS = ['린클', '린클필터'];
-  const topNoiseParts = Object.entries(nsDisplay.followParts)
-    .filter(([name]) => !NOISE_EXCLUDE_PARTS.some(ex => name.includes(ex)))
-    .sort((a,b)=>b[1]-a[1]).slice(0,8);
-  const topNoiseSyms  = Object.entries(nsDisplay.followSyms).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const maxNP = topNoiseParts[0]?.[1]||1;
-  document.getElementById('reentryNoiseSection').innerHTML = `
-    <div class="card-hdr">
-      <i data-lucide="activity" class="icon card-hdr-icon-lc"></i>
-      <div class="card-title">소음 → 후속 고장 관계 분석${!isAll?' — '+modelDisplayName(sel):''}</div>
-      <span style="font-size:12px;color:var(--text-tertiary);margin-left:8px">소음 AS 접수 후 재인입된 케이스 패턴</span>
-    </div>
-    <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:14px">
-      소음 신고 후 재방문 시 어떤 부품이 교체되는지 — 선제 조치 가능 여부 판단
-    </div>
-    <div class="noise-grid">
-      <div>
-        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:10px">주요 지표</div>
-        <div class="noise-stat-row">
-          <div class="noise-stat-num">${nsDisplay.noiseTotal.toLocaleString?.()??nsDisplay.noiseTotal}</div>
-          <div class="noise-stat-lbl">소음 AS 총 건수</div>
-        </div>
-        <div class="noise-stat-row">
-          <div class="noise-stat-num" style="color:var(--danger-text)">${nsDisplay.noiseReentryCount.toLocaleString()}</div>
-          <div class="noise-stat-lbl">소음 후 재인입 건수${nsDisplay.noiseReentryRate!=='—'?` (${nsDisplay.noiseReentryRate}%)`:''}</div>
-        </div>
-        <div class="noise-stat-row">
-          <div class="noise-stat-num" style="color:#dc2626">${nsDisplay.criticalCount}</div>
-          <div class="noise-stat-lbl">그 중 CRITICAL (동일증상+동일부품)</div>
-        </div>
-        <div style="margin-top:14px;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px">재인입 시점 분포</div>
-        ${[['1개월 이내',nsDisplay.followDays.d30],['3개월 이내',nsDisplay.followDays.d90],['6개월 이내',nsDisplay.followDays.d180],['12개월 이내',nsDisplay.followDays.d365]].map(([lbl,cnt])=>`
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:12px">
-            <div style="width:70px;color:var(--text-tertiary)">${lbl}</div>
-            <div style="flex:1;height:5px;background:var(--border-subtle);border-radius:3px;overflow:hidden">
-              <div style="height:100%;width:${nsDisplay.followDays.d365?Math.round(cnt/nsDisplay.followDays.d365*100):0}%;background:linear-gradient(90deg,#93c5fd,#3b82f6);border-radius:3px"></div>
-            </div>
-            <div style="font-weight:600;color:var(--text-secondary);width:28px;text-align:right">${cnt}</div>
-          </div>`).join('')}
-        ${topNoiseSyms.length?`<div style="margin-top:14px;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px">후속 증상 TOP5</div>
-        ${topNoiseSyms.map(([s,c])=>`<div style="font-size:11px;color:var(--text-secondary);padding:3px 0;display:flex;justify-content:space-between"><span>${s}</span><span style="font-weight:600">${c}건</span></div>`).join('')}`:''}
-      </div>
-      <div>
-        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:10px">소음 후 교체된 부품 TOP8</div>
-        ${topNoiseParts.length ? topNoiseParts.map(([name,cnt])=>`
-          <div class="noise-part-row">
-            <div style="font-size:11px;color:var(--text-secondary);width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0" title="${name}">${name}</div>
-            <div class="noise-part-bar"><div class="noise-part-fill" style="width:${Math.round(cnt/maxNP*100)}%"></div></div>
-            <div style="font-size:11px;font-weight:600;color:var(--text-secondary);width:28px;text-align:right;flex-shrink:0">${cnt}</div>
-          </div>`).join('')
-        : '<div style="font-size:12px;color:var(--text-disabled);padding:20px 0">소음 후 재인입 케이스 없음</div>'}
-        ${nsDisplay.noiseReentryCount>0?`
-        <div style="margin-top:16px;padding:10px 12px;background:var(--primary-50,#eff6ff);border-radius:8px;border:1px solid var(--primary-200,#bfdbfe)">
-          <div style="font-size:11px;font-weight:700;color:var(--primary-700,#1d4ed8);margin-bottom:4px">💡 예측 가능성</div>
-          <div style="font-size:11px;color:var(--primary-700,#1d4ed8);line-height:1.6">
-            소음 신고 접수 시 <strong>${topNoiseParts[0]?.[0]||'—'}</strong> 선제 점검으로<br>
-            재인입 ${nsDisplay.noiseReentryCount}건 중 일부 예방 가능성 있음
+    return { count:noiseRe.length, critical:noiseRe.filter(r=>r.pri===0).length,
+      topPart: Object.entries(fp).sort((a,b)=>b[1]-a[1])[0] || null,
+      topSym:  Object.entries(fs).sort((a,b)=>b[1]-a[1])[0] || null,
+      parts:fp, syms:fs, days:fd };
+  };
+
+  if (isAll) {
+    // ▶ 전체 뷰: 모델별 카드 (소음 재인입 1위 부품 + 1위 증상)
+    const buckets = Object.keys(D2.modelStats);
+    const modelNoiseCards = buckets.map(b => {
+      const bRe  = D2.reentries.filter(r => r.curr.모델버킷 === b);
+      const stat = buildNoiseStats(bRe);
+      if (!stat.count) return '';
+      const mc   = getModelColor(b);
+      const rate = D2.modelStats[b].total ? (stat.count/D2.modelStats[b].total*100).toFixed(1) : '0.0';
+      return `
+        <div style="border:1px solid var(--border-subtle);border-radius:10px;padding:14px 16px;background:var(--bg-surface);border-left:3px solid ${mc.base}">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="font-size:13px;font-weight:700;color:${mc.base}">${modelDisplayName(b)}</div>
+            <span style="font-size:11px;background:var(--danger-50,#fff0f0);color:var(--danger-text);border-radius:999px;padding:2px 8px;font-weight:600">소음 재인입 ${stat.count}건</span>
           </div>
-        </div>`:''}
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="background:var(--bg-alt);border-radius:8px;padding:8px 12px">
+              <div style="font-size:10px;font-weight:600;color:var(--text-tertiary);margin-bottom:4px">🔧 소음 후 교체 부품 1위</div>
+              ${stat.topPart
+                ? `<div style="font-size:13px;font-weight:700;color:var(--text-primary)">${stat.topPart[0]}</div>
+                   <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px">${stat.topPart[1]}건 교체 — 소음 재인입의 ${Math.round(stat.topPart[1]/stat.count*100)}%</div>`
+                : `<div style="font-size:12px;color:var(--text-disabled)">데이터 없음</div>`}
+            </div>
+            <div style="background:var(--bg-alt);border-radius:8px;padding:8px 12px">
+              <div style="font-size:10px;font-weight:600;color:var(--text-tertiary);margin-bottom:4px">⚠️ 후속 접수 증상 1위</div>
+              ${stat.topSym
+                ? `<div style="font-size:13px;font-weight:700;color:var(--text-primary)">${stat.topSym[0]}</div>
+                   <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px">${stat.topSym[1]}건</div>`
+                : `<div style="font-size:12px;color:var(--text-disabled)">데이터 없음</div>`}
+            </div>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:var(--text-tertiary)">1개월 이내 ${stat.days.d30}건 · CRITICAL ${stat.critical}건</div>
+        </div>`;
+    }).filter(Boolean);
+
+    document.getElementById('reentryNoiseSection').innerHTML = `
+      <div class="card-hdr">
+        <i data-lucide="activity" class="icon card-hdr-icon-lc"></i>
+        <div class="card-title">소음 → 후속 고장 관계 분석 — 모델별</div>
+        <span style="font-size:12px;color:var(--text-tertiary);margin-left:8px">소음 AS 후 모델별 교체 부품·증상 1위</span>
       </div>
-    </div>`;
+      <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:14px">
+        소음 신고 후 재방문 시 각 모델에서 어떤 부품이 주로 교체되는지 — 선제 점검 기준 도출
+      </div>
+      ${modelNoiseCards.length
+        ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">${modelNoiseCards.join('')}</div>`
+        : '<div class="empty-msg">소음 후 재인입 케이스 없음</div>'}`;
+
+  } else {
+    // ▶ 모델별 뷰: 해당 모델 상세
+    const stat = buildNoiseStats(filtRe);
+    const topParts = Object.entries(stat.parts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const topSyms  = Object.entries(stat.syms).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const maxNP = topParts[0]?.[1]||1;
+    document.getElementById('reentryNoiseSection').innerHTML = `
+      <div class="card-hdr">
+        <i data-lucide="activity" class="icon card-hdr-icon-lc"></i>
+        <div class="card-title">소음 → 후속 고장 관계 분석 — ${modelDisplayName(sel)}</div>
+        <span style="font-size:12px;color:var(--text-tertiary);margin-left:8px">소음 AS 접수 후 재인입된 케이스 패턴</span>
+      </div>
+      <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:14px">소음 신고 후 재방문 시 어떤 부품이 교체되는지 — 선제 조치 가능 여부 판단</div>
+      <div class="noise-grid">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:10px">주요 지표</div>
+          <div class="noise-stat-row">
+            <div class="noise-stat-num" style="color:var(--danger-text)">${stat.count.toLocaleString()}</div>
+            <div class="noise-stat-lbl">소음 후 재인입 건수</div>
+          </div>
+          <div class="noise-stat-row">
+            <div class="noise-stat-num" style="color:#dc2626">${stat.critical}</div>
+            <div class="noise-stat-lbl">그 중 CRITICAL (동일증상+동일부품)</div>
+          </div>
+          <div style="margin-top:14px;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px">재인입 시점 분포</div>
+          ${[['1개월 이내',stat.days.d30],['3개월 이내',stat.days.d90],['6개월 이내',stat.days.d180],['12개월 이내',stat.days.d365]].map(([lbl,cnt])=>`
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:12px">
+              <div style="width:70px;color:var(--text-tertiary)">${lbl}</div>
+              <div style="flex:1;height:5px;background:var(--border-subtle);border-radius:3px;overflow:hidden">
+                <div style="height:100%;width:${stat.days.d365?Math.round(cnt/stat.days.d365*100):0}%;background:linear-gradient(90deg,#93c5fd,#3b82f6);border-radius:3px"></div>
+              </div>
+              <div style="font-weight:600;color:var(--text-secondary);width:28px;text-align:right">${cnt}</div>
+            </div>`).join('')}
+          ${topSyms.length?`
+            <div style="margin-top:14px;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px">후속 증상 TOP5</div>
+            ${topSyms.map(([s,c])=>`<div style="font-size:11px;color:var(--text-secondary);padding:3px 0;display:flex;justify-content:space-between"><span>${s}</span><span style="font-weight:600">${c}건</span></div>`).join('')}`:''}
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:10px">소음 후 교체된 부품 TOP8</div>
+          ${topParts.length ? topParts.map(([name,cnt])=>`
+            <div class="noise-part-row">
+              <div style="font-size:11px;color:var(--text-secondary);width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0" title="${name}">${name}</div>
+              <div class="noise-part-bar"><div class="noise-part-fill" style="width:${Math.round(cnt/maxNP*100)}%"></div></div>
+              <div style="font-size:11px;font-weight:600;color:var(--text-secondary);width:28px;text-align:right;flex-shrink:0">${cnt}</div>
+            </div>`).join('')
+          : '<div style="font-size:12px;color:var(--text-disabled);padding:20px 0">소음 후 재인입 케이스 없음</div>'}
+          ${stat.count>0?`
+          <div style="margin-top:16px;padding:10px 12px;background:var(--primary-50,#eff6ff);border-radius:8px;border:1px solid var(--primary-200,#bfdbfe)">
+            <div style="font-size:11px;font-weight:700;color:var(--primary-700,#1d4ed8);margin-bottom:4px">💡 예측 가능성</div>
+            <div style="font-size:11px;color:var(--primary-700,#1d4ed8);line-height:1.6">
+              소음 신고 접수 시 <strong>${topParts[0]?.[0]||'—'}</strong> 선제 점검으로<br>
+              재인입 ${stat.count}건 중 일부 예방 가능성 있음
+            </div>
+          </div>`:''}
+        </div>
+      </div>`;
+  }
 
   // ── 생산월별 부품 집중도 Heatmap ──
   _prodAnomalyAll = reentrySymFilter
