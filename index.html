@@ -562,6 +562,38 @@ tr:hover td{background:var(--bg-alt);}
 .today-report-time{font-size:14px;color:var(--text-tertiary);}
 .today-modal-cancel{width:100%;margin-top:6px;padding:10px;border-radius:var(--r-xs);border:1px solid var(--border-subtle);background:var(--bg-surface);cursor:pointer;font-family:inherit;font-size:16.25px;color:var(--text-secondary);}
 .today-modal-cancel:hover{background:var(--bg-alt);}
+/* ── 재인입 위험 예측 ── */
+.risk-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap;}
+.risk-badge-high{background:var(--danger-bg);color:var(--danger-text);border:1px solid var(--danger-border);}
+.risk-badge-mid{background:var(--warning-bg);color:var(--warning-text);border:1px solid var(--warning-border);}
+.risk-badge-low{background:var(--success-bg);color:var(--success-text);border:1px solid var(--success-border);}
+.risk-score-wrap{display:flex;align-items:center;gap:6px;}
+.risk-score-num{font-size:13px;font-weight:700;min-width:28px;text-align:right;}
+.risk-score-track{flex:1;height:5px;background:var(--bg-alt);border-radius:999px;overflow:hidden;min-width:60px;}
+.risk-score-fill{height:100%;border-radius:999px;}
+.risk-reason-tag{display:inline-block;font-size:10px;font-weight:600;padding:1px 7px;border-radius:999px;margin:1px 2px 1px 0;background:var(--bg-alt);border:1px solid var(--border-subtle);color:var(--text-secondary);}
+.risk-reason-tag.model{background:var(--primary-50);border-color:var(--primary-200);color:var(--primary-500);}
+.risk-reason-tag.repeat{background:var(--warning-bg);border-color:var(--warning-border);color:var(--warning-text);}
+.risk-reason-tag.sym{background:var(--danger-bg);border-color:var(--danger-border);color:var(--danger-text);}
+.risk-reason-tag.batch{background:var(--special-bg);border-color:var(--special-border);color:var(--special-text);}
+.risk-reason-tag.voc{background:var(--mint-500);border-color:var(--mint-500);color:#fff;}
+/* ── 제품 품질 인텔리전스 탭 ── */
+.quality-score-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:20px;}
+.quality-score-card{background:var(--bg-surface);border-radius:var(--r-sm);border:1.5px solid var(--border-subtle);padding:18px;cursor:pointer;transition:box-shadow .15s;}
+.quality-score-card:hover{box-shadow:var(--sh-card);}
+.quality-score-card.qs-danger{border-color:var(--danger-border);background:rgba(253,238,238,.5);}
+.quality-score-card.qs-warning{border-color:var(--warning-border);background:rgba(255,245,232,.5);}
+.quality-score-card.qs-ok{border-color:var(--success-border);background:rgba(234,247,239,.4);}
+.qs-model-name{font-size:15px;font-weight:700;margin-bottom:6px;}
+.qs-score-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.qs-score-big{font-size:26px;font-weight:800;line-height:1;}
+.qs-factor-row{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;}
+.qs-factor-chip{font-size:10px;padding:2px 7px;border-radius:999px;border:1px solid var(--border-subtle);background:var(--bg-alt);color:var(--text-secondary);}
+.improve-section{background:var(--bg-surface);border-radius:var(--r-sm);border:1px solid var(--border-subtle);padding:20px;margin-bottom:16px;}
+.improve-title{font-size:15px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.improve-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border-soft);font-size:13px;}
+.improve-row:last-child{border-bottom:none;}
+.improve-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--primary-50);color:var(--primary-500);border:1px solid var(--primary-200);}
 </style>
 </head>
 <body>
@@ -607,6 +639,7 @@ tr:hover td{background:var(--bg-alt);}
       <button class="nv" id="nv-reviews" onclick="goTab('reviews')"><i data-lucide="star" class="icon"></i><span class="nv-label">Reviews</span></button>
       <button class="nv" id="nv-weekly" onclick="goTab('weekly')"><i data-lucide="file-text" class="icon"></i><span class="nv-label">Weekly 이슈</span></button>
       <button class="nv" id="nv-reentry" onclick="goTab('reentry')"><i data-lucide="shield-alert" class="icon"></i><span class="nv-label">A/S 재인입</span></button>
+      <button class="nv" id="nv-quality" onclick="goTab('quality')"><i data-lucide="lightbulb" class="icon"></i><span class="nv-label">품질 인텔리전스</span></button>
     </nav>
     <div class="sb-bottom">
       <div class="period-badge" id="sbPeriodBadge" onclick="togglePeriodEdit()" title="클릭하여 주차 변경">—</div>
@@ -785,6 +818,9 @@ tr:hover td{background:var(--bg-alt);}
           <div class="card" id="reentryTypeList"></div>
         </div>
 
+        <!-- 재인입 위험 예측 -->
+        <div class="card" style="margin-bottom:20px" id="reentryRiskSection"></div>
+
         <!-- 동일증상+동일부품 핵심 부품 집중 분석 -->
         <div class="card" style="margin-bottom:20px" id="reentryKeyPartsSection"></div>
 
@@ -816,6 +852,18 @@ tr:hover td{background:var(--bg-alt);}
         <div class="card" id="reentryAiSection"></div>
       </div>
     </div>
+
+      <!-- 품질 인텔리전스 탭 -->
+      <div id="pane-quality" class="pane">
+        <div style="padding:20px">
+          <!-- 모델별 종합 품질 점수 -->
+          <div class="card" style="margin-bottom:20px" id="qualityScoreSection"></div>
+          <!-- 신제품 개선 포인트 -->
+          <div class="card" style="margin-bottom:20px" id="qualityImproveSection"></div>
+          <!-- VOC 트렌드 -->
+          <div class="card" id="qualityTrendSection"></div>
+        </div>
+      </div>
   </div>
 </div>
 
@@ -1931,7 +1979,8 @@ function renderReentry(){
      'reentrySymptomByModel','reentryPartsByModel',
      'reentryCauseByModel','reentryPartCause',
      'reentryCritical1mSection',
-     'reentryProdAnomalySection','reentryPrioritySection','reentryAiSection']
+     'reentryProdAnomalySection','reentryPrioritySection','reentryAiSection',
+     'reentryRiskSection']
       .forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML = id==='reentrySlicerRow'?'':noData; });
     const metaEl = document.getElementById('reentryMeta');
     if(metaEl) metaEl.textContent = '데이터 미로드 — AS재인입 파일을 업로드하면 자동 분석됩니다.';
@@ -2892,6 +2941,7 @@ function renderReentry(){
       </div>`;
   }
 
+  renderRiskPrediction();
   lucide.createIcons();
   renderSymDrill();
 }
@@ -3542,6 +3592,374 @@ function rtAggregate() {
     fileCount:REENTRY_FILE_CNT, generatedAt:new Date().toLocaleString('ko-KR') };
 }
 
+// ── VOC 복합 신호 사전 계산 ──────────────────────────────────────────────────
+function computeVocSignals() {
+  const signals = {}; // 모델버킷 → { exchRate, avgRating, hasLowRating, chRate }
+  const exR = FILES.get('exchange')?.rows || [];
+  const rfR = FILES.get('refund')?.rows || [];
+  const rvR = FILES.get('review')?.rows || [];
+  const chR = FILES.get('channel')?.rows || [];
+  const csR = FILES.get('cs')?.rows || [];
+
+  // 모델별 CS 건수 (분모)
+  const modelCS = {};
+  csR.forEach(r => {
+    const m = String(pickCol(r,['모델명','제품명','모델','model']) || '').trim();
+    const b = normalizeModelBucket(m);
+    if (b) modelCS[b] = (modelCS[b] || 0) + 1;
+  });
+
+  // 교환+환불 건수 per 모델
+  const modelExch = {};
+  [...exR, ...rfR].forEach(r => {
+    const m = String(pickCol(r,['모델명','제품명','모델','model']) || '').trim();
+    const b = normalizeModelBucket(m);
+    if (b) modelExch[b] = (modelExch[b] || 0) + 1;
+  });
+
+  // 리뷰 평점 per 모델
+  const modelRating = {}, modelRatingCnt = {};
+  rvR.forEach(r => {
+    const m = String(pickCol(r,['모델명','제품명','모델','model']) || '').trim();
+    const b = normalizeModelBucket(m);
+    const rt = Number(pickCol(r,['구매자평점','평점']) || 0);
+    if (b && rt > 0) {
+      modelRating[b] = (modelRating[b] || 0) + rt;
+      modelRatingCnt[b] = (modelRatingCnt[b] || 0) + 1;
+    }
+  });
+
+  // 채널톡 건수 per 모델
+  const modelCh = {};
+  chR.forEach(r => {
+    const m = String(pickCol(r,['모델명','제품명','모델','model']) || '').trim();
+    const b = normalizeModelBucket(m);
+    if (b) modelCh[b] = (modelCh[b] || 0) + 1;
+  });
+
+  const allBuckets = new Set([...Object.keys(modelCS), ...Object.keys(modelExch), ...Object.keys(modelRating), ...Object.keys(modelCh)]);
+
+  const exchRates = [], chRates = [];
+  allBuckets.forEach(b => {
+    const tot = modelCS[b] || 1;
+    const exchRate = (modelExch[b] || 0) / tot;
+    const chRate = (modelCh[b] || 0) / tot;
+    const avgRating = modelRatingCnt[b] ? modelRating[b] / modelRatingCnt[b] : null;
+    signals[b] = { exchRate, avgRating, chRate, ratingCnt: modelRatingCnt[b] || 0 };
+    exchRates.push(exchRate);
+    chRates.push(chRate);
+  });
+
+  // 상위 20% 임계값
+  const p80 = arr => { const s = [...arr].sort((a,b)=>a-b); return s[Math.floor(s.length * 0.8)] || 0; };
+  const exchThresh = p80(exchRates);
+  const chThresh = p80(chRates);
+
+  allBuckets.forEach(b => {
+    const s = signals[b];
+    let vocPts = 0, vocReasons = [];
+    if (s.exchRate > 0 && s.exchRate >= exchThresh) { vocPts += 3; vocReasons.push('교환/환불↑'); }
+    if (s.avgRating !== null && s.avgRating < 3.5) { vocPts += 4; vocReasons.push(`리뷰${s.avgRating.toFixed(1)}★`); }
+    if (s.chRate > 0 && s.chRate >= chThresh) { vocPts += 3; vocReasons.push('채널톡↑'); }
+    s.vocPts = Math.min(10, vocPts);
+    s.vocReasons = vocReasons;
+  });
+
+  return { signals, exchThresh, chThresh };
+}
+
+// ── 재인입 위험 예측 ──────────────────────────────────────────────────────────
+function computeRiskPredictions() {
+  if (!REENTRY_DATA || typeof REENTRY_RAW === 'undefined') return [];
+  const D2 = REENTRY_DATA;
+
+  const reentryNos = new Set(D2.reentries.map(r => r.curr.csNo));
+  const allCS = [...REENTRY_RAW.values()].filter(r => r.회수일자 && !isNaN(r.회수일자));
+  if (!allCS.length) return [];
+
+  const maxDate = new Date(Math.max(...allCS.map(r => r.회수일자.getTime())));
+  const windowStart = new Date(maxDate.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+  const candidates = allCS.filter(rec => !reentryNos.has(rec.csNo) && rec.회수일자 >= windowStart);
+  if (!candidates.length) return [];
+
+  // 고객 방문 횟수 Map
+  const custVisitCount = new Map();
+  allCS.forEach(rec => {
+    if (!rec.고객키 || rec.고객키 === '|') return;
+    custVisitCount.set(rec.고객키, (custVisitCount.get(rec.고객키) || 0) + 1);
+  });
+
+  // CRITICAL 재인입에서 나타나는 증상 Set
+  const criticalSyms = new Set();
+  D2.reentries.forEach(re => {
+    if (re.pri === 0) {
+      re.symOverlap.forEach(s => { if(s) criticalSyms.add(s); });
+      if(re.curr.증상Set) re.curr.증상Set.forEach(s => { if(s) criticalSyms.add(s); });
+    }
+  });
+
+  // 이상 생산배치 Set
+  const anomalyKeys = new Set(D2.anomalies.map(a => `${a.버킷}|${a.생산년월}`));
+
+  // VOC 신호
+  const { signals: vocSignals } = computeVocSignals();
+
+  const scored = candidates.map(rec => {
+    let modelPts = 0, repeatPts = 0, symPts = 0, batchPts = 0, vocPts = 0;
+    const reasons = [];
+
+    // 팩터 1: 모델 1개월 재인입률 (0-35pt)
+    const ms = D2.modelStats[rec.모델버킷];
+    if (ms) {
+      const m1rFloat = parseFloat(ms.m1r) || 0;
+      modelPts = Math.min(35, Math.round((m1rFloat / 5) * 35));
+      if (modelPts > 0) reasons.push({ tag:'model', label:`재인입률 ${ms.m1r}%` });
+    }
+
+    // 팩터 2: 반복 고객 (0-25pt)
+    const priorVisits = (custVisitCount.get(rec.고객키) || 0) - 1;
+    if (priorVisits >= 2) { repeatPts = 25; reasons.push({ tag:'repeat', label:`재방문 ${priorVisits}회` }); }
+    else if (priorVisits === 1) { repeatPts = 12; reasons.push({ tag:'repeat', label:'재방문 1회' }); }
+
+    // 팩터 3: CRITICAL 증상 일치 (0-20pt)
+    if (rec.증상Set && [...rec.증상Set].some(s => criticalSyms.has(s))) {
+      symPts = 20;
+      const matched = [...rec.증상Set].filter(s => criticalSyms.has(s));
+      reasons.push({ tag:'sym', label:`위험증상: ${matched.slice(0,2).join(', ')}` });
+    }
+
+    // 팩터 4: 이상 생산배치 (0-10pt)
+    if (rec.생산년월 && anomalyKeys.has(`${rec.모델버킷}|${rec.생산년월}`)) {
+      batchPts = 10;
+      reasons.push({ tag:'batch', label:`이상배치 ${rec.생산년월}` });
+    }
+
+    // 팩터 5: VOC 복합 신호 (0-10pt)
+    const vs = vocSignals[rec.모델버킷];
+    if (vs && vs.vocPts > 0) {
+      vocPts = vs.vocPts;
+      vs.vocReasons.forEach(r => reasons.push({ tag:'voc', label:r }));
+    }
+
+    const score = modelPts + repeatPts + symPts + batchPts + vocPts;
+    const level = score >= 70 ? 'high' : score >= 40 ? 'mid' : 'low';
+    return { rec, score, level, reasons };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, 20);
+}
+
+function renderRiskPrediction() {
+  const el = document.getElementById('reentryRiskSection');
+  if (!el) return;
+
+  const HDR = `<div class="card-hdr"><i data-lucide="shield-alert" class="icon card-hdr-icon-lc"></i><div class="card-title">재인입 위험 예측</div><span style="font-size:12px;color:var(--text-tertiary);margin-left:8px">최근 60일 미확인 A/S 건 · 다소스 VOC 통합 스코어링</span></div>`;
+
+  if (!REENTRY_DATA) {
+    el.innerHTML = HDR + `<div class="reentry-no-data-desc" style="padding:16px 0">AS재인입 파일을 업로드하면 자동으로 위험 예측이 실행됩니다.</div>`;
+    return;
+  }
+
+  const predictions = computeRiskPredictions();
+  const highCnt = predictions.filter(p => p.level === 'high').length;
+  const midCnt  = predictions.filter(p => p.level === 'mid').length;
+  const lowCnt  = predictions.filter(p => p.level === 'low').length;
+
+  const strip = `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center">
+    <span class="metric-chip danger">🔴 고위험 ${highCnt}건</span>
+    <span class="metric-chip warning">🟡 중위험 ${midCnt}건</span>
+    <span class="metric-chip">🟢 저위험 ${lowCnt}건</span>
+    <span style="margin-left:auto;font-size:12px;color:var(--text-tertiary)">상위 ${predictions.length}건 · 점수 높은 순</span>
+  </div>`;
+
+  if (!predictions.length) {
+    el.innerHTML = HDR + strip + `<div style="padding:8px 0;color:var(--text-tertiary);font-size:13px">최근 60일 이내 예측 대상 없음</div>`;
+    return;
+  }
+
+  const COLS = ['모델','고객명','증상','위험 점수','위험 사유','등급'];
+  const rows = predictions.map(({ rec, score, level, reasons }) => {
+    const name = rec.고객명 ? rec.고객명.slice(0,1)+'**' : '—';
+    const symStr = rec.증상Set ? [...rec.증상Set].join(', ') || '—' : '—';
+    const symDisp = symStr.length > 28 ? symStr.slice(0,26)+'…' : symStr;
+    const barColor = level === 'high' ? 'var(--danger-text)' : level === 'mid' ? 'var(--warning-text)' : 'var(--success-text)';
+    const badgeCls = `risk-badge risk-badge-${level}`;
+    const badgeLbl = level === 'high' ? '🔴 고위험' : level === 'mid' ? '🟡 중위험' : '🟢 저위험';
+    const tags = reasons.map(r => `<span class="risk-reason-tag ${r.tag}">${r.label}</span>`).join('') || '<span style="color:var(--text-disabled);font-size:11px">—</span>';
+    return `<tr style="border-bottom:1px solid var(--border-soft)">
+      <td style="padding:9px 12px;font-weight:600;white-space:nowrap">${modelDisplayName(rec.모델버킷)}</td>
+      <td style="padding:9px 12px">${name}</td>
+      <td style="padding:9px 12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${symStr}">${symDisp}</td>
+      <td style="padding:9px 12px;min-width:110px">
+        <div class="risk-score-wrap">
+          <span class="risk-score-num" style="color:${barColor}">${score}</span>
+          <div class="risk-score-track"><div class="risk-score-fill" style="width:${score}%;background:${barColor}"></div></div>
+        </div>
+      </td>
+      <td style="padding:9px 12px">${tags}</td>
+      <td style="padding:9px 12px"><span class="${badgeCls}">${badgeLbl}</span></td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = HDR + strip + `<div class="tbl-wrap scroll" style="max-height:420px">
+    <table style="width:100%;border-collapse:collapse;min-width:800px;font-size:13px">
+      <thead style="position:sticky;top:0;background:var(--bg-surface);z-index:1">
+        <tr style="border-bottom:2px solid var(--border-subtle)">
+          ${COLS.map(h=>`<th style="padding:9px 12px;font-size:12px;font-weight:600;color:var(--text-tertiary);text-align:left;white-space:nowrap">${h}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+// ── 제품 품질 인텔리전스 ──────────────────────────────────────────────────────
+function computeQualityScores() {
+  if (!REENTRY_DATA) return [];
+  const D2 = REENTRY_DATA;
+  const { signals: vocSignals } = computeVocSignals();
+
+  return Object.values(D2.modelStats).map(ms => {
+    const b = ms.버킷;
+    const m1r  = parseFloat(ms.m1r) || 0;
+    const m3r  = parseFloat(ms.m3r) || 0;
+    const reentryScore = Math.min(50, Math.round(((m1r * 3 + m3r) / (5 * 3 + 5)) * 50));
+
+    const vs = vocSignals[b] || { vocPts: 0, exchRate: 0, avgRating: null, vocReasons: [] };
+    const vocScore = vs.vocPts * 5; // 0-50pt
+
+    const totalScore = Math.min(100, reentryScore + vocScore);
+    const grade = totalScore >= 60 ? 'danger' : totalScore >= 30 ? 'warning' : 'ok';
+
+    // 개선 포인트: 이 모델의 상위 반복 증상·부품
+    const modelReentries = D2.reentries.filter(r => r.curr.모델버킷 === b);
+    const symCnt = {}, partCnt = {};
+    modelReentries.forEach(r => {
+      r.symOverlap.forEach(s => { if(s) symCnt[s] = (symCnt[s]||0)+1; });
+      r.partOverlap.forEach(p => { if(p) partCnt[p] = (partCnt[p]||0)+1; });
+    });
+    const topSyms  = Object.entries(symCnt).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([s,n])=>({s,n}));
+    const topParts = Object.entries(partCnt).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([p,n])=>({p,n}));
+
+    return { bucket: b, model: ms.모델, total: ms.total, m1r, m3r,
+      reentryScore, vocScore, totalScore, grade,
+      topSyms, topParts, vocReasons: vs.vocReasons, avgRating: vs.avgRating };
+  }).sort((a,b) => b.totalScore - a.totalScore);
+}
+
+function renderQualityIntelligence() {
+  const scores = computeQualityScores();
+  const noData = !REENTRY_DATA;
+
+  // 섹션 A: 모델별 종합 품질 점수
+  const scoreEl = document.getElementById('qualityScoreSection');
+  if (scoreEl) {
+    if (noData) {
+      scoreEl.innerHTML = `<div class="card-hdr"><i data-lucide="lightbulb" class="icon card-hdr-icon-lc"></i><div class="card-title">모델별 종합 품질 점수</div></div><div class="reentry-no-data-desc" style="padding:16px 0">AS재인입 파일을 업로드하면 자동 분석됩니다.</div>`;
+    } else {
+      const cards = scores.map(s => {
+        const factors = [];
+        if (s.m1r > 0) factors.push(`재인입 ${s.m1r}%`);
+        s.vocReasons.forEach(r => factors.push(r));
+        const factorHtml = factors.map(f=>`<span class="qs-factor-chip">${f}</span>`).join('');
+        const gradeIcon = s.grade==='danger'?'🔴':s.grade==='warning'?'🟡':'🟢';
+        return `<div class="quality-score-card qs-${s.grade}">
+          <div class="qs-model-name">${s.model}</div>
+          <div class="qs-score-row">
+            <span class="qs-score-big" style="color:${s.grade==='danger'?'var(--danger-text)':s.grade==='warning'?'var(--warning-text)':'var(--success-text)'}">${s.totalScore}</span>
+            <span style="font-size:12px;color:var(--text-tertiary);align-self:flex-end;margin-bottom:2px">/ 100</span>
+            <span style="margin-left:auto;font-size:18px">${gradeIcon}</span>
+          </div>
+          <div class="qs-factor-row">${factorHtml || '<span class="qs-factor-chip">이상 없음</span>'}</div>
+        </div>`;
+      }).join('');
+      scoreEl.innerHTML = `<div class="card-hdr"><i data-lucide="bar-chart-3" class="icon card-hdr-icon-lc"></i><div class="card-title">모델별 종합 품질 점수</div><span style="font-size:12px;color:var(--text-tertiary);margin-left:8px">재인입률 + VOC 통합 지표 · 낮을수록 양호</span></div>
+        <div class="quality-score-grid">${cards}</div>`;
+    }
+  }
+
+  // 섹션 B: 신제품 개선 포인트
+  const impEl = document.getElementById('qualityImproveSection');
+  if (impEl) {
+    if (noData || !scores.length) {
+      impEl.innerHTML = `<div class="card-hdr"><i data-lucide="wrench" class="icon card-hdr-icon-lc"></i><div class="card-title">신제품 개선 포인트</div></div><div class="reentry-no-data-desc" style="padding:16px 0">데이터 없음</div>`;
+    } else {
+      const topModels = scores.filter(s => s.grade !== 'ok').slice(0, 4);
+      const sections = (topModels.length ? topModels : scores.slice(0,3)).map(s => {
+        const symRows = s.topSyms.map(({s:sym,n}) =>
+          `<div class="improve-row"><span>${sym}</span><div style="display:flex;align-items:center;gap:8px"><span class="improve-tag">재발 ${n}건</span></div></div>`).join('') || '<div class="improve-row" style="color:var(--text-tertiary)">반복 증상 없음</div>';
+        const partRows = s.topParts.map(({p,n}) =>
+          `<div class="improve-row"><span>${p}</span><div style="display:flex;align-items:center;gap:8px"><span class="improve-tag">재교체 ${n}건</span></div></div>`).join('') || '<div class="improve-row" style="color:var(--text-tertiary)">반복 부품 없음</div>';
+        const saving = s.total > 0 ? Math.round((s.topSyms.reduce((acc,{n})=>acc+n,0) / s.total) * 100) : 0;
+        return `<div class="improve-section">
+          <div class="improve-title"><span style="font-size:18px">${s.grade==='danger'?'🔴':s.grade==='warning'?'🟡':'🟢'}</span>${s.model}
+            ${saving > 0 ? `<span style="font-size:11px;color:var(--text-tertiary);font-weight:500;margin-left:auto">상위 증상 개선 시 재인입 약 ${saving}%p 감소 예상</span>` : ''}
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+            <div><div style="font-size:11px;font-weight:700;color:var(--danger-text);margin-bottom:6px">반복 증상 (설계·공정 개선)</div>${symRows}</div>
+            <div><div style="font-size:11px;font-weight:700;color:var(--special-text);margin-bottom:6px">반복 교체 부품 (스펙 업 검토)</div>${partRows}</div>
+          </div>
+        </div>`;
+      }).join('');
+      impEl.innerHTML = `<div class="card-hdr"><i data-lucide="wrench" class="icon card-hdr-icon-lc"></i><div class="card-title">신제품 개선 포인트</div><span style="font-size:12px;color:var(--text-tertiary);margin-left:8px">재인입 데이터 기반 · 개발팀 전달용</span></div>${sections}`;
+    }
+  }
+
+  // 섹션 C: VOC 트렌드 (월별)
+  const trendEl = document.getElementById('qualityTrendSection');
+  if (trendEl) {
+    if (noData) {
+      trendEl.innerHTML = `<div class="card-hdr"><i data-lucide="trending-up" class="icon card-hdr-icon-lc"></i><div class="card-title">VOC 트렌드</div></div><div class="reentry-no-data-desc" style="padding:16px 0">데이터 없음</div>`;
+    } else {
+      // 월별 집계: 재인입 건수 + 리뷰 저평점 건수 + 채널톡 건수
+      const monthReentry = {}, monthLowRv = {}, monthCh = {};
+      REENTRY_DATA.reentries.forEach(r => {
+        if (!r.curr.회수일자 || isNaN(r.curr.회수일자)) return;
+        const ym = `${r.curr.회수일자.getFullYear()}-${String(r.curr.회수일자.getMonth()+1).padStart(2,'0')}`;
+        monthReentry[ym] = (monthReentry[ym]||0)+1;
+      });
+      (FILES.get('review')?.rows||[]).forEach(r => {
+        const rt = Number(pickCol(r,['구매자평점','평점'])||0);
+        const dt = String(pickCol(r,['리뷰등록일'])||'').slice(0,7);
+        if (rt > 0 && rt < 3.5 && dt.match(/^\d{4}-\d{2}$/)) monthLowRv[dt] = (monthLowRv[dt]||0)+1;
+      });
+      (FILES.get('channel')?.rows||[]).forEach(r => {
+        const dt = String(pickCol(r,['managedAt','createdAt','접수일','날짜','일자'])||'').slice(0,7);
+        if (dt.match(/^\d{4}-\d{2}$/)) monthCh[dt] = (monthCh[dt]||0)+1;
+      });
+
+      const allMonths = [...new Set([...Object.keys(monthReentry),...Object.keys(monthLowRv),...Object.keys(monthCh)])].sort();
+
+      if (!allMonths.length) {
+        trendEl.innerHTML = `<div class="card-hdr"><i data-lucide="trending-up" class="icon card-hdr-icon-lc"></i><div class="card-title">VOC 트렌드</div></div><div style="padding:16px 0;color:var(--text-tertiary);font-size:13px">월별 데이터 없음</div>`;
+        return;
+      }
+
+      const canvasId = 'qualityTrendChart';
+      trendEl.innerHTML = `<div class="card-hdr"><i data-lucide="trending-up" class="icon card-hdr-icon-lc"></i><div class="card-title">VOC 트렌드</div><span style="font-size:12px;color:var(--text-tertiary);margin-left:8px">월별 재인입 · 저평점 리뷰 · 채널톡 인입 추이</span></div><canvas id="${canvasId}" style="max-height:260px"></canvas>`;
+
+      const ctx = document.getElementById(canvasId);
+      if (ctx) {
+        if (ctx._chartInst) { ctx._chartInst.destroy(); }
+        ctx._chartInst = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: allMonths,
+            datasets: [
+              { label:'재인입 건수', data: allMonths.map(m=>monthReentry[m]||0), borderColor:'#5D86F7', backgroundColor:'rgba(93,134,247,.1)', tension:.35, fill:true, pointRadius:4 },
+              { label:'저평점 리뷰', data: allMonths.map(m=>monthLowRv[m]||0), borderColor:'#D9A514', backgroundColor:'rgba(217,165,20,.08)', tension:.35, fill:false, pointRadius:4 },
+              { label:'채널톡 인입', data: allMonths.map(m=>monthCh[m]||0), borderColor:'#47A786', backgroundColor:'rgba(71,167,134,.08)', tension:.35, fill:false, pointRadius:4 },
+            ]
+          },
+          options: { responsive:true, plugins:{ legend:{position:'top'}, datalabels:{display:false} }, scales:{ y:{beginAtZero:true, grid:{color:'var(--border-soft)'}} } }
+        });
+      }
+    }
+  }
+}
+
 function rtGenInsights({ reentries, modelStats, typeCount, anomalies, r1m, r3m, totalCS }) {
   const out = [];
   const byM1 = Object.values(modelStats).sort((a,b) => +b.m1r - +a.m1r);
@@ -4166,13 +4584,14 @@ function goTab(tab){
   document.querySelectorAll('.nv').forEach(el=>el.classList.remove('on'));
   document.getElementById(`nv-${tab}`).classList.add('on');
   document.getElementById('topTitle').textContent = ({
-    dashboard:'Dashboard', reviews:'Reviews', bymodel:'By Model', exchange_refund:'교환 / 환불', weekly:'Weekly 이슈', reentry:'A/S 재인입 분석'
-  })[tab];
+    dashboard:'Dashboard', reviews:'Reviews', bymodel:'By Model', exchange_refund:'교환 / 환불', weekly:'Weekly 이슈', reentry:'A/S 재인입 분석', quality:'품질 인텔리전스'
+  })[tab] || tab;
 
   if(tab==='reviews') renderReviews();
   if(tab==='bymodel') renderByModel();
   if(tab==='exchange_refund') renderExchangeRefund();
   if(tab==='reentry') renderReentry();
+  if(tab==='quality') renderQualityIntelligence();
   if(tab==='weekly'){
     const weeklyEl = document.getElementById('weeklyReport');
     if(weeklyEl) weeklyEl.innerHTML = '';
