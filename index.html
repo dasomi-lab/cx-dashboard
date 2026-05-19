@@ -552,11 +552,29 @@ tr:hover td{background:var(--bg-alt);}
 .type-v2-track{flex:1;height:10px;background:var(--bg-alt);border-radius:999px;overflow:hidden;}
 .type-v2-fill{height:100%;border-radius:999px;}
 .type-v2-pct{font-size:13px;font-weight:700;width:40px;text-align:right;flex-shrink:0;}
+.today-modal{display:none;position:fixed;inset:0;background:rgba(23,24,28,.4);z-index:600;align-items:center;justify-content:center;}
+.today-modal.on{display:flex;}
+.today-modal-box{background:var(--bg-surface);border-radius:var(--r-lg);padding:24px;width:100%;max-width:400px;box-shadow:var(--sh-float);animation:shu .2s ease;}
+.today-modal-title{font-size:18.75px;font-weight:600;color:var(--text-primary);margin-bottom:14px;}
+.today-report-item{display:flex;align-items:center;justify-content:space-between;width:100%;padding:11px 14px;border-radius:var(--r-xs);border:1px solid var(--border-subtle);background:var(--bg-alt);cursor:pointer;font-family:inherit;font-size:16.25px;margin-bottom:7px;transition:all .15s;}
+.today-report-item:hover{border-color:var(--primary-300);background:var(--primary-50);}
+.today-report-title{font-weight:500;color:var(--text-primary);}
+.today-report-time{font-size:14px;color:var(--text-tertiary);}
+.today-modal-cancel{width:100%;margin-top:6px;padding:10px;border-radius:var(--r-xs);border:1px solid var(--border-subtle);background:var(--bg-surface);cursor:pointer;font-family:inherit;font-size:16.25px;color:var(--text-secondary);}
+.today-modal-cancel:hover{background:var(--bg-alt);}
 </style>
 </head>
 <body>
 
 <div id="ldr"><div class="spin"></div><div style="font-size:16.25px;font-weight:500;color:var(--text-tertiary)">파일 분석 중...</div></div>
+
+<div class="today-modal" id="todayModal">
+  <div class="today-modal-box">
+    <div class="today-modal-title">오늘 저장된 보고서 선택</div>
+    <div id="todayReportList"></div>
+    <button class="today-modal-cancel" onclick="closeTodayModal()">취소</button>
+  </div>
+</div>
 
 <div class="ub" id="ub" onclick="bgClose(event)">
   <div class="us">
@@ -617,6 +635,7 @@ tr:hover td{background:var(--bg-alt);}
           <i data-lucide="folder-input" class="icon"></i><span class="btn-label">가져오기</span>
           <input type="file" accept=".json" style="display:none" onchange="importJSON(this)">
         </label>
+        <button class="btn btn-outline" id="loadTodayBtn" onclick="loadTodayReport()"><i data-lucide="calendar-check" class="icon"></i>오늘 작업</button>
         <button class="btn btn-outline" id="saveDbBtn" onclick="saveReportToSupabase()"><i data-lucide="cloud-upload" class="icon"></i>DB 저장</button>
         <button class="btn btn-primary" id="pdfBtn" onclick="dlPDF()"><i data-lucide="file-down" class="icon"></i>PDF</button>
       </div>
@@ -4295,6 +4314,72 @@ async function dlPDF(){
   btn.innerHTML='<i data-lucide="file-down" class="icon"></i>PDF';
   btn.disabled=false;
   lucide.createIcons();
+}
+
+async function loadTodayReport(){
+  const btn = document.getElementById('loadTodayBtn');
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i data-lucide="loader-circle" class="icon"></i>불러오는 중';
+  lucide.createIcons();
+  try {
+    const now = new Date();
+    const kstMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const kstEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const kstOffset = 9 * 60 * 60 * 1000;
+    const startUTC = new Date(kstMidnight.getTime() - kstOffset).toISOString();
+    const endUTC = new Date(kstEnd.getTime() - kstOffset).toISOString();
+    const { data, error } = await sb
+      .from('cx_reports')
+      .select('report_key, title, period, updated_at')
+      .gte('updated_at', startUTC)
+      .lte('updated_at', endUTC)
+      .order('updated_at', { ascending: false });
+    if(error) throw error;
+    if(!data || data.length === 0){ alert('오늘 저장된 보고서가 없습니다.'); return; }
+    if(data.length === 1){ await applyTodayReport(data[0].report_key); return; }
+    showTodayPicker(data);
+  } catch(e){
+    console.error(e);
+    alert('오늘 작업 불러오기 실패: ' + (e?.message || e));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+    lucide.createIcons();
+  }
+}
+
+async function applyTodayReport(reportKey){
+  const { data, error } = await sb
+    .from('cx_reports')
+    .select('report_key, data, updated_at')
+    .eq('report_key', reportKey)
+    .single();
+  if(error) throw error;
+  if(!data?.data) throw new Error('저장된 보고서를 찾지 못했습니다.');
+  ACTIVE_REPORT_KEY = data.report_key;
+  applyPersistPayload(data.data);
+  document.getElementById('sbSavedTime').textContent = `오늘 작업 로드: ${new Date(data.updated_at).toLocaleString('ko-KR')}`;
+  history.replaceState({}, '', `${location.pathname}?report=${encodeURIComponent(reportKey)}`);
+  showSaveToast('오늘 작업을 불러왔습니다');
+  closeTodayModal();
+}
+
+function showTodayPicker(reports){
+  const list = document.getElementById('todayReportList');
+  list.innerHTML = reports.map(r => {
+    const label = r.title || r.period || r.report_key;
+    const time = new Date(r.updated_at).toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'});
+    return `<button class="today-report-item" onclick="applyTodayReport('${r.report_key}').catch(e=>{alert(e?.message||e);});this.disabled=true">
+      <span class="today-report-title">${label}</span>
+      <span class="today-report-time">${time}</span>
+    </button>`;
+  }).join('');
+  document.getElementById('todayModal').classList.add('on');
+}
+
+function closeTodayModal(){
+  document.getElementById('todayModal').classList.remove('on');
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
