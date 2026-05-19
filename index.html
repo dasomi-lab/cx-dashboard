@@ -2322,7 +2322,11 @@ function renderReentry(){
     nsDisplay = { noiseTotal:'—', noiseReentryCount:noiseReFilt.length, noiseReentryRate:'—',
       followParts:fp2, followSyms:fs2, followDays:fd2, criticalCount:noiseReFilt.filter(r=>r.pri===0).length };
   }
-  const topNoiseParts = Object.entries(nsDisplay.followParts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  // 린클필터는 소모품으로 소음과 인과관계 없음 → 제외
+  const NOISE_EXCLUDE_PARTS = ['린클', '린클필터'];
+  const topNoiseParts = Object.entries(nsDisplay.followParts)
+    .filter(([name]) => !NOISE_EXCLUDE_PARTS.some(ex => name.includes(ex)))
+    .sort((a,b)=>b[1]-a[1]).slice(0,8);
   const topNoiseSyms  = Object.entries(nsDisplay.followSyms).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const maxNP = topNoiseParts[0]?.[1]||1;
   document.getElementById('reentryNoiseSection').innerHTML = `
@@ -3268,7 +3272,7 @@ function rtAggregate() {
   const noiseFollowSyms  = {};
   const noiseFollowDays  = { d30:0, d90:0, d180:0, d365:0 };
   noiseReentries.forEach(re => {
-    re.curr.부품Set.forEach(p => { if(p) noiseFollowParts[p] = (noiseFollowParts[p]||0)+1; });
+    re.curr.부품Set.forEach(p => { if(p && !p.includes('린클')) noiseFollowParts[p] = (noiseFollowParts[p]||0)+1; });
     re.curr.증상Set.forEach(s => { if(s) noiseFollowSyms[s]  = (noiseFollowSyms[s]||0)+1;  });
     if (re.days<=30)  noiseFollowDays.d30++;
     if (re.days<=90)  noiseFollowDays.d90++;
