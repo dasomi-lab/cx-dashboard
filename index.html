@@ -440,6 +440,38 @@ tr:hover td{background:var(--bg-alt);}
 .prod-anomaly-tbl tr:last-child td{border-bottom:none;}
 .prod-anomaly-row-hi{background:rgba(194,70,70,.04);}
 .prod-anomaly-x{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--danger-bg);color:var(--danger-text);white-space:nowrap;}
+/* 핵심 부품 분석 */
+.key-parts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:12px;}
+.key-part-card{border:1px solid var(--border-subtle);border-radius:10px;padding:12px 14px;background:var(--bg-alt);}
+.key-part-card-name{font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.key-part-card-name .kp-badge{font-size:10px;padding:1px 6px;border-radius:999px;font-weight:600;}
+.key-part-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:12px;}
+.key-part-bar-track{flex:1;height:5px;background:var(--border-subtle);border-radius:3px;overflow:hidden;}
+.key-part-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#fca5a5,#dc2626);}
+.key-part-val{font-size:11px;font-weight:600;color:var(--text-secondary);width:28px;text-align:right;flex-shrink:0;}
+/* 소음 → 후속고장 분석 */
+.noise-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:12px;}
+.noise-stat-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-soft);}
+.noise-stat-row:last-child{border-bottom:none;}
+.noise-stat-num{font-size:18px;font-weight:800;color:var(--primary-600);min-width:50px;}
+.noise-stat-lbl{font-size:12px;color:var(--text-secondary);}
+.noise-part-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;}
+.noise-part-bar{flex:1;height:6px;background:var(--border-subtle);border-radius:3px;overflow:hidden;}
+.noise-part-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#fde68a,#f59e0b);}
+/* Heatmap */
+.heatmap-wrap{overflow-x:auto;margin-top:12px;}
+.heatmap-tbl{border-collapse:collapse;font-size:11px;}
+.heatmap-tbl th{padding:5px 8px;font-size:10px;font-weight:600;color:var(--text-tertiary);white-space:nowrap;text-align:center;background:var(--bg-alt);}
+.heatmap-tbl th.row-hdr{text-align:left;min-width:90px;position:sticky;left:0;background:var(--bg-alt);z-index:1;}
+.heatmap-tbl td{padding:4px 6px;text-align:center;min-width:52px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--bg-surface);transition:opacity .1s;}
+.heatmap-tbl td:hover{opacity:.75;}
+.heatmap-cell-0{background:var(--bg-alt);color:var(--text-disabled);}
+.heatmap-legend{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-tertiary);margin-top:10px;}
+.heatmap-legend-bar{display:flex;gap:2px;}
+.heatmap-legend-bar span{width:18px;height:10px;border-radius:2px;display:inline-block;}
+.heatmap-tab-btn{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;border:1px solid var(--border-subtle);cursor:pointer;transition:all .15s;}
+.heatmap-model-chip{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid var(--border-subtle);cursor:pointer;background:var(--bg-surface);color:var(--text-secondary);transition:all .15s;}
+.heatmap-model-chip.active{background:var(--primary-500);color:#fff;border-color:var(--primary-500);}
 .reentry-no-data{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 24px;gap:12px;color:var(--text-tertiary);}
 .reentry-no-data-icon{width:48px;height:48px;border-radius:50%;background:var(--bg-alt);display:flex;align-items:center;justify-content:center;color:var(--text-disabled);}
 .reentry-no-data-title{font-size:15px;font-weight:600;color:var(--text-secondary);}
@@ -742,7 +774,13 @@ tr:hover td{background:var(--bg-alt);}
           <div class="card" id="reentryPartCause"></div>
         </div>
 
-        <!-- 생산월별 부품 집중도 -->
+        <!-- 동일증상+동일부품 핵심 부품 집중 분석 -->
+        <div class="card" style="margin-bottom:20px" id="reentryKeyPartsSection"></div>
+
+        <!-- 소음 → 후속 고장 관계 분석 -->
+        <div class="card" style="margin-bottom:20px" id="reentryNoiseSection"></div>
+
+        <!-- 생산월별 부품 집중도 Heatmap -->
         <div class="card" style="margin-bottom:20px" id="reentryProdAnomalySection"></div>
 
         <!-- 우선 확인 대상 -->
@@ -2221,38 +2259,282 @@ function renderReentry(){
         </div>
       </div>`).join('') : '<div class="empty-msg">원인 데이터 없음</div>'}`;
 
-  // ── 생산월별 부품 집중도 ──
-  // 전체 데이터 전역 저장 (필터/정렬용, slice 제거)
+  // ── 핵심 부품 집중 분석 ──
+  const kps = D2.keyPartStats || {};
+  const KEY_PARTS = ['팬모터','교반모터','챔버','리데나','보온재'];
+  const totalReCnt = filtRe.length || 1;
+  const kpColors = { '팬모터':'#ef4444','교반모터':'#f97316','챔버':'#8b5cf6','리데나':'#06b6d4','보온재':'#10b981' };
+  document.getElementById('reentryKeyPartsSection').innerHTML = `
+    <div class="card-hdr">
+      <i data-lucide="alert-triangle" class="icon card-hdr-icon-lc"></i>
+      <div class="card-title">동일증상+동일부품 — 핵심 부품 집중 분석</div>
+      <span style="font-size:12px;color:var(--text-tertiary);margin-left:8px">CRITICAL 케이스 기준 반복 교체 부품</span>
+    </div>
+    <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:14px">팬모터·교반모터·챔버·리데나·보온재 계열 부품의 재인입 패턴 집계</div>
+    <div class="key-parts-grid">
+      ${KEY_PARTS.map(kp => {
+        const s = kps[kp] || { total:0, critical:0, models:{}, syms:{} };
+        const filtTotal = isAll ? s.total : (reentries.filter(re=>re.curr.모델버킷===sel && [...re.curr.부품Set].some(p=>p.includes(kp))).length);
+        const filtCrit  = isAll ? s.critical : (reentries.filter(re=>re.curr.모델버킷===sel && re.pri===0 && [...re.curr.부품Set].some(p=>p.includes(kp))).length);
+        const color = kpColors[kp] || '#6366f1';
+        const critRate = filtTotal ? (filtCrit/filtTotal*100).toFixed(0) : 0;
+        // 해당 키워드 포함 실제 부품명 TOP3
+        const realParts = {};
+        filtRe.forEach(re => {
+          re.curr.부품Set.forEach(p => { if(p && p.includes(kp)) realParts[p] = (realParts[p]||0)+1; });
+        });
+        const topRealParts = Object.entries(realParts).sort((a,b)=>b[1]-a[1]).slice(0,4);
+        const maxRP = topRealParts[0]?.[1] || 1;
+        return `<div class="key-part-card" style="border-left:3px solid ${color}">
+          <div class="key-part-card-name">
+            <span>${kp} 계열</span>
+            <span class="kp-badge" style="background:${color}22;color:${color}">${filtTotal}건</span>
+            ${filtCrit>0?`<span class="kp-badge" style="background:#fef2f2;color:#dc2626">CRITICAL ${filtCrit}</span>`:''}
+          </div>
+          ${topRealParts.length ? topRealParts.map(([name,cnt])=>`
+            <div class="key-part-row">
+              <div style="font-size:11px;color:var(--text-secondary);width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0" title="${name}">${name}</div>
+              <div class="key-part-bar-track"><div class="key-part-bar-fill" style="width:${Math.round(cnt/maxRP*100)}%;background:linear-gradient(90deg,${color}66,${color})"></div></div>
+              <div class="key-part-val">${cnt}</div>
+            </div>`).join('')
+          : '<div style="font-size:11px;color:var(--text-disabled);padding:8px 0">해당 케이스 없음</div>'}
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  // ── 소음 → 후속 고장 관계 분석 ──
+  const ns = D2.noiseStats || { noiseTotal:0, noiseReentryCount:0, noiseReentryRate:'0.0', followParts:{}, followSyms:{}, followDays:{d30:0,d90:0,d180:0,d365:0}, criticalCount:0 };
+  // 모델별 필터 시 재계산
+  let nsDisplay = ns;
+  if (!isAll) {
+    const noiseReFilt = filtRe.filter(re => D2.noiseStats && re.prev && re.prev.증상Set && re.prev.증상Set.has('소음'));
+    const noiseCSFilt = new Set(filtRe.map(re=>re.prev?.csNo).filter(Boolean));
+    const fp2={}, fs2={}, fd2={d30:0,d90:0,d180:0,d365:0};
+    noiseReFilt.forEach(re=>{
+      re.curr.부품Set.forEach(p=>{if(p)fp2[p]=(fp2[p]||0)+1;});
+      re.curr.증상Set.forEach(s=>{if(s)fs2[s]=(fs2[s]||0)+1;});
+      if(re.days<=30)fd2.d30++;if(re.days<=90)fd2.d90++;if(re.days<=180)fd2.d180++;if(re.days<=365)fd2.d365++;
+    });
+    nsDisplay = { noiseTotal:'—', noiseReentryCount:noiseReFilt.length, noiseReentryRate:'—',
+      followParts:fp2, followSyms:fs2, followDays:fd2, criticalCount:noiseReFilt.filter(r=>r.pri===0).length };
+  }
+  const topNoiseParts = Object.entries(nsDisplay.followParts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const topNoiseSyms  = Object.entries(nsDisplay.followSyms).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const maxNP = topNoiseParts[0]?.[1]||1;
+  document.getElementById('reentryNoiseSection').innerHTML = `
+    <div class="card-hdr">
+      <i data-lucide="activity" class="icon card-hdr-icon-lc"></i>
+      <div class="card-title">소음 → 후속 고장 관계 분석${!isAll?' — '+modelDisplayName(sel):''}</div>
+      <span style="font-size:12px;color:var(--text-tertiary);margin-left:8px">소음 AS 접수 후 재인입된 케이스 패턴</span>
+    </div>
+    <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:14px">
+      소음 신고 후 재방문 시 어떤 부품이 교체되는지 — 선제 조치 가능 여부 판단
+    </div>
+    <div class="noise-grid">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:10px">주요 지표</div>
+        <div class="noise-stat-row">
+          <div class="noise-stat-num">${nsDisplay.noiseTotal.toLocaleString?.()??nsDisplay.noiseTotal}</div>
+          <div class="noise-stat-lbl">소음 AS 총 건수</div>
+        </div>
+        <div class="noise-stat-row">
+          <div class="noise-stat-num" style="color:var(--danger-text)">${nsDisplay.noiseReentryCount.toLocaleString()}</div>
+          <div class="noise-stat-lbl">소음 후 재인입 건수${nsDisplay.noiseReentryRate!=='—'?` (${nsDisplay.noiseReentryRate}%)`:''}</div>
+        </div>
+        <div class="noise-stat-row">
+          <div class="noise-stat-num" style="color:#dc2626">${nsDisplay.criticalCount}</div>
+          <div class="noise-stat-lbl">그 중 CRITICAL (동일증상+동일부품)</div>
+        </div>
+        <div style="margin-top:14px;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px">재인입 시점 분포</div>
+        ${[['1개월 이내',nsDisplay.followDays.d30],['3개월 이내',nsDisplay.followDays.d90],['6개월 이내',nsDisplay.followDays.d180],['12개월 이내',nsDisplay.followDays.d365]].map(([lbl,cnt])=>`
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:12px">
+            <div style="width:70px;color:var(--text-tertiary)">${lbl}</div>
+            <div style="flex:1;height:5px;background:var(--border-subtle);border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:${nsDisplay.followDays.d365?Math.round(cnt/nsDisplay.followDays.d365*100):0}%;background:linear-gradient(90deg,#93c5fd,#3b82f6);border-radius:3px"></div>
+            </div>
+            <div style="font-weight:600;color:var(--text-secondary);width:28px;text-align:right">${cnt}</div>
+          </div>`).join('')}
+        ${topNoiseSyms.length?`<div style="margin-top:14px;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px">후속 증상 TOP5</div>
+        ${topNoiseSyms.map(([s,c])=>`<div style="font-size:11px;color:var(--text-secondary);padding:3px 0;display:flex;justify-content:space-between"><span>${s}</span><span style="font-weight:600">${c}건</span></div>`).join('')}`:''}
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:10px">소음 후 교체된 부품 TOP8</div>
+        ${topNoiseParts.length ? topNoiseParts.map(([name,cnt])=>`
+          <div class="noise-part-row">
+            <div style="font-size:11px;color:var(--text-secondary);width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0" title="${name}">${name}</div>
+            <div class="noise-part-bar"><div class="noise-part-fill" style="width:${Math.round(cnt/maxNP*100)}%"></div></div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-secondary);width:28px;text-align:right;flex-shrink:0">${cnt}</div>
+          </div>`).join('')
+        : '<div style="font-size:12px;color:var(--text-disabled);padding:20px 0">소음 후 재인입 케이스 없음</div>'}
+        ${nsDisplay.noiseReentryCount>0?`
+        <div style="margin-top:16px;padding:10px 12px;background:var(--primary-50,#eff6ff);border-radius:8px;border:1px solid var(--primary-200,#bfdbfe)">
+          <div style="font-size:11px;font-weight:700;color:var(--primary-700,#1d4ed8);margin-bottom:4px">💡 예측 가능성</div>
+          <div style="font-size:11px;color:var(--primary-700,#1d4ed8);line-height:1.6">
+            소음 신고 접수 시 <strong>${topNoiseParts[0]?.[0]||'—'}</strong> 선제 점검으로<br>
+            재인입 ${nsDisplay.noiseReentryCount}건 중 일부 예방 가능성 있음
+          </div>
+        </div>`:''}
+      </div>
+    </div>`;
+
+  // ── 생산월별 부품 집중도 Heatmap ──
   _prodAnomalyAll = reentrySymFilter
     ? rtComputeAnomalies(symFiltCS)
     : (isAll ? D2.anomalies : D2.anomalies.filter(a => a.버킷 === sel));
   _prodAnomalySortKey = _prodAnomalySortKey || '배율';
 
-  // 모델 고유값 (필터 칩용)
-  const anomalyModels = [...new Set(_prodAnomalyAll.map(a => a.버킷))];
+  // Heatmap 데이터 구성: 행=생산년월, 열=부품, 값=배율
+  const hmData = _prodAnomalyAll;
+  const hmYMs  = [...new Set(hmData.map(a=>a.생산년월))].sort();
+  // 상위 부품 (등장 빈도순 TOP12)
+  const hmPartFreq = {};
+  hmData.forEach(a => { hmPartFreq[a.부품] = (hmPartFreq[a.부품]||0)+1; });
+  const hmParts = Object.entries(hmPartFreq).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([p])=>p);
+  // (생산년월, 부품) → 배율 맵
+  const hmCell = {};
+  hmData.forEach(a => { hmCell[`${a.생산년월}|${a.부품}`] = { 배율:+a.배율, 건수:+a.건수, 교체율:a.비율, 평균:a.평균비율, 모델:a.모델 }; });
+  const hmMax = Math.max(...hmData.map(a=>+a.배율), 1);
+
+  const hmColor = (ratio) => {
+    if (!ratio) return '';
+    const t = Math.min(ratio / hmMax, 1);
+    // 연파랑 → 주황 → 빨강
+    if (t < 0.33) return `rgba(59,130,246,${0.15+t*1.5})`;
+    if (t < 0.66) return `rgba(249,115,22,${0.2+t})`;
+    return `rgba(220,38,38,${0.3+t*0.7})`;
+  };
+  const hmTextColor = (ratio) => {
+    if (!ratio) return 'var(--text-disabled)';
+    return +ratio >= hmMax*0.5 ? '#fff' : 'var(--text-primary)';
+  };
+
+  // 모델 필터 칩
+  const hmModels = isAll ? [...new Set(hmData.map(a=>a.버킷))] : [sel];
 
   document.getElementById('reentryProdAnomalySection').innerHTML = `
     <div class="card-hdr" style="flex-wrap:wrap;gap:8px">
       <div style="display:flex;align-items:center;gap:8px;flex:1">
-        <i data-lucide="calendar-search" class="icon card-hdr-icon-lc"></i>
-        <div class="card-title">생산월별 부품 집중도${!isAll?' — '+modelDisplayName(sel):''}${symBadge}</div>
-        <span style="font-size:12px;color:var(--text-tertiary);background:var(--bg-alt);border:1px solid var(--border-subtle);border-radius:999px;padding:2px 8px">${_prodAnomalyAll.length}건</span>
+        <i data-lucide="grid-3x3" class="icon card-hdr-icon-lc"></i>
+        <div class="card-title">생산월별 부품 집중도 Heatmap${!isAll?' — '+modelDisplayName(sel):''}${symBadge}</div>
+        <span style="font-size:12px;color:var(--text-tertiary);background:var(--bg-alt);border:1px solid var(--border-subtle);border-radius:999px;padding:2px 8px">${hmData.length}건</span>
       </div>
     </div>
-    <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:12px">모델 평균 대비 1.5배 이상 교체율을 보이는 (생산월 + 부품) 조합</div>
-    <!-- 정렬 컨트롤 -->
-    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px">
-      <span style="font-size:12px;font-weight:600;color:var(--text-secondary)">정렬</span>
-      ${[
-        {key:'배율',   label:'배율순'},
-        {key:'건수',   label:'건수순'},
-        {key:'생산년월', label:'생산년월순'},
-        {key:'모델',   label:'모델순'},
-      ].map(s=>`<button onclick="setProdAnomalySort('${s.key}')" style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;border:1px solid var(--border-subtle);cursor:pointer;transition:all .15s;background:${_prodAnomalySortKey===s.key?'var(--primary-500)':'var(--bg-surface)'};color:${_prodAnomalySortKey===s.key?'#fff':'var(--text-secondary)'}">${s.label}</button>`).join('')}
-    </div>
-    <div id="prodAnomalyTableWrap"></div>`;
+    <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:12px">색이 진할수록 해당 생산월에서 그 부품 교체율이 모델 평균 대비 높음 (이상탐지 기준: 1.5배 이상)</div>
 
-  // 초기 테이블 렌더
+    <!-- 뷰 전환 탭 -->
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <span style="font-size:12px;font-weight:600;color:var(--text-secondary)">보기</span>
+      <button class="heatmap-tab-btn" id="hmTabHeatmap" onclick="setHmTab('heatmap')"
+        style="background:var(--primary-500);color:#fff;border-color:var(--primary-500)">Heatmap</button>
+      <button class="heatmap-tab-btn" id="hmTabTable" onclick="setHmTab('table')"
+        style="background:var(--bg-surface);color:var(--text-secondary)">목록</button>
+      ${isAll && hmModels.length>1 ? `<span style="margin-left:8px;font-size:12px;font-weight:600;color:var(--text-secondary)">모델</span>
+        <button class="heatmap-model-chip active" id="hmChip_all" onclick="setHmModel('all')">전체</button>
+        ${hmModels.map(b=>`<button class="heatmap-model-chip" id="hmChip_${b}" onclick="setHmModel('${b}')">${modelDisplayName(b)}</button>`).join('')}` : ''}
+    </div>
+
+    <div id="hmHeatmapView">
+      ${hmYMs.length && hmParts.length ? `
+      <div class="heatmap-wrap">
+        <table class="heatmap-tbl">
+          <thead>
+            <tr>
+              <th class="row-hdr">생산년월</th>
+              ${hmParts.map(p=>`<th title="${p}">${p.length>8?p.slice(0,7)+'…':p}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${hmYMs.map(ym => {
+              const rowHasData = hmParts.some(p => hmCell[`${ym}|${p}`]);
+              if (!rowHasData) return '';
+              return `<tr>
+                <td style="font-size:10px;font-weight:600;color:var(--text-secondary);text-align:left;padding:4px 8px;position:sticky;left:0;background:var(--bg-surface);z-index:1;white-space:nowrap">${ym}</td>
+                ${hmParts.map(p => {
+                  const c = hmCell[`${ym}|${p}`];
+                  if (!c) return `<td class="heatmap-cell-0">—</td>`;
+                  const bg = hmColor(c.배율);
+                  const tc = hmTextColor(c.배율);
+                  return `<td style="background:${bg};color:${tc}" title="${c.모델} ${ym}\n${p}\n교체율 ${c.교체율}% (평균 ${c.평균}%)\n배율 ${c.배율}× / ${c.건수}건">${c.배율}×</td>`;
+                }).join('')}
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="heatmap-legend">
+        <span>낮음</span>
+        <div class="heatmap-legend-bar">
+          <span style="background:rgba(59,130,246,0.2)"></span>
+          <span style="background:rgba(59,130,246,0.5)"></span>
+          <span style="background:rgba(249,115,22,0.5)"></span>
+          <span style="background:rgba(249,115,22,0.9)"></span>
+          <span style="background:rgba(220,38,38,0.8)"></span>
+          <span style="background:rgba(220,38,38,1)"></span>
+        </div>
+        <span>높음</span>
+        <span style="margin-left:12px;color:var(--text-disabled)">셀 hover → 상세 수치</span>
+      </div>` : '<div class="empty-msg">이상 탐지 데이터 없음</div>'}
+    </div>
+
+    <!-- 목록 뷰 (기존 테이블) -->
+    <div id="hmTableView" style="display:none">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+        <span style="font-size:12px;font-weight:600;color:var(--text-secondary)">정렬</span>
+        ${[
+          {key:'배율',   label:'배율순'},
+          {key:'건수',   label:'건수순'},
+          {key:'생산년월', label:'생산년월순'},
+          {key:'모델',   label:'모델순'},
+        ].map(s=>`<button onclick="setProdAnomalySort('${s.key}')" style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;border:1px solid var(--border-subtle);cursor:pointer;transition:all .15s;background:${_prodAnomalySortKey===s.key?'var(--primary-500)':'var(--bg-surface)'};color:${_prodAnomalySortKey===s.key?'#fff':'var(--text-secondary)'}">${s.label}</button>`).join('')}
+      </div>
+      <div id="prodAnomalyTableWrap"></div>
+    </div>`;
+
+  // Heatmap 탭 전환 함수
+  window.setHmTab = (tab) => {
+    document.getElementById('hmHeatmapView').style.display = tab==='heatmap'?'':'none';
+    document.getElementById('hmTableView').style.display   = tab==='table'?'':'none';
+    document.getElementById('hmTabHeatmap').style.cssText = tab==='heatmap'
+      ? 'background:var(--primary-500);color:#fff;border-color:var(--primary-500)'
+      : 'background:var(--bg-surface);color:var(--text-secondary)';
+    document.getElementById('hmTabTable').style.cssText = tab==='table'
+      ? 'background:var(--primary-500);color:#fff;border-color:var(--primary-500)'
+      : 'background:var(--bg-surface);color:var(--text-secondary)';
+    if (tab==='table') renderProdAnomalyTable();
+  };
+  // 모델 칩 필터
+  window.setHmModel = (modelKey) => {
+    document.querySelectorAll('.heatmap-model-chip').forEach(el => el.classList.remove('active'));
+    document.getElementById('hmChip_'+(modelKey||'all'))?.classList.add('active');
+    // 해당 모델로 _prodAnomalyAll 임시 필터 후 섹션 재렌더는 복잡 — heatmap만 재빌드
+    const filtered = modelKey==='all' ? _prodAnomalyAll : _prodAnomalyAll.filter(a=>a.버킷===modelKey);
+    const fYMs   = [...new Set(filtered.map(a=>a.생산년월))].sort();
+    const fPFreq = {};
+    filtered.forEach(a => { fPFreq[a.부품] = (fPFreq[a.부품]||0)+1; });
+    const fParts = Object.entries(fPFreq).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([p])=>p);
+    const fCell  = {};
+    filtered.forEach(a => { fCell[`${a.생산년월}|${a.부품}`] = { 배율:+a.배율, 건수:+a.건수, 교체율:a.비율, 평균:a.평균비율, 모델:a.모델 }; });
+    const fMax   = Math.max(...filtered.map(a=>+a.배율), 1);
+    const fColor = r => { if(!r)return''; const t=Math.min(r/fMax,1); if(t<.33)return`rgba(59,130,246,${.15+t*1.5})`; if(t<.66)return`rgba(249,115,22,${.2+t})`; return`rgba(220,38,38,${.3+t*.7})`; };
+    const fTColor= r => (!r?'var(--text-disabled)':+r>=fMax*.5?'#fff':'var(--text-primary)');
+    const wrap = document.getElementById('hmHeatmapView');
+    if (!fYMs.length || !fParts.length) { wrap.innerHTML='<div class="empty-msg">이상 탐지 데이터 없음</div>'; return; }
+    wrap.innerHTML = `<div class="heatmap-wrap"><table class="heatmap-tbl"><thead><tr>
+      <th class="row-hdr">생산년월</th>${fParts.map(p=>`<th title="${p}">${p.length>8?p.slice(0,7)+'…':p}</th>`).join('')}
+      </tr></thead><tbody>${fYMs.map(ym=>{
+        const rHas=fParts.some(p=>fCell[`${ym}|${p}`]); if(!rHas)return'';
+        return`<tr><td style="font-size:10px;font-weight:600;color:var(--text-secondary);text-align:left;padding:4px 8px;position:sticky;left:0;background:var(--bg-surface);z-index:1;white-space:nowrap">${ym}</td>
+          ${fParts.map(p=>{const c=fCell[`${ym}|${p}`];if(!c)return`<td class="heatmap-cell-0">—</td>`;
+          return`<td style="background:${fColor(c.배율)};color:${fTColor(c.배율)}" title="${c.모델} ${ym}\n${p}\n교체율 ${c.교체율}% (평균 ${c.평균}%)\n배율 ${c.배율}× / ${c.건수}건">${c.배율}×</td>`;}).join('')}</tr>`;
+      }).join('')}</tbody></table></div>
+      <div class="heatmap-legend"><span>낮음</span><div class="heatmap-legend-bar">
+        <span style="background:rgba(59,130,246,0.2)"></span><span style="background:rgba(59,130,246,0.5)"></span>
+        <span style="background:rgba(249,115,22,0.5)"></span><span style="background:rgba(249,115,22,0.9)"></span>
+        <span style="background:rgba(220,38,38,0.8)"></span><span style="background:rgba(220,38,38,1)"></span>
+      </div><span>높음</span></div>`;
+  };
+
+  // 초기 테이블 렌더 (목록뷰용)
   renderProdAnomalyTable();
 
   // ── 우선 확인 대상 ──
@@ -2911,6 +3193,57 @@ function rtAggregate() {
     });
   }
 
+  // ── 핵심 부품 집중 분석 (CRITICAL 케이스 기준) ──
+  const KEY_PARTS = ['팬모터','교반모터','챔버','리데나','보온재'];
+  const keyPartStats = {}; // partKeyword → { total, critical, models:{}, syms:{} }
+  KEY_PARTS.forEach(kp => { keyPartStats[kp] = { keyword:kp, total:0, critical:0, models:{}, syms:{} }; });
+  reentries.forEach(re => {
+    re.curr.부품Set.forEach(p => {
+      if (!p) return;
+      KEY_PARTS.forEach(kp => {
+        if (p.includes(kp)) {
+          const s = keyPartStats[kp];
+          s.total++;
+          if (re.pri === 0) s.critical++;
+          const b = re.curr.모델버킷;
+          s.models[b] = (s.models[b]||0)+1;
+          re.curr.증상Set.forEach(sym => { if(sym) s.syms[sym] = (s.syms[sym]||0)+1; });
+        }
+      });
+    });
+  });
+
+  // ── 소음 → 후속 고장 관계 분석 ──
+  // 소음 AS 건 중 이후 재인입으로 이어진 케이스
+  const NOISE_KWD = '소음';
+  const noiseCS = new Set(); // 소음 증상 CS번호 Set
+  for (const rec of allCS) {
+    if (rec.증상Set.has(NOISE_KWD)) noiseCS.add(rec.csNo);
+  }
+  // 소음 → 후속 재인입 (prev가 소음 CS인 재인입)
+  const noiseReentries = reentries.filter(re => noiseCS.has(re.prev.csNo));
+  // 후속 재인입에서 등장한 부품 빈도
+  const noiseFollowParts = {};
+  const noiseFollowSyms  = {};
+  const noiseFollowDays  = { d30:0, d90:0, d180:0, d365:0 };
+  noiseReentries.forEach(re => {
+    re.curr.부품Set.forEach(p => { if(p) noiseFollowParts[p] = (noiseFollowParts[p]||0)+1; });
+    re.curr.증상Set.forEach(s => { if(s) noiseFollowSyms[s]  = (noiseFollowSyms[s]||0)+1;  });
+    if (re.days<=30)  noiseFollowDays.d30++;
+    if (re.days<=90)  noiseFollowDays.d90++;
+    if (re.days<=180) noiseFollowDays.d180++;
+    if (re.days<=365) noiseFollowDays.d365++;
+  });
+  const noiseStats = {
+    noiseTotal: noiseCS.size,
+    noiseReentryCount: noiseReentries.length,
+    noiseReentryRate: noiseCS.size ? (noiseReentries.length/noiseCS.size*100).toFixed(1) : '0.0',
+    followParts: noiseFollowParts,
+    followSyms:  noiseFollowSyms,
+    followDays:  noiseFollowDays,
+    criticalCount: noiseReentries.filter(r=>r.pri===0).length,
+  };
+
   // ── 생산월별 이상 탐지 ──
   // 모델별 전체 평균 부품 교체율 기준
   const bktPartTotal = {}; // bucket → { part → total CS count }
@@ -2978,6 +3311,7 @@ function rtAggregate() {
   return { totalCS, r1m, r3m, partRepeat, critical, upgradeCS,
     modelStats, typeCount, modelSymMap, modelPartA, modelPartB,
     modelCauseMap, partCauseMap,
+    keyPartStats, noiseStats,
     anomalies, priorityList, insights, reentries,
     fileCount:REENTRY_FILE_CNT, generatedAt:new Date().toLocaleString('ko-KR') };
 }
