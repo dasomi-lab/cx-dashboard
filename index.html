@@ -441,7 +441,7 @@ tr:hover td{background:var(--bg-alt);}
 .prod-anomaly-row-hi{background:rgba(194,70,70,.04);}
 .prod-anomaly-x{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--danger-bg);color:var(--danger-text);white-space:nowrap;}
 /* 핵심 부품 분석 */
-.key-parts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:12px;}
+.key-parts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:12px;}
 .key-part-card{border:1px solid var(--border-subtle);border-radius:10px;padding:12px 14px;background:var(--bg-alt);}
 .key-part-card-name{font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
 .key-part-card-name .kp-badge{font-size:10px;padding:1px 6px;border-radius:999px;font-weight:600;}
@@ -2222,9 +2222,13 @@ function renderReentry(){
       </div>`;
     }).join('') : '<div class="empty-msg">원인 데이터 없음</div>'}`;
 
-  // 부품별 원인 TOP — 증상 필터 적용
+  // 부품별 원인 TOP — 재인입 케이스 기준 (증상 필터 적용 시 해당 증상이 있는 재인입만)
+  const reentryCSNos = new Set(filtRe.map(r => r.curr.csNo));
+  const partCauseBase = reentrySymFilter
+    ? symFiltCS.filter(r => reentryCSNos.has(r.csNo))  // 재인입+증상 교집합
+    : symFiltCS;                                          // 증상 필터 없으면 전체 CS
   const filtPartCause = {};
-  symFiltCS.forEach(rec => {
+  partCauseBase.forEach(rec => {
     if (!rec.부품Set || !rec.원인Set) return;
     rec.부품Set.forEach(p => {
       if (!p) return;
@@ -2242,7 +2246,7 @@ function renderReentry(){
       <i data-lucide="wrench" class="icon card-hdr-icon-lc"></i>
       <div class="card-title">부품별 교체 원인${symBadge}</div>
     </div>
-    <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:16px">교체 빈도 높은 부품의 주요 원인</div>
+    <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:16px">교체 빈도 높은 부품의 주요 원인${reentrySymFilter?' — 재인입 케이스 기준':''}</div>
     ${topParts.length ? topParts.map(({part, total, causes}) => `
       <div style="padding:10px 0;border-bottom:1px solid var(--border-soft)">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -2274,8 +2278,8 @@ function renderReentry(){
     <div class="key-parts-grid">
       ${KEY_PARTS.map(kp => {
         const s = kps[kp] || { total:0, critical:0, models:{}, syms:{} };
-        const filtTotal = isAll ? s.total : (reentries.filter(re=>re.curr.모델버킷===sel && [...re.curr.부품Set].some(p=>p.includes(kp))).length);
-        const filtCrit  = isAll ? s.critical : (reentries.filter(re=>re.curr.모델버킷===sel && re.pri===0 && [...re.curr.부품Set].some(p=>p.includes(kp))).length);
+        const filtTotal = isAll ? s.total : filtRe.filter(re=>[...re.curr.부품Set].some(p=>p.includes(kp))).length;
+        const filtCrit  = isAll ? s.critical : filtRe.filter(re=>re.pri===0 && [...re.curr.부품Set].some(p=>p.includes(kp))).length;
         const color = kpColors[kp] || '#6366f1';
         const critRate = filtTotal ? (filtCrit/filtTotal*100).toFixed(0) : 0;
         // 해당 키워드 포함 실제 부품명 TOP3
@@ -2293,7 +2297,7 @@ function renderReentry(){
           </div>
           ${topRealParts.length ? topRealParts.map(([name,cnt])=>`
             <div class="key-part-row">
-              <div style="font-size:11px;color:var(--text-secondary);width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0" title="${name}">${name}</div>
+              <div style="font-size:11px;color:var(--text-secondary);width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0" title="${name}">${name}</div>
               <div class="key-part-bar-track"><div class="key-part-bar-fill" style="width:${Math.round(cnt/maxRP*100)}%;background:linear-gradient(90deg,${color}66,${color})"></div></div>
               <div class="key-part-val">${cnt}</div>
             </div>`).join('')
@@ -3519,7 +3523,10 @@ function renderSymDrill() {
 
   // 첫 번째 부품 자동 선택
   if (defaultPart) selectDrillPart(defaultSk, defaultPart);
-  el.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  // 드릴다운으로 스크롤 (DOM 업데이트 후)
+  requestAnimationFrame(() => {
+    el.scrollIntoView({ behavior:'smooth', block:'start' });
+  });
 }
 
 function selectDrillPart(sk, partName) {
