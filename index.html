@@ -520,6 +520,8 @@ tr:hover td{background:var(--bg-alt);}
 .kpi-card.kpi-danger{background:rgba(220,38,38,.05);}
 .kpi-card.kpi-clickable{transition:transform .15s,box-shadow .15s;}
 .kpi-card.kpi-clickable:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.12);}
+.reentry-slicer-chip.rt220-chip{opacity:.65;font-style:italic;}
+.reentry-slicer-chip.rt220-chip.on{opacity:1;}
 .kpi-rate-wrap{display:flex;align-items:center;gap:8px;margin-top:6px;}
 .kpi-rate-pct{font-size:20px;font-weight:800;color:var(--kpi-color);line-height:1;}
 .kpi-rate-bar{flex:1;height:5px;background:var(--bg-alt);border-radius:999px;overflow:hidden;}
@@ -2010,18 +2012,25 @@ function renderReentry(){
   // ── 모델 슬라이서 ──
   const modelKeys = Object.keys(D2.modelStats).sort((a,b) =>
     +D2.modelStats[b].m1r - +D2.modelStats[a].m1r);
+  const mainModelKeys = modelKeys.filter(k => k !== 'RT220');
+  const rt220Keys     = modelKeys.filter(k => k === 'RT220');
+  const mkChip = k => {
+    const isRt = k === 'RT220';
+    const mc = isRt ? {base:'#9CA3AF'} : getModelColor(k);
+    const activeStyle = sel===k ? `background:${mc.base};border-color:${mc.base};color:#fff` : '';
+    const dotColor = sel===k ? 'rgba(255,255,255,.7)' : mc.base;
+    return `<button class="reentry-slicer-chip${sel===k?' on':''}${isRt?' rt220-chip':''}" onclick="setReentryModel('${k}')" style="${activeStyle}">
+      <span style="width:7px;height:7px;border-radius:50%;background:${dotColor};display:inline-block;flex-shrink:0"></span>
+      ${modelDisplayName(k)}
+      <span style="opacity:.65;font-weight:500;font-size:10px;margin-left:2px">${D2.modelStats[k].m1r}%</span>
+    </button>`;
+  };
   document.getElementById('reentrySlicerRow').innerHTML = `
     <div class="reentry-slicer-bar">
       <span class="reentry-slicer-label">모델</span>
       <button class="reentry-slicer-chip${isAll?' on':''}" onclick="setReentryModel('전체')">전체</button>
-      ${modelKeys.map(k=>{
-        const mc = getModelColor(k);
-        return `<button class="reentry-slicer-chip${sel===k?' on':''}" onclick="setReentryModel('${k}')" style="${sel===k?`background:${mc.base};border-color:${mc.base};color:#fff`:''}">
-          <span style="width:7px;height:7px;border-radius:50%;background:${sel===k?'rgba(255,255,255,.7)':mc.base};display:inline-block;flex-shrink:0"></span>
-          ${modelDisplayName(k)}
-          <span style="opacity:.65;font-weight:500;font-size:10px;margin-left:2px">${D2.modelStats[k].m1r}%</span>
-        </button>`;
-      }).join('')}
+      ${mainModelKeys.map(mkChip).join('')}
+      ${rt220Keys.length ? `<span style="width:1px;height:18px;background:var(--border-subtle);display:inline-block;margin:0 4px;vertical-align:middle;flex-shrink:0"></span>${rt220Keys.map(mkChip).join('')}` : ''}
     </div>`;
 
   // ── KPI ──
@@ -2091,10 +2100,12 @@ function renderReentry(){
           <div style="font-size:12px;font-weight:700;color:#7c3aed;min-width:28px;text-align:right">${n}</div>
         </div>`).join('');
 
-      const modelChips = topModels.map(([m,n])=>`
-        <span style="display:inline-flex;align-items:center;gap:4px;background:#fef2f2;border:1px solid #fca5a5;border-radius:999px;padding:2px 10px;font-size:11px;font-weight:600;color:#dc2626">
-          ${modelDisplayName(m)} <span style="font-weight:800">${n}건</span>
-        </span>`).join('');
+      const modelChips = topModels.map(([m,n])=>{
+        const isRt = m === 'RT220';
+        return `<span style="display:inline-flex;align-items:center;gap:4px;${isRt?'background:#F3F4F6;border:1px solid #D1D5DB;color:#6B7280;opacity:.75':'background:#fef2f2;border:1px solid #fca5a5;color:#dc2626'};border-radius:999px;padding:2px 10px;font-size:11px;font-weight:600">
+          ${modelDisplayName(m)} <span style="font-weight:800">${n}건</span>${isRt?'<span style="font-size:9px;opacity:.8"> 참고</span>':''}
+        </span>`;
+      }).join('');
 
       c1mEl.innerHTML = `
         <div class="card" style="margin-bottom:20px;border:1.5px solid #fca5a5;background:rgba(254,242,242,.4)">
@@ -2145,7 +2156,8 @@ function renderReentry(){
     <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:14px">링 = 전체 재인입률(구간 합산) · 중앙 = 1개월(0~30일) 재인입률 · 주요 증상/부품→원인 포함</div>
     <div class="model-rate-grid">
     ${filtModelStats.length ? filtModelStats.map(r => {
-      const mc = getModelColor(r.버킷);
+      const isRt220 = r.버킷 === 'RT220';
+      const mc = isRt220 ? {base:'#9CA3AF', light:'#F3F4F6'} : getModelColor(r.버킷);
       const topSym  = topN(filtSymMap[r.버킷]||{}, 2);
       const topPart = topN(_reentryViewPartA[r.버킷]||{}, 3);
       // 부품별 주요 원인 1개
@@ -2154,11 +2166,12 @@ function renderReentry(){
         const topC = topN(causeMap, 1)[0];
         return { part: p.name, cnt: p.value, cause: topC ? topC.name : null };
       });
-      return `<div class="model-rate-card" style="flex-direction:column;align-items:stretch;padding:14px">
+      const rt220Badge = isRt220 ? `<span style="font-size:9px;font-weight:600;background:#E5E7EB;color:#6B7280;border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:middle">참고용</span>` : '';
+      return `<div class="model-rate-card" style="flex-direction:column;align-items:stretch;padding:14px${isRt220?';opacity:.7;border-color:#E5E7EB':''}">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
           ${makeRing(+r.mAllr, +r.m1r, mc.base)}
           <div style="flex:1;min-width:0">
-            <div class="model-rate-card-name" style="color:${mc.base}">${r.모델}</div>
+            <div class="model-rate-card-name" style="color:${mc.base}">${r.모델}${rt220Badge}</div>
             <div class="model-rate-card-total">전체 ${r.total.toLocaleString()}건</div>
             <div class="model-rate-card-rows">
               ${[['1~3개월',r.m3r],['3~6개월',r.m6r],['6~12개월',r.m12r]].map(([lbl,val])=>`
@@ -3814,9 +3827,10 @@ function exportReentryExcel() {
     ['━━━ 보고서 작성 권장 순서 ━━━', ''],
     ['STEP 1', '요약보고서 시트의 KPI 값을 보고서 표지에 기재'],
     ['STEP 2', '모델별 재인입률 표에서 상위 3개 모델 집중 분석'],
-    ['STEP 3', '재인입케이스 시트를 재인입유형 = "동일증상+동일부품" 필터 → CRITICAL 건 목록 확보'],
-    ['STEP 4', '피벗 테이블로 해당 모델의 반복 부품·원인 도출'],
-    ['STEP 5', '개선 방향 정리 → 기술팀 공유'],
+    ['STEP 3', '요약보고서 시트 "CRITICAL+1개월" 섹션에서 재발 증상·재교체 부품 TOP 확인'],
+    ['STEP 4', '재인입케이스 시트 → 경과일구간="1개월" + 재인입유형="동일증상+동일부품" 필터 → 개별 케이스 확인'],
+    ['STEP 5', '피벗 테이블로 해당 모델의 반복 부품·원인 도출 → 기술팀 공유'],
+    ['※ RT220', 'RT220(스마트휴지통)은 음식물처리기와 성격이 다른 제품 — 지표 해석 시 별도 참고'],
   ];
   const ws0 = XLSX.utils.aoa_to_sheet(g0);
   ws0['!cols'] = [{ wch: 28 }, { wch: 58 }];
@@ -3858,6 +3872,32 @@ function exportReentryExcel() {
   ['동일증상+동일부품','동일증상+다른부품','다른증상+동일부품','상이증상+상이부품'].forEach(t => {
     s1.push([t, D2.typeCount[t]||0]);
   });
+  s1.push([]);
+
+  // CRITICAL + 1개월 집중 분석
+  const c1mAll = D2.reentries.filter(r => r.pri === 0 && r.days <= 30);
+  const c1mSymCnt = {}, c1mPartCnt = {}, c1mMdlCnt = {};
+  c1mAll.forEach(r => {
+    (r.symOverlap||[]).forEach(s => { c1mSymCnt[s]=(c1mSymCnt[s]||0)+1; });
+    (r.partOverlap||[]).forEach(p => { c1mPartCnt[p]=(c1mPartCnt[p]||0)+1; });
+    const m = modelDisplayName(r.curr.모델버킷||'기타');
+    c1mMdlCnt[m]=(c1mMdlCnt[m]||0)+1;
+  });
+  const c1mTopSym  = Object.entries(c1mSymCnt).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const c1mTopPart = Object.entries(c1mPartCnt).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  s1.push([`[CRITICAL + 1개월 이내 집중 분석]  총 ${c1mAll.length}건 (동일증상+동일부품 · 30일 이내 재방문)`, '', '']);
+  s1.push(['모델별 건수', Object.entries(c1mMdlCnt).sort((a,b)=>b[1]-a[1]).map(([m,n])=>`${m}:${n}건`).join(' / '), '']);
+  s1.push([]);
+  s1.push(['  재발한 증상 TOP (symOverlap 기준)', '건수', '  재교체 부품 TOP (partOverlap 기준)', '건수']);
+  const maxLen = Math.max(c1mTopSym.length, c1mTopPart.length);
+  for (let i=0; i<maxLen; i++) {
+    s1.push([
+      c1mTopSym[i]  ? `  ${i+1}. ${c1mTopSym[i][0]}`  : '',
+      c1mTopSym[i]  ? c1mTopSym[i][1]  : '',
+      c1mTopPart[i] ? `  ${i+1}. ${c1mTopPart[i][0]}` : '',
+      c1mTopPart[i] ? c1mTopPart[i][1] : '',
+    ]);
+  }
   s1.push([]);
 
   // 생산월별 이상
