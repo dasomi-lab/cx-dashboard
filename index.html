@@ -2423,7 +2423,34 @@ function renderReentry(){
         <span style="font-size:12px;color:var(--text-tertiary);background:var(--bg-alt);border:1px solid var(--border-subtle);border-radius:999px;padding:2px 8px">${hmData.length}건</span>
       </div>
     </div>
-    <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:12px">색이 진할수록 해당 생산월에서 그 부품 교체율이 모델 평균 대비 높음 (이상탐지 기준: 1.5배 이상)</div>
+    <!-- 읽는 법 안내 -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <div style="flex:1;min-width:260px;background:var(--bg-alt);border:1px solid var(--border-subtle);border-radius:10px;padding:12px 14px">
+        <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:8px">📌 표 읽는 법</div>
+        <div style="display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--text-secondary);line-height:1.5">
+          <div><strong>숫자</strong> = 해당 생산월에서 실제 교체된 건수</div>
+          <div><strong>색</strong> = 모델 전체 평균 대비 교체율이 얼마나 높은지 (배율)</div>
+          <div style="color:var(--text-tertiary)">→ 숫자 크고 색 진한 셀 = 진짜 문제</div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:260px;background:var(--bg-alt);border:1px solid var(--border-subtle);border-radius:10px;padding:12px 14px">
+        <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:8px">🎨 색 기준 (배율)</div>
+        <div style="display:flex;flex-direction:column;gap:4px;font-size:11px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:3px;background:rgba(59,130,246,0.35);display:inline-block;flex-shrink:0"></span><span style="color:var(--text-secondary)">1.5× ~ 2× &nbsp;— 주의 (평균의 1.5~2배)</span></div>
+          <div style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:3px;background:rgba(249,115,22,0.7);display:inline-block;flex-shrink:0"></span><span style="color:var(--text-secondary)">2× ~ 3× &nbsp;— 경고 (평균의 2~3배)</span></div>
+          <div style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:3px;background:rgba(220,38,38,0.9);display:inline-block;flex-shrink:0"></span><span style="color:var(--text-secondary)">3× 이상 — 위험 (평균의 3배 초과)</span></div>
+          <div style="color:var(--text-disabled);margin-top:2px">이상탐지 최소 기준: 1.5배 이상 &amp; 3건 이상</div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:220px;background:var(--bg-alt);border:1px solid var(--border-subtle);border-radius:10px;padding:12px 14px">
+        <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:8px">💡 해석 예시</div>
+        <div style="font-size:11px;color:var(--text-secondary);line-height:1.7">
+          <div>건수 많음 + 색 연함 → <span style="color:var(--text-tertiary)">소모품 (정상)</span></div>
+          <div>건수 적음 + 색 진함 → <span style="color:#f97316">특정 로트 이상</span></div>
+          <div>건수 많음 + 색 진함 → <span style="color:#dc2626;font-weight:700">즉시 확인 필요</span></div>
+        </div>
+      </div>
+    </div>
 
     <!-- 뷰 전환 탭 -->
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">
@@ -2458,7 +2485,7 @@ function renderReentry(){
                   if (!c) return `<td class="heatmap-cell-0">—</td>`;
                   const bg = hmColor(c.배율);
                   const tc = hmTextColor(c.배율);
-                  return `<td style="background:${bg};color:${tc}" title="${c.모델} ${ym}\n${p}\n교체율 ${c.교체율}% (평균 ${c.평균}%)\n배율 ${c.배율}× / ${c.건수}건">${c.배율}×</td>`;
+                  return `<td style="background:${bg};color:${tc}" title="${c.모델} ${ym}&#10;${p}&#10;교체 ${c.건수}건 / 교체율 ${c.교체율}%&#10;모델평균 ${c.평균}% → ${c.배율}배 집중">${c.건수}건</td>`;
                 }).join('')}
               </tr>`;
             }).join('')}
@@ -2466,7 +2493,7 @@ function renderReentry(){
         </table>
       </div>
       <div class="heatmap-legend">
-        <span>낮음</span>
+        <span>배율 낮음</span>
         <div class="heatmap-legend-bar">
           <span style="background:rgba(59,130,246,0.2)"></span>
           <span style="background:rgba(59,130,246,0.5)"></span>
@@ -2475,8 +2502,8 @@ function renderReentry(){
           <span style="background:rgba(220,38,38,0.8)"></span>
           <span style="background:rgba(220,38,38,1)"></span>
         </div>
-        <span>높음</span>
-        <span style="margin-left:12px;color:var(--text-disabled)">셀 hover → 상세 수치</span>
+        <span>배율 높음</span>
+        <span style="margin-left:12px;color:var(--text-disabled)">숫자 = 교체 건수 · 색 = 배율(이상도) · 셀 hover → 상세</span>
       </div>` : '<div class="empty-msg">이상 탐지 데이터 없음</div>'}
     </div>
 
@@ -2529,7 +2556,7 @@ function renderReentry(){
         const rHas=fParts.some(p=>fCell[`${ym}|${p}`]); if(!rHas)return'';
         return`<tr><td style="font-size:10px;font-weight:600;color:var(--text-secondary);text-align:left;padding:4px 8px;position:sticky;left:0;background:var(--bg-surface);z-index:1;white-space:nowrap">${ym}</td>
           ${fParts.map(p=>{const c=fCell[`${ym}|${p}`];if(!c)return`<td class="heatmap-cell-0">—</td>`;
-          return`<td style="background:${fColor(c.배율)};color:${fTColor(c.배율)}" title="${c.모델} ${ym}\n${p}\n교체율 ${c.교체율}% (평균 ${c.평균}%)\n배율 ${c.배율}× / ${c.건수}건">${c.배율}×</td>`;}).join('')}</tr>`;
+          return`<td style="background:${fColor(c.배율)};color:${fTColor(c.배율)}" title="${c.모델} ${ym}&#10;${p}&#10;교체 ${c.건수}건 / 교체율 ${c.교체율}%&#10;모델평균 ${c.평균}% → ${c.배율}배 집중">${c.건수}건</td>`;}).join('')}</tr>`;
       }).join('')}</tbody></table></div>
       <div class="heatmap-legend"><span>낮음</span><div class="heatmap-legend-bar">
         <span style="background:rgba(59,130,246,0.2)"></span><span style="background:rgba(59,130,246,0.5)"></span>
