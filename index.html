@@ -2441,9 +2441,10 @@ function renderReentry(){
   const hmData = _prodAnomalyAll;
   const hmYMs  = [...new Set(hmData.map(a=>a.생산년월))].sort();
   // 상위 부품 (등장 빈도순 TOP12)
-  const hmPartFreq = {};
-  hmData.forEach(a => { hmPartFreq[a.부품] = (hmPartFreq[a.부품]||0)+1; });
-  const hmParts = Object.entries(hmPartFreq).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([p])=>p);
+  // 부품별 총 교체 건수 합산 → 많이 교체되는 부품 순으로 컬럼 배치
+  const hmPartTotal = {};
+  hmData.forEach(a => { hmPartTotal[a.부품] = (hmPartTotal[a.부품]||0) + (+a.건수||0); });
+  const hmParts = Object.entries(hmPartTotal).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([p])=>p);
   // (생산년월, 부품) → 배율 맵
   const hmCell = {};
   hmData.forEach(a => { hmCell[`${a.생산년월}|${a.부품}`] = { 배율:+a.배율, 건수:+a.건수, 교체율:a.비율, 평균:a.평균비율, 모델:a.모델 }; });
@@ -2590,9 +2591,9 @@ function renderReentry(){
     // 해당 모델로 _prodAnomalyAll 임시 필터 후 섹션 재렌더는 복잡 — heatmap만 재빌드
     const filtered = modelKey==='all' ? _prodAnomalyAll : _prodAnomalyAll.filter(a=>a.버킷===modelKey);
     const fYMs   = [...new Set(filtered.map(a=>a.생산년월))].sort();
-    const fPFreq = {};
-    filtered.forEach(a => { fPFreq[a.부품] = (fPFreq[a.부품]||0)+1; });
-    const fParts = Object.entries(fPFreq).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([p])=>p);
+    const fPTotal = {};
+    filtered.forEach(a => { fPTotal[a.부품] = (fPTotal[a.부품]||0) + (+a.건수||0); });
+    const fParts = Object.entries(fPTotal).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([p])=>p);
     const fCell  = {};
     filtered.forEach(a => { fCell[`${a.생산년월}|${a.부품}`] = { 배율:+a.배율, 건수:+a.건수, 교체율:a.비율, 평균:a.평균비율, 모델:a.모델 }; });
     const fMax   = Math.max(...filtered.map(a=>+a.배율), 1);
