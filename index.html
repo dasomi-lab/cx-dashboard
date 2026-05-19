@@ -1232,7 +1232,7 @@ function getReentrySnapshot() {
     modelStats: D2.modelStats, typeCount: D2.typeCount || {},
     anomalies: (D2.anomalies || []).slice(0, 50),
     insights: D2.insights || [],
-    priorityList: (D2.priorityList || []).slice(0, 100).map(compactRec),
+    priorityList: (D2.priorityList || []).slice(0, 3000).map(compactRec),
     reentries: (D2.reentries || []).slice(0, 2000).map(compactRec),
     _isSnapshot: true
   };
@@ -2728,7 +2728,7 @@ function renderReentry(){
 
   // 필터 적용
   const critical1mList = filtPriority.filter(r => r.pri === 0 && r.days <= 30);
-  const dispPriority   = _priorityFilter === 'critical_1m' ? critical1mList : filtPriority;
+  const dispPriority   = (_priorityFilter === 'critical_1m' ? critical1mList : filtPriority).slice(0, 300);
   const filterLabel    = _priorityFilter === 'critical_1m'
     ? `<span style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:999px;padding:2px 10px;font-size:11px;font-weight:700">🚨 CRITICAL + 1개월 이내만</span>`
     : '';
@@ -3496,8 +3496,7 @@ function rtAggregate() {
   // ── 우선 확인 대상 (CRITICAL→기간 짧은순) ──
   const priorityList = reentries
     .filter(r => r.pri <= 2)
-    .sort((a,b) => a.pri-b.pri || a.days-b.days)
-    .slice(0, 100);
+    .sort((a,b) => a.pri-b.pri || a.days-b.days);
 
   // ── AI 인사이트 ──
   const insights = rtGenInsights({ reentries, modelStats, typeCount, anomalies, r1m, r3m, totalCS });
