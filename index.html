@@ -4345,6 +4345,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderWeekly();
   document.getElementById('sbSavedTime').textContent = hasLocal ? '로컬 데이터 표시 중' : '기본 데이터 표시 중';
   await loadReportFromUrl();
+
+  // ── 상단 이동 버튼 ──
+  const topBtn = document.createElement('button');
+  topBtn.id = 'scrollTopBtn';
+  topBtn.innerHTML = '↑';
+  topBtn.title = '페이지 상단으로';
+  topBtn.style.cssText = [
+    'position:fixed', 'right:24px', 'bottom:72px',
+    'width:44px', 'height:44px', 'border-radius:50%',
+    'background:var(--primary-500)', 'color:#fff',
+    'border:none', 'font-size:20px', 'font-weight:700',
+    'cursor:pointer', 'z-index:9998',
+    'opacity:0', 'pointer-events:none',
+    'transition:opacity .25s, transform .25s',
+    'box-shadow:0 2px 10px rgba(0,0,0,.18)',
+    'display:flex', 'align-items:center', 'justify-content:center',
+  ].join(';');
+  document.body.appendChild(topBtn);
+
+  topBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+  window.addEventListener('scroll', () => {
+    const show = window.scrollY > 300;
+    topBtn.style.opacity = show ? '1' : '0';
+    topBtn.style.pointerEvents = show ? 'auto' : 'none';
+    topBtn.style.transform = show ? 'translateY(0)' : 'translateY(10px)';
+  }, { passive: true });
 });
 </script>
 </body>
