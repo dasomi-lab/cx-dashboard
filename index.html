@@ -535,10 +535,10 @@ tr:hover td{background:var(--bg-alt);}
 .model-rate-card-total{font-size:11px;color:var(--text-tertiary);margin-bottom:10px;}
 .model-rate-card-rows{display:flex;flex-direction:column;gap:5px;}
 .model-rate-card-row{display:flex;align-items:center;gap:6px;}
-.model-rate-card-lbl{font-size:10px;font-weight:600;color:var(--text-tertiary);width:54px;flex-shrink:0;text-align:right;white-space:nowrap;}
+.model-rate-card-lbl{font-size:10px;font-weight:600;color:var(--text-tertiary);width:60px;flex-shrink:0;text-align:right;white-space:nowrap;}
 .model-rate-card-track{flex:1;height:5px;background:var(--bg-surface);border-radius:999px;overflow:hidden;}
 .model-rate-card-fill{height:100%;border-radius:999px;}
-.model-rate-card-val{font-size:11px;font-weight:600;width:36px;text-align:right;flex-shrink:0;color:var(--text-secondary);}
+.model-rate-card-val{font-size:11px;font-weight:600;width:72px;text-align:right;flex-shrink:0;color:var(--text-secondary);white-space:nowrap;}
 
 /* 재인입 유형 비율 바 */
 .type-v2{padding:12px 0;border-bottom:1px solid var(--border-soft);}
@@ -1265,40 +1265,72 @@ async function saveReportToSupabase(){
   lucide.createIcons();
 
   try{
-    const reportKey = deriveReportKey();
-    const weeklyAssetForSave = await uploadWeeklyAssetToStorage(reportKey);
-    if(weeklyAssetForSave) WEEKLY_ASSET = weeklyAssetForSave;
+    // ── Step 1: report key
+    let reportKey;
+    try { reportKey = deriveReportKey(); }
+    catch(e){ throw new Error('Step1(키 생성) 실패: ' + e.message); }
 
-    const persistPayload = getPersistPayload();
-    persistPayload.weeklyAsset = weeklyAssetForSave;
+    // ── Step 2: weekly asset upload (실패해도 저장 계속)
+    let weeklyAssetForSave = null;
+    try {
+      weeklyAssetForSave = await uploadWeeklyAssetToStorage(reportKey);
+      if(weeklyAssetForSave) WEEKLY_ASSET = weeklyAssetForSave;
+    } catch(e){ console.warn('[DB저장] 주간자료 업로드 실패(무시):', e.message); }
 
-    const payload = {
-      report_key: reportKey,
-      title: `CX Dashboard ${D.period || ''}`.trim(),
-      period: D.period || '',
-      data: persistPayload,
-      updated_at: new Date().toISOString()
-    };
+    // ── Step 3: 페이로드 직렬화
+    let payloadJson;
+    try {
+      const persistPayload = getPersistPayload();
+      persistPayload.weeklyAsset = weeklyAssetForSave;
 
-    const { error } = await sb
-      .from('cx_reports')
-      .upsert(payload, { onConflict: 'report_key' });
+      // 재인입 스냅샷 크기 제한
+      if (persistPayload.reentrySnapshot) {
+        const snap = persistPayload.reentrySnapshot;
+        snap.priorityList = (snap.priorityList||[]).slice(0, 500);
+        snap.reentries    = (snap.reentries||[]).slice(0, 500);
+      }
 
-    if(error) throw error;
+      const payload = {
+        report_key: reportKey,
+        title: `CX Dashboard ${D.period || ''}`.trim(),
+        period: D.period || '',
+        data: persistPayload,
+        updated_at: new Date().toISOString()
+      };
+      payloadJson = JSON.stringify(payload);
+      console.log(`[DB저장] 페이로드: ${(payloadJson.length/1024).toFixed(0)} KB`);
+    } catch(e){ throw new Error('Step3(직렬화) 실패: ' + e.message); }
 
+    // ── Step 4: Supabase upsert
+    try {
+      const { error } = await sb
+        .from('cx_reports')
+        .upsert(JSON.parse(payloadJson), { onConflict: 'report_key' });
+      if(error) throw error;
+    } catch(e){ throw new Error('Step4(DB저장) 실패: ' + (e.message||JSON.stringify(e))); }
+
+    // ── 저장 성공
     ACTIVE_REPORT_KEY = reportKey;
     const shareUrl = `${location.origin}${location.pathname}?report=${encodeURIComponent(reportKey)}`;
-    if(navigator.clipboard?.writeText){
-      await navigator.clipboard.writeText(shareUrl);
-      showSaveToast('DB 저장 완료 · 공유 링크가 복사되었습니다');
-    }else{
-      showSaveToast('DB 저장 완료');
-    }
-    alert(`DB 저장이 완료되었습니다.\n공유 링크:\n${shareUrl}`);
+    try {
+      if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(shareUrl);
+    } catch(_) {}
     history.replaceState({}, '', `${location.pathname}?report=${encodeURIComponent(reportKey)}`);
+
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="check" class="icon"></i>저장 완료';
+    lucide.createIcons();
+    showSaveToast('✅ DB 저장 완료 — ' + reportKey);
+    document.getElementById('sbSavedTime').textContent = `저장: ${new Date().toLocaleString('ko-KR')}`;
+    setTimeout(() => { btn.innerHTML = original; lucide.createIcons(); }, 3000);
+    return; // finally 에서 원본 복구 방지
+
   }catch(e){
-    console.error(e);
-    alert('DB 저장 실패: ' + (e?.message || e));
+    console.error('[DB저장 실패]', e);
+    const msg = e?.message || String(e);
+    showSaveToast('❌ 저장 실패: ' + msg);
+    // 사이드바 저장 시각에도 에러 표시
+    document.getElementById('sbSavedTime').textContent = '저장 실패: ' + msg.slice(0, 60);
   }finally{
     btn.disabled = false;
     btn.innerHTML = original;
@@ -1929,12 +1961,16 @@ function renderReentry(){
   const filtCS  = isAll ? allCS : allCS.filter(r => r.모델버킷 === sel);
   const filtRe  = isAll ? D2.reentries : D2.reentries.filter(r => r.curr.모델버킷 === sel);
 
-  const totalCS    = filtCS.length;
+  // REENTRY_RAW가 비어있으면(DB 로드 상태) D2.totalCS / 모델별 건수로 폴백
+  const rawEmpty = allCS.length === 0 && D2.totalCS > 0;
+  const totalCS = rawEmpty
+    ? (isAll ? D2.totalCS : (D2.modelStats?.[sel]?.total || 0))
+    : filtCS.length;
   const r1m        = filtRe.filter(r => r.days <= 30).length;
   const r3m        = filtRe.filter(r => r.days > 30 && r.days <= 90).length;
   const partRepeat = filtRe.filter(r => r.partOverlap.length > 0).length;
   const critical   = filtRe.filter(r => r.pri === 0).length;
-  const upgradeCS  = filtCS.filter(r => r.증상Set && r.증상Set.has('업그레이드')).length;
+  const upgradeCS  = rawEmpty ? D2.upgradeCS : filtCS.filter(r => r.증상Set && r.증상Set.has('업그레이드')).length;
 
   const filtTypeCount = {};
   filtRe.forEach(r => { filtTypeCount[r.type] = (filtTypeCount[r.type]||0)+1; });
@@ -2438,28 +2474,28 @@ function renderReentry(){
       const mc   = getModelColor(b);
       const rate = D2.modelStats[b].total ? (stat.count/D2.modelStats[b].total*100).toFixed(1) : '0.0';
       return `
-        <div style="border:1px solid var(--border-subtle);border-radius:10px;padding:14px 16px;background:var(--bg-surface);border-left:3px solid ${mc.base}">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <div style="font-size:13px;font-weight:700;color:${mc.base}">${modelDisplayName(b)}</div>
-            <span style="font-size:11px;background:var(--danger-50,#fff0f0);color:var(--danger-text);border-radius:999px;padding:2px 8px;font-weight:600">소음 재인입 ${stat.count}건</span>
+        <div style="border:1px solid var(--border-subtle);border-radius:10px;padding:14px 16px;background:var(--bg-surface);border-left:3px solid ${mc.base};min-width:0">
+          <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px">
+            <div style="font-size:13px;font-weight:700;color:${mc.base};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${modelDisplayName(b)}</div>
+            <span style="font-size:11px;background:var(--danger-50,#fff0f0);color:var(--danger-text);border-radius:999px;padding:2px 8px;font-weight:600;align-self:flex-start;white-space:nowrap">소음 재인입 ${stat.count}건</span>
           </div>
           <div style="display:flex;flex-direction:column;gap:8px">
-            <div style="background:var(--bg-alt);border-radius:8px;padding:8px 12px">
-              <div style="font-size:10px;font-weight:600;color:var(--text-tertiary);margin-bottom:4px">🔧 소음 후 교체 부품 1위</div>
+            <div style="background:var(--bg-alt);border-radius:8px;padding:8px 12px;min-width:0">
+              <div style="font-size:10px;font-weight:600;color:var(--text-tertiary);margin-bottom:4px;white-space:nowrap">🔧 소음 후 교체 부품 1위</div>
               ${stat.topPart
-                ? `<div style="font-size:13px;font-weight:700;color:var(--text-primary)">${stat.topPart[0]}</div>
-                   <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px">${stat.topPart[1]}건 교체 — 소음 재인입의 ${Math.round(stat.topPart[1]/stat.count*100)}%</div>`
+                ? `<div style="font-size:13px;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${stat.topPart[0]}</div>
+                   <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;white-space:nowrap">${stat.topPart[1]}건 교체 — 소음 재인입의 ${Math.round(stat.topPart[1]/stat.count*100)}%</div>`
                 : `<div style="font-size:12px;color:var(--text-disabled)">데이터 없음</div>`}
             </div>
-            <div style="background:var(--bg-alt);border-radius:8px;padding:8px 12px">
-              <div style="font-size:10px;font-weight:600;color:var(--text-tertiary);margin-bottom:4px">⚠️ 후속 접수 증상 1위</div>
+            <div style="background:var(--bg-alt);border-radius:8px;padding:8px 12px;min-width:0">
+              <div style="font-size:10px;font-weight:600;color:var(--text-tertiary);margin-bottom:4px;white-space:nowrap">⚠️ 후속 접수 증상 1위</div>
               ${stat.topSym
-                ? `<div style="font-size:13px;font-weight:700;color:var(--text-primary)">${stat.topSym[0]}</div>
-                   <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px">${stat.topSym[1]}건</div>`
+                ? `<div style="font-size:13px;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${stat.topSym[0]}</div>
+                   <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;white-space:nowrap">${stat.topSym[1]}건</div>`
                 : `<div style="font-size:12px;color:var(--text-disabled)">데이터 없음</div>`}
             </div>
           </div>
-          <div style="margin-top:8px;font-size:11px;color:var(--text-tertiary)">1개월 이내 ${stat.days.d30}건 · CRITICAL ${stat.critical}건</div>
+          <div style="margin-top:8px;font-size:11px;color:var(--text-tertiary);white-space:nowrap">1개월 이내 ${stat.days.d30}건 · CRITICAL ${stat.critical}건</div>
         </div>`;
     }).filter(Boolean);
 
@@ -3874,9 +3910,9 @@ function exportReentryExcel() {
 
   // 모델별 재인입률
   s1.push(['[모델별 재인입률]', '', '', '', '', '', '', '', '']);
-  s1.push(['모델', '전체AS', '1개월(0~30일)', '1개월%', '1~3개월(31~90일)', '1~3개월%', '3~6개월(91~180일)', '3~6개월%', '6~12개월%']);
+  s1.push(['모델', '전체AS', '1개월(0~30일)', '1개월%', '1~3개월(31~90일)', '1~3개월%', '3~6개월(91~180일)', '3~6개월%', '6~12개월(건)', '6~12개월%']);
   Object.values(D2.modelStats).sort((a,b)=>+b.m1r-+a.m1r).forEach(r => {
-    s1.push([r.모델, r.total, r.m1, r.m1r+'%', r.m3, r.m3r+'%', r.m6, r.m6r+'%', r.m12r+'%']);
+    s1.push([r.모델, r.total, r.m1, r.m1r+'%', r.m3, r.m3r+'%', r.m6, r.m6r+'%', r.m12, r.m12r+'%']);
   });
   s1.push([]);
 
@@ -4146,6 +4182,7 @@ function goTab(tab){
   document.getElementById(`pane-${tab}`).classList.add('on');
   document.querySelectorAll('.nv').forEach(el=>el.classList.remove('on'));
   document.getElementById(`nv-${tab}`).classList.add('on');
+  window.scrollTo({ top: 0, behavior: 'instant' });
   document.getElementById('topTitle').textContent = ({
     dashboard:'Dashboard', reviews:'Reviews', bymodel:'By Model', exchange_refund:'교환 / 환불', weekly:'Weekly 이슈', reentry:'A/S 재인입 분석'
   })[tab];
