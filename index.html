@@ -2954,6 +2954,11 @@ function applyFiles(){
   const chR = FILES.get('channel')?.rows || [];
 
   if (csR.length) {
+    // CS 데이터에서 자동으로 재인입 분류
+    REENTRY_RAW.clear();
+    rtBuildCSRecords(csR);
+    REENTRY_DATA = rtAggregate();
+
     const modelMap = {}, symMap = {}, reinMap = {}, statusMap = {}, modelSymMap = {}, asTypeByModel = {};
     let completed = 0, asRein = 0;
 
