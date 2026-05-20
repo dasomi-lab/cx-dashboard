@@ -1215,6 +1215,7 @@ function getReentrySnapshot() {
   if (!REENTRY_DATA) return null;
   const D2 = REENTRY_DATA;
   const setToArr = s => s instanceof Set ? [...s].filter(Boolean) : (Array.isArray(s) ? s.filter(Boolean) : []);
+  // prev의 증상Set·부품Set은 symOverlap·partOverlap에 이미 저장 → 제거해 용량 절약
   const compactRec = r => ({
     type: r.type, pri: r.pri, days: r.days, period: r.period,
     symOverlap: r.symOverlap || [], partOverlap: r.partOverlap || [],
@@ -1222,18 +1223,18 @@ function getReentrySnapshot() {
             고객명: r.curr.고객명 ? r.curr.고객명.slice(0,1)+'**' : '',
             증상Set: setToArr(r.curr.증상Set), 부품Set: setToArr(r.curr.부품Set),
             생산년월: r.curr.생산년월 || '' },
-    prev: { csNo: r.prev.csNo, 모델버킷: r.prev.모델버킷,
-            증상Set: setToArr(r.prev.증상Set), 부품Set: setToArr(r.prev.부품Set) }
+    prev: { csNo: r.prev.csNo, 모델버킷: r.prev.모델버킷 }
   });
   return {
     totalCS: D2.totalCS, r1m: D2.r1m, r3m: D2.r3m,
     partRepeat: D2.partRepeat, critical: D2.critical, upgradeCS: D2.upgradeCS,
     fileCount: D2.fileCount, generatedAt: D2.generatedAt,
     modelStats: D2.modelStats, typeCount: D2.typeCount || {},
+    modelSymMap: D2.modelSymMap || {}, modelPartA: D2.modelPartA || {}, modelPartB: D2.modelPartB || {},
     anomalies: (D2.anomalies || []).slice(0, 50),
     insights: D2.insights || [],
-    priorityList: (D2.priorityList || []).slice(0, 3000).map(compactRec),
-    reentries: (D2.reentries || []).slice(0, 2000).map(compactRec),
+    priorityList: (D2.priorityList || []).slice(0, 500).map(compactRec),
+    reentries: (D2.reentries || []).slice(0, 3000).map(compactRec),
     _isSnapshot: true
   };
 }
@@ -1966,10 +1967,11 @@ function renderReentry(){
   const totalCS = rawEmpty
     ? (isAll ? D2.totalCS : (D2.modelStats?.[sel]?.total || 0))
     : filtCS.length;
-  const r1m        = filtRe.filter(r => r.days <= 30).length;
-  const r3m        = filtRe.filter(r => r.days > 30 && r.days <= 90).length;
-  const partRepeat = filtRe.filter(r => r.partOverlap.length > 0).length;
-  const critical   = filtRe.filter(r => r.pri === 0).length;
+  // rawEmpty(DB 로드)이면 미리 집계된 값 사용 — 배열 잘림 방지
+  const r1m        = (rawEmpty && isAll) ? D2.r1m        : filtRe.filter(r => r.days <= 30).length;
+  const r3m        = (rawEmpty && isAll) ? D2.r3m        : filtRe.filter(r => r.days > 30 && r.days <= 90).length;
+  const partRepeat = (rawEmpty && isAll) ? D2.partRepeat : filtRe.filter(r => r.partOverlap.length > 0).length;
+  const critical   = (rawEmpty && isAll) ? D2.critical   : filtRe.filter(r => r.pri === 0).length;
   const upgradeCS  = rawEmpty ? D2.upgradeCS : filtCS.filter(r => r.증상Set && r.증상Set.has('업그레이드')).length;
 
   const filtTypeCount = {};
