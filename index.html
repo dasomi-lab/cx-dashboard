@@ -1968,11 +1968,17 @@ function renderReentry(){
     ? (isAll ? D2.totalCS : (D2.modelStats?.[sel]?.total || 0))
     : filtCS.length;
   // rawEmpty(DB 로드)이면 미리 집계된 값 사용 — 배열 잘림 방지
-  const r1m        = (rawEmpty && isAll) ? D2.r1m        : filtRe.filter(r => r.days <= 30).length;
-  const r3m        = (rawEmpty && isAll) ? D2.r3m        : filtRe.filter(r => r.days > 30 && r.days <= 90).length;
-  const partRepeat = (rawEmpty && isAll) ? D2.partRepeat : filtRe.filter(r => r.partOverlap.length > 0).length;
-  const critical   = (rawEmpty && isAll) ? D2.critical   : filtRe.filter(r => r.pri === 0).length;
-  const upgradeCS  = rawEmpty ? D2.upgradeCS : filtCS.filter(r => r.증상Set && r.증상Set.has('업그레이드')).length;
+  const ms = rawEmpty && !isAll ? D2.modelStats?.[sel] : null; // 모델별 사전 집계
+  const r1m        = rawEmpty ? (isAll ? D2.r1m        : (ms?.m1         ?? filtRe.filter(r=>r.days<=30).length))
+                              : filtRe.filter(r=>r.days<=30).length;
+  const r3m        = rawEmpty ? (isAll ? D2.r3m        : (ms?.m3         ?? filtRe.filter(r=>r.days>30&&r.days<=90).length))
+                              : filtRe.filter(r=>r.days>30&&r.days<=90).length;
+  const partRepeat = rawEmpty ? (isAll ? D2.partRepeat : (ms?.partRepeat ?? filtRe.filter(r=>r.partOverlap.length>0).length))
+                              : filtRe.filter(r=>r.partOverlap.length>0).length;
+  const critical   = rawEmpty ? (isAll ? D2.critical   : (ms?.critical   ?? filtRe.filter(r=>r.pri===0).length))
+                              : filtRe.filter(r=>r.pri===0).length;
+  const upgradeCS  = rawEmpty ? (isAll ? D2.upgradeCS  : (ms?.upgradeCS  ?? 0))
+                              : filtCS.filter(r=>r.증상Set&&r.증상Set.has('업그레이드')).length;
 
   const filtTypeCount = {};
   filtRe.forEach(r => { filtTypeCount[r.type] = (filtTypeCount[r.type]||0)+1; });
@@ -3388,8 +3394,12 @@ function rtAggregate() {
           m6 =bRe.filter(r=>r.days>90&&r.days<=180).length,
           m12=bRe.filter(r=>r.days>180&&r.days<=365).length;
     const mAll = m1+m3+m6+m12;
+    const mPartRepeat = bRe.filter(r=>r.partOverlap.length>0).length;
+    const mCritical   = bRe.filter(r=>r.pri===0).length;
+    const mUpgrade    = bCS.filter(r=>r.증상Set.has('업그레이드')).length;
     modelStats[b] = { 버킷:b, 모델:modelDisplayName(b), total:tot,
-      m1,m3,m6,m12,mAll, m1r:pct(m1), m3r:pct(m3), m6r:pct(m6), m12r:pct(m12), mAllr:pct(mAll) };
+      m1,m3,m6,m12,mAll, m1r:pct(m1), m3r:pct(m3), m6r:pct(m6), m12r:pct(m12), mAllr:pct(mAll),
+      partRepeat:mPartRepeat, critical:mCritical, upgradeCS:mUpgrade };
   }
 
   // ── 재인입 유형별 건수 ──
