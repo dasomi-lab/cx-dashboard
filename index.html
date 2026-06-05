@@ -769,6 +769,9 @@ tr:hover td{background:var(--bg-alt);}
         <!-- KPI 6개 -->
         <div class="kpi-grid" id="reentryKpiGrid" style="padding:20px 20px 0"></div>
 
+        <!-- 재인입 원인 진단 (경영 요약) -->
+        <div class="card" id="reentryDiagnosisSection" style="margin:16px 20px 0"></div>
+
         <!-- CRITICAL + 1개월 요약 -->
         <div id="reentryCritical1mSection" style="padding:0 20px 0"></div>
 
@@ -1994,7 +1997,7 @@ function renderReentry(){
       <div class="reentry-no-data-title">DB 불러오기 또는 AS재인입 파일을 업로드해 주세요</div>
       <div class="reentry-no-data-desc">히스토리 DB저장으로 업로드한 데이터가 있으면 상단 <strong>DB 불러오기</strong> 버튼으로 바로 분석됩니다.<br>또는 AS_202501.csv ~ AS_202604.csv 파일을 상단 Drive 불러오기 버튼으로 한 번에 올리면 자동 분석됩니다.</div>
     </div>`;
-    ['reentrySlicerRow','reentryKpiGrid','reentryModelTable','reentryTypeList',
+    ['reentrySlicerRow','reentryKpiGrid','reentryDiagnosisSection','reentryModelTable','reentryTypeList',
      'reentrySymptomByModel','reentryPartsByModel',
      'reentryCauseByModel','reentryPartCause',
      'reentryCritical1mSection',
@@ -2982,6 +2985,173 @@ function renderReentry(){
 
   lucide.createIcons();
   renderSymDrill();
+  renderReentryDiagnosis();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   재인입 원인 진단 — 경영 요약·추이·부품 유발률·로트 이상·귀책 구성
+══════════════════════════════════════════════════════════════ */
+const REENTRY_COST_PER_CASE = 36000; // 건당 손실 단가(왕복택배+공임+CS응대) — 추정 기준값
+const CAUSE_GROUP_MAP = {
+  '공정':    ['조립불량','조립불량(X)','납땜불량','누락','탈거','빠짐'],
+  '물류':    ['배송중 파손'],
+  '제조':    ['불량','불량(X)','사출불량','도장불량','소손','단선','단선(X)','자력불량','재질불량','단자파손','손상','파손'],
+  '설계':    ['신형교체','재질변경','구조문제','휘어짐','마찰소음','마모','노후'],
+  '소모':    ['늘어남'],
+  '사용환경': ['오염','부식','부식/녹슴','고객과실','사용환경문제','이물질 낌'],
+};
+const CAUSE_EXCLUDE = new Set(['구매','발송','이상없음']);
+function causeGroupOf(c){
+  for (const [g, list] of Object.entries(CAUSE_GROUP_MAP)) if (list.includes(c)) return g;
+  return CAUSE_EXCLUDE.has(c) ? null : '기타';
+}
+const fmtWon = v => v >= 100000000 ? (v/100000000).toFixed(1)+'억원' : Math.round(v/10000).toLocaleString()+'만원';
+let _diagTrendChart = null, _diagPartChart = null;
+
+function renderReentryDiagnosis(){
+  const el = document.getElementById('reentryDiagnosisSection');
+  if (!el) return;
+  const D2 = REENTRY_DATA;
+  if (!D2) { el.innerHTML = ''; return; }
+
+  const hdr = `<div class="card-hdr"><i data-lucide="stethoscope" class="icon card-hdr-icon-lc"></i>
+    <div class="card-title">재인입 원인 진단</div>
+    <span style="font-size:12px;color:var(--text-tertiary);margin-left:8px">경영 요약 — 추세·비용·원인 귀책</span></div>`;
+
+  if (D2._isSnapshot || !REENTRY_RAW.size) {
+    el.innerHTML = hdr + `<div class="empty-msg">상단 <strong>DB 불러오기</strong> 실행 시 원본 데이터 기반으로 표시됩니다</div>`;
+    return;
+  }
+
+  const reList = D2.reentries || [];
+  const allCS  = [...REENTRY_RAW.values()].filter(r => r.회수일자 && !isNaN(r.회수일자));
+  if (!allCS.length || !reList.length) { el.innerHTML = hdr + '<div class="empty-msg">분석 데이터 없음</div>'; return; }
+
+  const wkCS = {}, wkRe = {};
+  allCS.forEach(r => { const k = getWeekKey(r.회수일자); wkCS[k] = (wkCS[k]||0)+1; });
+  reList.forEach(re => { const d = re.curr.회수일자; if(!d||isNaN(d)) return; const k = getWeekKey(d); wkRe[k] = (wkRe[k]||0)+1; });
+  const weeks = Object.keys(wkCS).sort().slice(-12);
+  const rates = weeks.map(k => wkCS[k] ? +(((wkRe[k]||0)/wkCS[k])*100).toFixed(1) : 0);
+
+  const maxDate = new Date(Math.max(...allCS.map(r => r.회수일자)));
+  const cutoff = new Date(maxDate); cutoff.setDate(cutoff.getDate()-30);
+  const recentRe = reList.filter(re => re.curr.회수일자 && re.curr.회수일자 >= cutoff);
+  const paidCnt = reList.filter(re => [...(re.curr.asTypeSet||[])].some(t => String(t).includes('유상'))).length;
+  const freeCnt = reList.length - paidCnt;
+  const monthCost = recentRe.length * REENTRY_COST_PER_CASE;
+  const totalCost = reList.length * REENTRY_COST_PER_CASE;
+  const lastRate = rates.length ? rates[rates.length-1] : 0;
+  const prevRate = rates.length > 1 ? rates[rates.length-2] : lastRate;
+  const delta = +(lastRate - prevRate).toFixed(1);
+
+  const partDen = {}, partNum = {};
+  allCS.forEach(r => r.부품Set && r.부품Set.forEach(p => { if(p && !p.includes('린클')) partDen[p] = (partDen[p]||0)+1; }));
+  reList.forEach(re => {
+    if (re.days > 90 || !re.prev || !re.prev.부품Set) return;
+    re.prev.부품Set.forEach(p => { if(p && !p.includes('린클')) partNum[p] = (partNum[p]||0)+1; });
+  });
+  const MIN_N = 30;
+  const partRates = Object.entries(partDen).filter(([,n]) => n >= MIN_N)
+    .map(([p,n]) => ({p, n, rate: +(((partNum[p]||0)/n)*100).toFixed(1)}))
+    .sort((a,b) => b.rate - a.rate).slice(0,8);
+  const avgRate = +((reList.filter(r => r.days <= 90).length / allCS.length) * 100).toFixed(1);
+
+  const lotCS = {}, lotRe = {}, modelCSc = {}, modelRec = {};
+  allCS.forEach(r => {
+    modelCSc[r.모델버킷] = (modelCSc[r.모델버킷]||0)+1;
+    if (r.생산년월) { const k = r.모델버킷+'|'+r.생산년월; lotCS[k] = (lotCS[k]||0)+1; }
+  });
+  reList.forEach(re => {
+    const c = re.curr;
+    modelRec[c.모델버킷] = (modelRec[c.모델버킷]||0)+1;
+    if (c.생산년월) { const k = c.모델버킷+'|'+c.생산년월; lotRe[k] = (lotRe[k]||0)+1; }
+  });
+  const lotAnoms = Object.entries(lotCS).filter(([,n]) => n >= 20).map(([k,n]) => {
+    const parts = k.split('|');
+    const base = (modelRec[parts[0]]||0)/(modelCSc[parts[0]]||1);
+    const lotRate = (lotRe[k]||0)/n;
+    return { b: parts[0], ym: parts[1], n, rate: +(lotRate*100).toFixed(1), ratio: base ? +(lotRate/base).toFixed(1) : 0 };
+  }).filter(x => x.ratio >= 1.5).sort((a,b) => b.ratio - a.ratio).slice(0,5);
+
+  const groupCnt = {};
+  reList.forEach(re => (re.curr.원인Set||new Set()).forEach(c => {
+    const g = causeGroupOf(String(c).trim()); if (g) groupCnt[g] = (groupCnt[g]||0)+1;
+  }));
+  const groupTotal = Object.values(groupCnt).reduce((s,v) => s+v, 0) || 1;
+  const GROUP_COLORS = { 제조:'#D85A30', 설계:'#7F77DD', 공정:'#534AB7', 사용환경:'#B4B2A9', 소모:'#EF9F27', 물류:'#888780', 기타:'#D3D1C7' };
+  const groups = Object.entries(groupCnt).sort((a,b) => b[1]-a[1]);
+
+  const actions = [];
+  if (partRates[0] && avgRate && partRates[0].rate >= avgRate*1.5)
+    actions.push(`<strong>${partRates[0].p}</strong> 교체 후 90일 내 재방문률 ${partRates[0].rate}% — 전체 평균(${avgRate}%)의 ${(partRates[0].rate/avgRate).toFixed(1)}배, 부품 품질 협의 권장`);
+  if (lotAnoms[0])
+    actions.push(`<strong>${modelDisplayName(lotAnoms[0].b)} ${lotAnoms[0].ym} 생산분</strong> 재인입률이 모델 평균의 ${lotAnoms[0].ratio}배 (표본 ${lotAnoms[0].n}건) — 공정·자재 변경 이력 확인 권장`);
+  if (groups[0])
+    actions.push(`재인입 원인의 <strong>${Math.round(groups[0][1]/groupTotal*100)}%가 ${groups[0][0]} 귀책</strong> — 해당 영역 개선이 비용 절감 폭 최대`);
+
+  const mc = (label, value, sub, color) => `
+    <div style="background:var(--bg-alt);border-radius:10px;padding:14px 16px;min-width:0">
+      <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:4px">${label}</div>
+      <div style="font-size:22px;font-weight:700;color:${color||'var(--text-primary)'}">${value}</div>
+      <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">${sub}</div>
+    </div>`;
+
+  el.innerHTML = hdr + `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px">
+      ${mc('최근 주차 재인입률', lastRate + '%', (delta > 0 ? '▲ +' + delta : delta < 0 ? '▼ ' + delta : '—') + '%p vs 직전 주', delta > 0 ? 'var(--danger-text)' : '#0F6E56')}
+      ${mc('최근 30일 손실비용(추정)', fmtWon(monthCost), `재인입 ${recentRe.length}건 × 36,000원`, null)}
+      ${mc('누적 손실비용(추정)', fmtWon(totalCost), `재인입 ${reList.length.toLocaleString()}건 — 유상 ${paidCnt.toLocaleString()} / 무상 ${freeCnt.toLocaleString()}`, null)}
+    </div>
+
+    <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:8px">주차별 재인입률 추이 (최근 12주)</div>
+    <div style="position:relative;width:100%;height:170px;margin-bottom:20px"><canvas id="diagTrendCv"></canvas></div>
+
+    <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:2px">부품별 재인입 유발률 — 교체 후 90일 내 재방문</div>
+    <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:8px">표본 ${MIN_N}건 이상 부품 · 회색 = 전체 평균 ${avgRate}%</div>
+    <div style="position:relative;width:100%;height:${(Math.min(partRates.length,8)+1)*34+60}px;margin-bottom:20px"><canvas id="diagPartCv"></canvas></div>
+
+    <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:8px">생산 로트 이상 신호 (모델 평균 대비 1.5배 이상)</div>
+    ${lotAnoms.length ? lotAnoms.map(x => `
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border-subtle);font-size:13px">
+        <span style="background:${x.ratio>=3?'#E24B4A':x.ratio>=2?'#EF9F27':'#FAC775'};color:${x.ratio>=2?'#fff':'#633806'};border-radius:999px;padding:2px 10px;font-weight:700;font-size:12px">${x.ratio}배</span>
+        <span style="font-weight:600">${modelDisplayName(x.b)}</span>
+        <span style="color:var(--text-secondary)">${x.ym} 생산분</span>
+        <span style="color:var(--text-tertiary);margin-left:auto">재인입률 ${x.rate}% · 표본 ${x.n}건</span>
+      </div>`).join('') : '<div class="empty-msg" style="padding:10px 0">평균 1.5배 이상 로트 없음 — 공정 신호 정상</div>'}
+
+    <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin:20px 0 8px">재인입 원인 귀책 구성</div>
+    <div style="display:flex;width:100%;height:26px;border-radius:8px;overflow:hidden;margin-bottom:8px">
+      ${groups.map(g => `<div style="width:${(g[1]/groupTotal*100).toFixed(1)}%;background:${GROUP_COLORS[g[0]]||'#D3D1C7'}" title="${g[0]} ${g[1]}건"></div>`).join('')}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--text-secondary);margin-bottom:20px">
+      ${groups.map(g => `<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:${GROUP_COLORS[g[0]]||'#D3D1C7'}"></span>${g[0]} ${Math.round(g[1]/groupTotal*100)}% (${g[1].toLocaleString()})</span>`).join('')}
+    </div>
+
+    <div style="border:1px solid var(--border-subtle);border-radius:10px;padding:14px 16px;background:var(--bg-alt)">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px">🎯 권장 액션</div>
+      ${actions.length ? actions.map((a,i) => `<div style="font-size:13px;color:var(--text-secondary);padding:3px 0">${i+1}. ${a}</div>`).join('') : '<div style="font-size:13px;color:var(--text-tertiary)">임계 기준을 넘는 이슈 없음</div>'}
+      <div style="font-size:11px;color:var(--text-tertiary);margin-top:8px">* 손실비용은 건당 36,000원(왕복택배+공임+CS응대) 기준 추정치입니다</div>
+    </div>`;
+
+  if (typeof Chart !== 'undefined') {
+    if (_diagTrendChart) { _diagTrendChart.destroy(); _diagTrendChart = null; }
+    if (_diagPartChart)  { _diagPartChart.destroy();  _diagPartChart = null; }
+    _diagTrendChart = new Chart(document.getElementById('diagTrendCv'), {
+      type: 'line',
+      data: { labels: weeks.map(k => k.slice(2)), datasets: [{ data: rates, borderColor: '#1D9E75', backgroundColor: '#1D9E75', tension: .3, pointRadius: 3 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+        scales: { y: { ticks: { callback: v => v + '%' } }, x: { ticks: { autoSkip: false, maxRotation: 45, font: { size: 10 } } } } }
+    });
+    _diagPartChart = new Chart(document.getElementById('diagPartCv'), {
+      type: 'bar',
+      data: { labels: partRates.map(x => x.p).concat(['전체 평균']),
+        datasets: [{ data: partRates.map(x => x.rate).concat([avgRate]),
+          backgroundColor: partRates.map(() => '#534AB7').concat(['#B4B2A9']) }] },
+      options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+        scales: { x: { ticks: { callback: v => v + '%' } } } }
+    });
+  }
+  lucide.createIcons();
 }
 
 function applyFiles(){
