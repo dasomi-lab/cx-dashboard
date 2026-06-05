@@ -1110,7 +1110,7 @@ function getModelColor(name){
 }
 function buildTop5SymptomSummary(symptomMap){
   const sorted = Object.entries(symptomMap || {}).map(([name, value])=>({name, value:Number(value)||0}))
-    .filter(x=>x.value>0).sort((a,b)=>b.value-a.value).slice(0,5);
+    .filter(x=>x.value>0).sort((a,b)=>b.value-a.value); // 전체 증상 각각 카운팅 (TOP5 제한 제거)
   const total = sorted.reduce((s,i)=>s+i.value, 0);
   return sorted.map(item=>({ ...item, pct: total ? +((item.value/total)*100).toFixed(1) : 0 }));
 }
@@ -1652,11 +1652,16 @@ function renderByModel(){
       .filter(([k])=>k!=='model')
       .map(([k,v])=>({name:k, value:Number(v)||0}))
       .filter(x=>x.value>0)
-      .sort((a,b)=>b.value-a.value)
-      .slice(0,6) : [];
+      .sort((a,b)=>b.value-a.value) : []; // 모든 유형 표시
     const typeTotal = typeEntries.reduce((s,i)=>s+i.value,0);
     const maxType = Math.max(...typeEntries.map(i=>i.value),1);
-    const donut = buildMiniDonut(symptoms, palette.base);
+    const donutItems = symptoms.length > 5
+      ? [...symptoms.slice(0,5), {name:'기타', value: symptoms.slice(5).reduce((s,i)=>s+i.value,0)}]
+      : symptoms;
+    const donut = buildMiniDonut(donutItems, palette.base);
+    const symTop  = symptoms.slice(0, 10);
+    const symRest = symptoms.length - symTop.length;
+    const symRestCnt = symptoms.slice(10).reduce((s,i)=>s+i.value,0);
 
     return `<div class="model-symptom-card" data-bucket="${item.name}">
       <div class="model-top-meta">
@@ -1688,16 +1693,17 @@ function renderByModel(){
           <div class="mini-donut" style="${donut.style}">
             <div class="mini-donut-center">
               <strong>${fmtN(donut.total)}</strong>
-              <span>TOP5 합계</span>
+              <span>증상 합계</span>
             </div>
           </div>
           <div class="rank-list">
-            ${symptoms.map((row, idx)=>`
+            ${symTop.map((row, idx)=>`
               <div class="rank-item">
                 <div class="rank-no">${idx+1}</div>
                 <div class="rank-name">${row.name}</div>
                 <div class="rank-val">${row.pct}% · ${fmtN(row.value)}건</div>
               </div>`).join('')}
+            ${symRest > 0 ? `<div style="font-size:11px;color:var(--text-tertiary);padding:4px 0 0 2px">외 ${symRest}개 증상 ${fmtN(symRestCnt)}건</div>` : ''}
           </div>
         </div>` : `<div class="model-empty">집계된 A/S 증상이 없습니다</div>`
       }
@@ -3022,19 +3028,12 @@ function applyFiles(){
 
     D.modelDist = orderedModels.map(name=>({name, value:modelMap[name] || 0})).filter(item=>item.value>0);
     D.asReinByModel = orderedModels.map(name=>({name, value:reinMap[name] || 0})).filter(item=>item.value>0);
+    // AS유형 동적 집계 — 파일에 등장하는 모든 유형 포함 (맞교환·환불·회수 등 누락 방지)
     D.asTypeTable = orderedModels.map(name=>{
       const row = asTypeByModel[name] || { model:name };
-      return {
-        model:name,
-        유상수리:  row['유상수리']  || 0,
-        단순문의:  row['단순문의']  || 0,
-        단순변심:  row['단순변심']  || 0,
-        방문점검:  row['방문점검']  || 0,
-        AS:        row['AS']        || 0,
-        재인입:    row['재인입']    || 0,
-        추가발송:  row['추가발송']  || 0,
-        미분류:    row['미분류']    || 0,
-      };
+      const out = { model:name };
+      Object.entries(row).forEach(([k,v])=>{ if(k!=='model') out[k] = Number(v)||0; });
+      return out;
     }).filter(row=>Object.entries(row).filter(([k])=>k!=='model').some(([,v])=>Number(v)>0));
 
     D.symptomTop = topN(symMap,5);
