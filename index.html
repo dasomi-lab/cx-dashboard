@@ -618,6 +618,15 @@ tr:hover td{background:var(--bg-alt);}
           <input type="file" accept=".json" style="display:none" onchange="importJSON(this)">
         </label>
         <button class="btn btn-outline" id="saveDbBtn" onclick="saveReportToSupabase()"><i data-lucide="cloud-upload" class="icon"></i>DB 저장</button>
+        <label class="btn btn-outline" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px" title="as_history.json 선택 → Supabase 일괄 저장">
+          <i data-lucide="database" class="icon"></i><span id="historyJsonBtn">히스토리 DB저장</span>
+          <input type="file" accept=".json" style="display:none" onchange="uploadHistoryJSON(this.files[0]);this.value=''">
+        </label>
+        <label class="btn btn-outline" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px" title="월별 AS파일 여러 개 선택 → 주차별 자동 저장">
+          <i data-lucide="history" class="icon"></i><span id="historyImportBtn">히스토리 가져오기</span>
+          <input type="file" multiple accept=".xlsx,.xls,.csv" style="display:none" onchange="importHistoricalAS(this.files);this.value=''">
+        </label>
+        <button class="btn btn-outline" onclick="generateReportPDF()"><i data-lucide="file-text" class="icon"></i>보고서</button>
         <button class="btn btn-primary" id="pdfBtn" onclick="dlPDF()"><i data-lucide="file-down" class="icon"></i>PDF</button>
       </div>
     </div>
@@ -958,22 +967,44 @@ function detectType(fname, headers){
   if (n.includes('환불')) return 'refund';
   if (n.includes('review') || n.includes('리뷰')) return 'review';
   if (n.includes('chat') || n.includes('채널') || n.includes('user_chat')) return 'channel';
+  // AS관리 파일 → PDF 전용 'as' 타입 (대시보드 집계 제외)
+  if (n.includes('as관리') || n.startsWith('as_') || n.includes('as관리')) return 'as';
   if (n.includes('cs관리') || n.startsWith('cs') || n.includes('cs_')) return 'cs';
   if (h.includes('교환유형')) return 'exchange';
   if (h.includes('환불유형')) return 'refund';
   if (h.includes('구매자평점')) return 'review';
   if (h.includes('mediumType') || h.includes('summarizedMessage')) return 'channel';
-  if (h.includes('A/S증상') || h.includes('증상') || h.includes('AS유형') || h.includes('A/S유형')
+  // 헤더에 AS 전용 컬럼(증상기준·부품·생산일자)이 있으면 'as'
+  if (h.includes('증상기준') || (h.includes('부품') && h.includes('생산일자'))) return 'as';
+  if (h.includes('A/S증상') || h.includes('AS유형') || h.includes('A/S유형')
       || h.includes('처리상태') || h.includes('접수상태') || h.includes('모델명')
       || h.includes('품명') || h.includes('상품명') || h.includes('접수번호')) return 'cs';
   return 'unknown';
 }
 function parseMonthDay(raw){
-  const s = String(raw||'').trim();
+  if(raw===null||raw===undefined) return null;
+  // Excel 날짜 시리얼 숫자 (40000~60000 범위, e.g. 46166 = 2026-05-24)
+  if(typeof raw==='number' && raw>40000 && raw<60000){
+    const d=new Date(Math.round((raw-25569)*86400000));
+    return `${d.getUTCMonth()+1}/${d.getUTCDate()}`;
+  }
+  // JS Date 객체 (cellDates:true 등으로 변환된 경우)
+  if(raw instanceof Date){
+    return `${raw.getMonth()+1}/${raw.getDate()}`;
+  }
+  const s=String(raw).trim();
   if(!s) return null;
-  let m = s.match(/(20\d{2})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+  // 2026-05-24, 2026/05/24, 2026.05.24
+  let m=s.match(/(20\d{2})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
   if(m) return `${Number(m[2])}/${Number(m[3])}`;
-  m = s.match(/(\d{1,2})[\/\-.](\d{1,2})(?:\s|$)/);
+  // 2026년 5월 24일
+  m=s.match(/(20\d{2})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+  if(m) return `${Number(m[2])}/${Number(m[3])}`;
+  // 5월 24일
+  m=s.match(/(\d{1,2})월\s*(\d{1,2})일/);
+  if(m) return `${Number(m[1])}/${Number(m[2])}`;
+  // 5/24, 05-24
+  m=s.match(/(\d{1,2})[\/\-](\d{1,2})(?:\s|$)/);
   if(m) return `${Number(m[1])}/${Number(m[2])}`;
   return null;
 }
@@ -1183,6 +1214,7 @@ function getPersistPayload(){
     weeklyText: WEEKLY_TEXT,
     weeklyFile: WEEKLY_FILE,
     weeklyAsset: WEEKLY_ASSET,
+    asAnalysis: AS_ANALYSIS,   // 주차별 트렌드 비교용
     uploadedFiles: Array.from(FILES.entries()).map(([kind, file]) => ({
       kind,
       name: file?.name || '',
@@ -1261,6 +1293,8 @@ function applyReentrySnapshot(snap) {
 async function saveReportToSupabase(){
   const btn = document.getElementById('saveDbBtn');
   const original = btn.innerHTML;
+  let succeeded = false;
+
   btn.disabled = true;
   btn.innerHTML = '<i data-lucide="loader-circle" class="icon"></i>저장 중';
   lucide.createIcons();
@@ -1299,7 +1333,8 @@ async function saveReportToSupabase(){
         updated_at: new Date().toISOString()
       };
       payloadJson = JSON.stringify(payload);
-      console.log(`[DB저장] 페이로드: ${(payloadJson.length/1024).toFixed(0)} KB`);
+      const kb = (payloadJson.length/1024).toFixed(0);
+      console.log(`[DB저장] 페이로드: ${kb} KB, key: ${reportKey}`);
     } catch(e){ throw new Error('Step3(직렬화) 실패: ' + e.message); }
 
     // ── Step 4: Supabase upsert
@@ -1308,34 +1343,39 @@ async function saveReportToSupabase(){
         .from('cx_reports')
         .upsert(JSON.parse(payloadJson), { onConflict: 'report_key' });
       if(error) throw error;
-    } catch(e){ throw new Error('Step4(DB저장) 실패: ' + (e.message||JSON.stringify(e))); }
+    } catch(e){
+      const detail = e?.message || e?.details || e?.hint || JSON.stringify(e);
+      throw new Error('Step4(DB저장) 실패: ' + detail);
+    }
 
     // ── 저장 성공
+    succeeded = true;
     ACTIVE_REPORT_KEY = reportKey;
     const shareUrl = `${location.origin}${location.pathname}?report=${encodeURIComponent(reportKey)}`;
     try {
       if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(shareUrl);
     } catch(_) {}
     history.replaceState({}, '', `${location.pathname}?report=${encodeURIComponent(reportKey)}`);
-
-    btn.disabled = false;
-    btn.innerHTML = '<i data-lucide="check" class="icon"></i>저장 완료';
-    lucide.createIcons();
     showSaveToast('✅ DB 저장 완료 — ' + reportKey);
     document.getElementById('sbSavedTime').textContent = `저장: ${new Date().toLocaleString('ko-KR')}`;
-    setTimeout(() => { btn.innerHTML = original; lucide.createIcons(); }, 3000);
-    return; // finally 에서 원본 복구 방지
 
   }catch(e){
     console.error('[DB저장 실패]', e);
     const msg = e?.message || String(e);
-    showSaveToast('❌ 저장 실패: ' + msg);
-    // 사이드바 저장 시각에도 에러 표시
-    document.getElementById('sbSavedTime').textContent = '저장 실패: ' + msg.slice(0, 60);
+    // 전체 에러 메시지를 alert로 표시해 원인 파악 가능하게
+    alert('❌ DB 저장 실패\n\n' + msg + '\n\n브라우저 콘솔(F12)에서 상세 내용을 확인하세요.');
+    document.getElementById('sbSavedTime').textContent = '저장 실패 — F12 콘솔 확인';
   }finally{
     btn.disabled = false;
-    btn.innerHTML = original;
-    lucide.createIcons();
+    // 성공 시 3초간 "저장 완료" 표시, 실패 시 즉시 원복
+    if(succeeded){
+      btn.innerHTML = '<i data-lucide="check" class="icon"></i>저장 완료';
+      lucide.createIcons();
+      setTimeout(()=>{ btn.innerHTML = original; lucide.createIcons(); }, 3000);
+    } else {
+      btn.innerHTML = original;
+      lucide.createIcons();
+    }
   }
 }
 async function loadReportFromUrl(){
@@ -1540,13 +1580,14 @@ function renderReviews(){
 
   const pos = (D.repReviews?.pos || []).slice(0,3);
   const neg = (D.repReviews?.neg || []).slice(0,3);
+  const trim = (s,n=80)=>{ const t=String(s||'—'); return t.length>n ? t.slice(0,n)+'…' : t; };
   document.getElementById('repPosReviews').innerHTML = pos.length ? pos.map(r=>`
     <div class="review-card pos">
       <div class="review-card-hdr">
         <div class="review-product">${r.product || '—'}</div>
         <div class="badge bg">${r.rating || 5}점</div>
       </div>
-      <div class="review-content">${r.content || '—'}</div>
+      <div class="review-content">${trim(r.content)}</div>
     </div>`).join('') : '<div class="empty-msg">데이터 없음</div>';
 
   document.getElementById('repNegReviews').innerHTML = neg.length ? neg.map(r=>`
@@ -1555,7 +1596,7 @@ function renderReviews(){
         <div class="review-product">${r.product || '—'}</div>
         <div class="badge br">${r.rating || 1}점</div>
       </div>
-      <div class="review-content">${r.content || '—'}</div>
+      <div class="review-content">${trim(r.content)}</div>
     </div>`).join('') : '<div class="empty-msg">데이터 없음</div>';
 
   const prodCount = {};
@@ -2972,13 +3013,14 @@ function applyFiles(){
       const row = asTypeByModel[name] || { model:name };
       return {
         model:name,
-        유상수리: row['유상수리'] || 0,
-        단순문의: row['단순문의'] || 0,
-        방문점검: row['방문점검'] || 0,
-        AS: row['AS'] || 0,
-        재인입: row['재인입'] || 0,
-        추가발송: row['추가발송'] || 0,
-        미분류: row['미분류'] || 0,
+        유상수리:  row['유상수리']  || 0,
+        단순문의:  row['단순문의']  || 0,
+        단순변심:  row['단순변심']  || 0,
+        방문점검:  row['방문점검']  || 0,
+        AS:        row['AS']        || 0,
+        재인입:    row['재인입']    || 0,
+        추가발송:  row['추가발송']  || 0,
+        미분류:    row['미분류']    || 0,
       };
     }).filter(row=>Object.entries(row).filter(([k])=>k!=='model').some(([,v])=>Number(v)>0));
 
@@ -3081,14 +3123,57 @@ function applyFiles(){
     const byRich = (arr,n=3)=>arr.sort((a,b)=>(b.content?.length||0)-(a.content?.length||0)).slice(0,n);
     D.repReviews = {
       pos: byRich(allReviews.filter(r=>r.rating>=5), 3),
-      neg: byRich(allReviews.filter(r=>r.rating<=2), 3),
+      neg: byRich(allReviews.filter(r=>r.rating>0 && r.rating<=3), 3),
     };
   }
 
   if (chR.length || csR.length) {
     const csDateMap = {}, doneDateMap = {}, chDateMap = {};
+
+    // CS 날짜 컬럼 자동 탐지: 이름이 일/일시/일자/날짜/date로 끝나는 컬럼 우선
+    // → 그래도 없으면 모든 컬럼 값을 순회하여 날짜처럼 보이는 첫 번째 값 사용
+    const CS_DATE_KEYS = [
+      '접수일','접수일시','접수일자',
+      '등록일','등록일시','등록일자',
+      '인입일','인입일시','인입일자',
+      '처리일','처리일시','처리일자',
+      '상담일','상담일시','작성일','작성일시',
+      '문의일','문의일시','완료일','완료일시',
+      '날짜','일자','date','Date','창구일','createdAt','created_at','managedAt'
+    ];
+    // CS 파일의 날짜 컬럼명 자동 감지 (첫 번째 행 기준으로 캐싱)
+    let _csDateCol = null;
+    const findCsDate = (r) => {
+      // 1) 알려진 컬럼명 먼저
+      const byName = pickCol(r, CS_DATE_KEYS);
+      if(byName !== null && byName !== undefined) {
+        const d = parseMonthDay(byName);
+        if(d) return d;
+      }
+      // 2) 캐시된 컬럼 사용
+      if(_csDateCol && r[_csDateCol] !== undefined) {
+        const d = parseMonthDay(r[_csDateCol]);
+        if(d) return d;
+      }
+      // 3) 컬럼명에 날짜 관련 키워드가 포함된 컬럼 탐색 후 캐시
+      const dateSuffixes = ['일시','일자','날짜','date'];
+      for(const key of Object.keys(r)){
+        const kn = key.replace(/\s/g,'').toLowerCase();
+        if(dateSuffixes.some(s=>kn.endsWith(s)) || kn.endsWith('일')){
+          const d = parseMonthDay(r[key]);
+          if(d){ _csDateCol = key; return d; }
+        }
+      }
+      // 4) 마지막 수단: 모든 값에서 날짜처럼 보이는 것 탐색
+      for(const val of Object.values(r)){
+        const d = parseMonthDay(val);
+        if(d){ return d; }
+      }
+      return null;
+    };
+
     csR.forEach(r=>{
-      const k = parseMonthDay(pickCol(r,['접수일','등록일','인입일','날짜','일자']));
+      const k = findCsDate(r);
       if(k){
         csDateMap[k] = (csDateMap[k] || 0) + 1;
         const st = String(pickCol(r,['처리상태','접수상태']) || '');
@@ -3213,6 +3298,7 @@ async function parseWeeklyFiles(fileList){
 ══════════════════════════════════════════════════════════════ */
 let REENTRY_RAW      = new Map(); // csNo → CS Record
 let REENTRY_DATA     = null;      // 집계 결과 (null = 미로드)
+let AS_ANALYSIS      = null;      // AS 파일 파싱 결과 — PDF 생성·DB 저장용
 let REENTRY_FILE_CNT = 0;
 
 function isASReentryFilename(name) {
@@ -4131,7 +4217,7 @@ async function handleFiles(fileList){
       const type = detectType(file.name, headers);
 
       if(type !== 'unknown') {
-        FILES.set(type, {name:file.name, rows, headers});
+          FILES.set(type, {name:file.name, rows, headers});
       } else {
         latestWeeklyFile = file;
       }
@@ -4166,7 +4252,7 @@ function deleteFile(type){
 function rebuildUList(){
   const ul = document.getElementById('ulist');
   ul.innerHTML = '';
-  const lbl = { cs:'CS관리', exchange:'교환관리', refund:'환불관리', review:'리뷰', channel:'채널톡' };
+  const lbl = { cs:'CS관리', as:'AS관리(PDF전용)', exchange:'교환관리', refund:'환불관리', review:'리뷰', channel:'채널톡' };
 
   FILES.forEach((f, type)=>{
     const el = document.createElement('div');
@@ -4178,12 +4264,12 @@ function rebuildUList(){
   if(WEEKLY_FILE){
     const el = document.createElement('div');
     el.className = 'uf ok';
-    el.innerHTML = `<span>${WEEKLY_FILE} <span style="color:var(--text-tertiary);font-weight:400">[공유 자료 1개]</span></span>`;
+    el.innerHTML = `<span>${WEEKLY_FILE} <span style="color:var(--text-tertiary);font-weight:400">[공유 자료 1개]</span></span><button class="uf-x" onclick="clearWeeklyAsset();rebuildUList();">×</button>`;
     ul.appendChild(el);
   }
 }
 function updateChips(){
-  const lbl = { cs:'CS', exchange:'교환', refund:'환불', review:'리뷰', channel:'채널톡' };
+  const lbl = { cs:'CS', as:'AS(PDF)', exchange:'교환', refund:'환불', review:'리뷰', channel:'채널톡' };
   const base = Array.from(FILES.entries()).map(([type])=>`<div class="chip"><span>${lbl[type]||type}</span><button class="chip-x" onclick="deleteFile('${type}')">×</button></div>`).join('');
   const weekly = WEEKLY_FILE ? `<div class="chip" id="weeklyChip"><span>공유 자료 1개</span></div>` : '';
   document.getElementById('fileChips').innerHTML = base + weekly;
@@ -4369,6 +4455,780 @@ async function dlPDF(){
   btn.innerHTML='<i data-lucide="file-down" class="icon"></i>PDF';
   btn.disabled=false;
   lucide.createIcons();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   품질 주간 보고서 PDF 자동 생성
+   + 월별 히스토리 일괄 저장
+══════════════════════════════════════════════════════════════ */
+/* ── AS 분석 공통 헬퍼 ── */
+function computeASAnalysis(rows) {
+  const PRIME = '프라임', GRAVITY = '그래비티', GRAVITY_W = '그래비티 W';
+  const primeSymMap = {}, gravitySymMap = {};
+  const primePartMap = {}, gravityPartMap = {};
+  const primePartCauseMap = {}, gravityPartCauseMap = {};
+  let primeTotal = 0, gravityTotal = 0;
+
+  rows.forEach(row => {
+    const bucket = normalizeModelBucket(pickCol(row, ['품명','상품명','모델명']) || '');
+    const isP = bucket === PRIME;
+    const isG = bucket === GRAVITY || bucket === GRAVITY_W;
+    if (!isP && !isG) return;
+    if (isP) primeTotal++; else gravityTotal++;
+
+    const sym   = String(pickCol(row, ['증상기준','A/S증상','증상']) || '').trim();
+    const part  = String(pickCol(row, ['부품']) || '').trim();
+    const cause = String(pickCol(row, ['원인']) || '').trim();
+
+    const sMap = isP ? primeSymMap  : gravitySymMap;
+    const pMap = isP ? primePartMap : gravityPartMap;
+    const cMap = isP ? primePartCauseMap : gravityPartCauseMap;
+
+    if (sym)  sMap[sym]  = (sMap[sym]  || 0) + 1;
+    if (part) {
+      pMap[part] = (pMap[part] || 0) + 1;
+      if (cause) {
+        if (!cMap[part]) cMap[part] = {};
+        cMap[part][cause] = (cMap[part][cause] || 0) + 1;
+      }
+    }
+  });
+
+  return {
+    prime:   { symMap: primeSymMap,   partMap: primePartMap,   partCauseMap: primePartCauseMap,   total: primeTotal },
+    gravity: { symMap: gravitySymMap, partMap: gravityPartMap, partCauseMap: gravityPartCauseMap, total: gravityTotal }
+  };
+}
+
+function getWeekKey(date) {
+  const y = date.getFullYear();
+  const m = date.getMonth();
+  const first = new Date(y, m, 1);
+  const firstSun = 1 + ((7 - first.getDay()) % 7);
+  const week = date.getDate() < firstSun ? 1 : Math.floor((date.getDate() - firstSun) / 7) + 2;
+  return `${y}-${String(m+1).padStart(2,'0')}-w${week}`;
+}
+
+function getWeekRange(date) {
+  const d = new Date(date);
+  const sun = new Date(d); sun.setDate(d.getDate() - d.getDay());
+  const sat = new Date(sun); sat.setDate(sun.getDate() + 6);
+  const fmt = x => `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+  const mon = sun.getMonth()+1;
+  const wk  = getWeekKey(sun).slice(-2); // "w1" etc
+  return { start: fmt(sun), end: fmt(sat), period: `${mon}월 ${wk}차`, range: `${fmt(sun)} ~ ${fmt(sat)}` };
+}
+
+/* ── 월별 AS 파일 일괄 히스토리 저장 ── */
+/* ── as_history.json → Supabase 일괄 업로드 ── */
+async function uploadHistoryJSON(file) {
+  if (!file) return;
+  const btn = document.getElementById('historyJsonBtn');
+  if (btn) btn.textContent = '업로드 중...';
+  document.getElementById('ldr').classList.add('on');
+
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    const weeks = Object.values(data);
+    const total = weeks.length;
+    let ok = 0, err = 0;
+
+    // 10개씩 배치 upsert
+    const BATCH = 10;
+    for (let i = 0; i < weeks.length; i += BATCH) {
+      const batch = weeks.slice(i, i + BATCH).map(w => ({
+        report_key: w.report_key,
+        title:      `AS 히스토리 ${w.period}`,
+        period:     w.period,
+        data:       { asAnalysis: w.asAnalysis },
+        updated_at: new Date().toISOString()
+      }));
+      const { error } = await sb
+        .from('cx_reports')
+        .upsert(batch, { onConflict: 'report_key' });
+      if (error) { err += batch.length; console.error('[히스토리]', error.message); }
+      else ok += batch.length;
+
+      // 진행률 표시
+      if (btn) btn.textContent = `업로드 중... ${Math.round((i+BATCH)/total*100)}%`;
+      await new Promise(r => setTimeout(r, 80)); // rate limit 방지
+    }
+
+    showSaveToast(`✅ ${ok}개 주차 DB 저장 완료${err ? ` (⚠️ ${err}개 실패)` : ''}`);
+    console.log(`[히스토리] 완료: 성공 ${ok} / 실패 ${err}`);
+  } catch(e) {
+    showSaveToast('❌ 업로드 실패: ' + e.message);
+    console.error(e);
+  } finally {
+    document.getElementById('ldr').classList.remove('on');
+    if (btn) btn.textContent = '히스토리 DB저장';
+  }
+}
+
+async function importHistoricalAS(fileList) {
+  const files = Array.from(fileList || []).filter(f => /\.(xlsx|xls|csv)$/i.test(f.name));
+  if (!files.length) return;
+
+  const btn = document.getElementById('historyImportBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
+  document.getElementById('ldr').classList.add('on');
+
+  let totalWeeks = 0, totalRows = 0, errorCount = 0;
+  const savedKeys = [];
+
+  for (const file of files) {
+    try {
+      const buf  = await file.arrayBuffer();
+      const wb   = XLSX.read(buf, { type:'array' });
+      const ws   = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, { defval: null });
+      const rows = normalizeRows(json);
+      totalRows += rows.length;
+
+      // 회수일자 기준 주차별 분리
+      const weekBuckets = {}; // weekKey → { rows[], dates[] }
+      rows.forEach(row => {
+        const raw = pickCol(row, ['회수일자','최근수리일자']);
+        if (!raw) return;
+        const d = rtParseDate(raw);
+        if (!d || isNaN(d)) return;
+        const wk = getWeekKey(d);
+        if (!weekBuckets[wk]) weekBuckets[wk] = { rows: [], dates: [] };
+        weekBuckets[wk].rows.push(row);
+        weekBuckets[wk].dates.push(d);
+      });
+
+      // 주차별 Supabase upsert
+      for (const [weekKey, bucket] of Object.entries(weekBuckets)) {
+        if (bucket.rows.length < 2) continue; // 너무 적으면 스킵
+        const analysis  = computeASAnalysis(bucket.rows);
+        const minDate   = new Date(Math.min(...bucket.dates));
+        const maxDate   = new Date(Math.max(...bucket.dates));
+        const { period, range } = getWeekRange(minDate);
+
+        const payload = {
+          report_key: weekKey,
+          title:      `AS 히스토리 ${period}`,
+          period:     period,
+          data: {
+            asAnalysis: {
+              ...analysis,
+              period,
+              periodRange: range,
+              rowCount: bucket.rows.length,
+              sourceFile: file.name,
+            }
+          },
+          updated_at: new Date().toISOString()
+        };
+
+        const { error } = await sb
+          .from('cx_reports')
+          .upsert(payload, { onConflict: 'report_key' });
+
+        if (error) { console.error('[히스토리]', weekKey, error.message); errorCount++; }
+        else { savedKeys.push(weekKey); totalWeeks++; }
+      }
+    } catch(e) {
+      console.error('[히스토리 파일 오류]', file.name, e.message);
+      errorCount++;
+    }
+  }
+
+  document.getElementById('ldr').classList.remove('on');
+  if (btn) { btn.disabled = false; btn.textContent = '히스토리 가져오기'; }
+
+  const msg = errorCount
+    ? `✅ ${totalWeeks}개 주차 저장 완료 (⚠️ ${errorCount}개 오류)`
+    : `✅ ${files.length}개 파일 → ${totalWeeks}개 주차 저장 완료`;
+  showSaveToast(msg);
+  console.log('[히스토리] 저장된 주차:', savedKeys.sort().join(', '));
+}
+
+async function generateReportPDF() {
+  // AS관리(PDF전용) → 없으면 CS관리로 fallback
+  const csRows = (FILES.get('as')?.rows || FILES.get('cs')?.rows || []);
+  if (!csRows.length) {
+    alert('AS관리 파일을 먼저 업로드해 주세요 (상단 업로드 버튼).');
+    return;
+  }
+
+  const PRIME     = '프라임';
+  const GRAVITY   = '그래비티';
+  const GRAVITY_W = '그래비티 W';
+  const _PRIME_LABEL   = 'PRIME';
+  const _GRAVITY_LABEL = 'GRAVITY';
+
+  const today       = new Date().toISOString().slice(0, 10);
+  const periodRange = D.periodRange || D.period || '—';
+  const fmtN2       = v => Number(v).toLocaleString('ko-KR');
+
+  // ── CS 파일 직접 파싱 ──
+  const now2 = new Date();
+  const twoMonthsAgo = new Date(now2.getFullYear(), now2.getMonth() - 2, 1);
+
+  const parseDate = v => {
+    if (!v && v !== 0) return null;
+    // Excel 날짜 시리얼 (40000~60000)
+    const n = Number(v);
+    if (!isNaN(n) && n > 40000 && n < 60000) {
+      const d = new Date(0); d.setFullYear(1899, 11, 30); d.setDate(d.getDate() + Math.round(n));
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+    const s = String(v).trim();
+    const m = s.match(/^(\d{4})[-\/](\d{2})[-\/](\d{2})/);
+    return m ? new Date(+m[1], +m[2]-1, +m[3]) : null;
+  };
+
+  const primeSymMap = {}, gravitySymMap = {};
+  const primePartAll = {}, gravityPartAll = {};
+  const primeCons = {}, gravityCons = {};
+  const primeProdPartMap = {}, gravityProdPartMap = {};
+  const primeProdTotal = {}, gravityProdTotal = {};
+  // 부품 × 원인 히트맵용
+  const primePartCause = {}, gravityPartCause = {};
+  let primeTotal = 0, gravityTotal = 0;
+
+  csRows.forEach(row => {
+    const bucket = normalizeModelBucket(pickCol(row, ['품명','상품명','모델명']) || '');
+    const isP = bucket === PRIME;
+    const isG = bucket === GRAVITY || bucket === GRAVITY_W;
+    if (!isP && !isG) return;
+
+    if (isP) primeTotal++; else gravityTotal++;
+
+    const sym   = String(pickCol(row, ['증상기준','A/S증상','증상']) || '').trim();
+    const part  = String(pickCol(row, ['부품']) || '').trim();
+    const cause = String(pickCol(row, ['원인']) || '').trim();
+    const recvDate = parseDate(pickCol(row, ['회수일자','최근수리일자']));
+    const prodRaw  = String(pickCol(row, ['생산일자']) || '').trim();
+    const prodYM   = prodRaw.match(/^(\d{4}-\d{2})/) ? prodRaw.slice(0,7) : null;
+
+    const symMap     = isP ? primeSymMap     : gravitySymMap;
+    const partAll    = isP ? primePartAll    : gravityPartAll;
+    const cons       = isP ? primeCons       : gravityCons;
+    const pdMap      = isP ? primeProdPartMap: gravityProdPartMap;
+    const pdTot      = isP ? primeProdTotal  : gravityProdTotal;
+    const partCause  = isP ? primePartCause  : gravityPartCause;
+
+    if (sym)  symMap[sym] = (symMap[sym] || 0) + 1;
+    if (part) {
+      partAll[part] = (partAll[part] || 0) + 1;
+      if (recvDate && recvDate >= twoMonthsAgo) cons[part] = (cons[part] || 0) + 1;
+      if (prodYM) {
+        if (!pdMap[prodYM]) pdMap[prodYM] = {};
+        pdMap[prodYM][part] = (pdMap[prodYM][part] || 0) + 1;
+        pdTot[prodYM] = (pdTot[prodYM] || 0) + 1;
+      }
+      // 부품 × 원인 집계
+      if (cause) {
+        if (!partCause[part]) partCause[part] = {};
+        partCause[part][cause] = (partCause[part][cause] || 0) + 1;
+      }
+    }
+  });
+
+  const sortParts = obj => Object.entries(obj).sort((a,b) => b[1]-a[1]).slice(0, 10);
+
+  // ── AS 데이터 날짜로 현재 주차 키 직접 계산 ──
+  const _asDateSample = csRows
+    .map(r => { const v = pickCol(r,['회수일자','최근수리일자']); return v ? parseDate(v) : null; })
+    .filter(Boolean).sort((a,b)=>b-a)[0];  // 가장 최근 날짜
+
+  let curKey;
+  if (_asDateSample) {
+    // 해당 날짜의 주차 키 계산
+    const _d = _asDateSample;
+    const _dow = (_d.getDay()); // 0=일
+    const _sun = new Date(_d); _sun.setDate(_d.getDate() - _dow);
+    const _first = new Date(_sun.getFullYear(), _sun.getMonth(), 1);
+    const _fs = (7 - _first.getDay()) % 7;
+    const _fsd = new Date(_first); _fsd.setDate(1 + _fs);
+    const _wk = _sun < _fsd ? 1 : Math.floor((_sun - _fsd) / 604800000) + 2;
+    curKey = `${_sun.getFullYear()}-${String(_sun.getMonth()+1).padStart(2,'0')}-w${_wk}`;
+  } else {
+    curKey = deriveReportKey();
+  }
+
+  // ── 현재 주 AS_ANALYSIS 저장 (DB 저장 시 함께 올라감) ──
+  AS_ANALYSIS = {
+    period: D.period || periodRange,
+    periodRange: D.periodRange || periodRange,
+    prime:   { symMap: {...primeSymMap},   partMap: {...primePartAll},   total: primeTotal },
+    gravity: { symMap: {...gravitySymMap}, partMap: {...gravityPartAll}, total: gravityTotal }
+  };
+
+  // ── 이전 주 데이터 Supabase에서 조회 ──
+  let prevAnalysis = null;
+  let prevPeriod   = null;
+  console.log('[보고서] 현재 주차 키:', curKey);
+  try {
+    // report_key가 현재 주보다 작은 것 중 가장 최근 → 직전 주
+    const { data: prevReport, error } = await sb
+      .from('cx_reports')
+      .select('report_key, data, period')
+      .lt('report_key', curKey)
+      .order('report_key', { ascending: false })
+      .limit(5);  // 여러 개 받아서 asAnalysis 있는 것 필터
+    const prevWithAS = (prevReport || []).find(r => r?.data?.asAnalysis);
+    const prevReportFinal = prevWithAS || null;
+    const prevError = error;
+    if (!prevError && prevReportFinal?.data?.asAnalysis) {
+      prevAnalysis = prevReportFinal.data.asAnalysis;
+      prevPeriod   = prevReportFinal.period || prevReportFinal.data?.asAnalysis?.period || '';
+      console.log('[보고서] 이전 주 데이터 로드:', prevPeriod);
+    }
+  } catch(e) { console.log('[보고서] 이전 주 데이터 없음'); }
+
+  // ── 트렌드 행 (실제 증감% 계산) ──
+  const calcTrend = (currVal, prevMap, name) => {
+    if (!prevMap) return { label: '—', style: 'color:#B4BBC7' };
+    const prevVal = prevMap[name] || 0;
+    if (prevVal === 0 && currVal > 0) return { label: '신규', style: 'color:#826AF1;font-weight:700' };
+    if (prevVal === 0) return { label: '—', style: 'color:#B4BBC7' };
+    const pct = Math.round((currVal - prevVal) / prevVal * 100);
+    if (pct >= 20)  return { label: `+${pct}% ▲`, style: 'color:#dc2626;font-weight:700' };
+    if (pct <= -20) return { label: `${pct}% ▼`,  style: 'color:#15803d;font-weight:700' };
+    return { label: `${pct >= 0 ? '+' : ''}${pct}%`, style: 'color:#6b7280' };
+  };
+
+  const trendRow = (name, currVal, prevMap) => {
+    const { label, style } = calcTrend(currVal, prevMap, name);
+    return `<tr>
+      <td style="color:#5F6673;padding:8px 14px;font-size:11.5px;border-bottom:1px solid #F5F6F8">
+        ${name}
+        <span style="color:#B4BBC7;font-size:10px;margin-left:4px">${fmtN2(currVal)}건</span>
+      </td>
+      <td style="text-align:right;padding:8px 14px;font-size:11px;border-bottom:1px solid #F5F6F8;${style}">${label}</td>
+    </tr>`;
+  };
+
+  const prevPrimeSymMap   = prevAnalysis?.prime?.symMap;
+  const prevGravitySymMap = prevAnalysis?.gravity?.symMap;
+  const compareLabel = prevPeriod ? `vs ${prevPeriod}` : '이전 주 데이터 없음';
+
+  // ── 증상 TOP5 ──
+  const primeSyms   = topN(primeSymMap,   5);
+  const gravitySyms = topN(gravitySymMap, 5);
+
+  // ── 부품 TOP3 ──
+  const primePrtTop   = topN(primePartAll,   3);
+  const gravityPrtTop = topN(gravityPartAll, 3);
+
+  // ── 생산월 이상 탐지 (전체 대비 집중 발생) ──
+  const detectAnoms = (prodPartMap, prodTotal, totalMap, bucketName) => {
+    const out = [];
+    const globalTotal = Object.values(totalMap).reduce((s,v)=>s+v, 0) || 1;
+    for (const [ym, parts] of Object.entries(prodPartMap)) {
+      const tot = prodTotal[ym] || 1;
+      if (tot < 3) continue;
+      for (const [part, cnt] of Object.entries(parts)) {
+        const lr = cnt / tot;
+        const globalCnt = Object.values(prodPartMap).reduce((s, pp) => s + (pp[part]||0), 0);
+        const gr = globalCnt / globalTotal;
+        if (gr > 0 && lr >= gr * 1.5 && cnt >= 2) {
+          out.push({ 생산년월:ym, 부품:part, 건수:cnt, 배율:(lr/gr).toFixed(1) });
+        }
+      }
+    }
+    return out.sort((a,b) => +b.배율 - +a.배율).slice(0, 3);
+  };
+  const primeAnoms   = detectAnoms(primeProdPartMap,   primeProdTotal,   primeProdTotal,   PRIME);
+  const gravityAnoms = detectAnoms(gravityProdPartMap, gravityProdTotal, gravityProdTotal, GRAVITY);
+
+  // REENTRY_DATA 있으면 재인입률 보강
+  const D2 = REENTRY_DATA;
+  const primeStats  = D2?.modelStats?.[PRIME];
+  const gravityStats= D2?.modelStats?.[GRAVITY];
+
+  // ── AI 요약 ──
+  const genSummary = (syms, prtTop, anoms, stats) => {
+    const lines = [];
+    const s3 = syms.slice(0,3).map(s=>s.name).join('·');
+    const p3 = prtTop.slice(0,3).map(p=>p.name).join('/');
+    if (s3) lines.push(`${s3} 계열이 주요 증상으로 확인됩니다.`);
+    if (p3) lines.push(`${p3}가 주요 교체 부품으로 반복 확인됩니다.`);
+    if (anoms.length) lines.push(`${anoms[0].생산년월} 생산분에서 ${anoms[0].부품} 집중 발생 중으로 지속 모니터링이 필요합니다.`);
+    if (stats) {
+      if (parseFloat(stats.m1r) >= 5) lines.push(`1개월 재인입률 ${stats.m1r}%로 상승세가 지속되고 있습니다.`);
+    }
+    return lines.join(' ') || '데이터 분석 중';
+  };
+
+  const primeSummary   = genSummary(primeSyms,   primePrtTop,   primeAnoms,   primeStats);
+  const gravitySummary = genSummary(gravitySyms, gravityPrtTop, gravityAnoms, gravityStats);
+
+  // ── 위험/주의/감소 카드 ──
+  const alertCards = [];
+  const addAlert = (level, color, bg, title, desc) => {
+    const cls = color==='#dc2626'?'danger':color==='#b45309'?'warning':'success';
+    alertCards.push({ level, color, bg, cls, title, desc });
+  };
+
+  if (primeStats && (primeStats.critical > 0 || parseFloat(primeStats.m1r) >= 5)) {
+    addAlert('위험','#dc2626','#fef2f2', `Prime — ${primeStats.critical > 0 ? '동일증상+동일부품 반복' : '재인입 상승세'}`,
+      `${primePrtTop[0]?.name || ''} 반복 확인. 1개월 재인입률 ${primeStats.m1r}%`);
+  } else if (primeAnoms.length) {
+    addAlert('주의','#b45309','#fffbeb', `Prime — ${primeAnoms[0].생산년월} 생산분 집중`,
+      `${primeAnoms[0].부품} ${primeAnoms[0].건수}건 (평균 대비 ${primeAnoms[0].배율}배)`);
+  }
+  if (gravityStats && (gravityStats.critical > 0 || parseFloat(gravityStats.m1r) >= 5)) {
+    addAlert('위험','#dc2626','#fef2f2', `Gravity — ${gravityStats.critical > 0 ? '동일증상+동일부품 반복' : '재인입 상승세'}`,
+      `${gravityPrtTop[0]?.name || ''} 반복 확인. 1개월 재인입률 ${gravityStats.m1r}%`);
+  } else if (gravityAnoms.length) {
+    addAlert('주의','#b45309','#fffbeb', `Gravity — ${gravityAnoms[0].생산년월} 생산분 집중`,
+      `${gravityAnoms[0].부품} ${gravityAnoms[0].건수}건 (평균 대비 ${gravityAnoms[0].배율}배)`);
+  }
+  // 감소 추세: 재입 데이터 없어도 증상 건수로 판단
+  if (primeTotal > 20 && (!primeStats || parseFloat(primeStats.m1r) < 3)) {
+    addAlert('감소 추세','#15803d','#f0fdf4', 'Prime — 주요 증상 건수 안정권',
+      `총 ${fmtN2(primeTotal)}건 집계 중`);
+  }
+
+  // ── 모델별 트렌드 행 ──
+  const primeTrends   = primeSyms.map(s   => trendRow(s.name, s.value, prevPrimeSymMap));
+  const gravityTrends = gravitySyms.map(s => trendRow(s.name, s.value, prevGravitySymMap));
+
+  // ── 결함별 부품 카드 ──
+  const defectItems = [
+    ...primePrtTop.slice(0, 2).map(p => {
+      const a = primeAnoms.find(x => x.부품 === p.name);
+      return { model:'PRIME', color:'#5D86F7', sym:primeSyms[0]?.name||'주요 증상', part:p.name,
+        level: a?`⚠ 주의 — ${a.생산년월} 생산 집중`:'모니터링 중', levelColor:a?'#b45309':'#6B7280' };
+    }),
+    ...gravityPrtTop.slice(0, 2).map(p => {
+      const a = gravityAnoms.find(x => x.부품 === p.name);
+      return { model:'GRAVITY', color:'#47A786', sym:gravitySyms[0]?.name||'주요 증상', part:p.name,
+        level: a?`⚠ 주의 — ${a.생산년월} 생산 집중`:'모니터링 중', levelColor:a?'#b45309':'#6B7280' };
+    }),
+  ];
+
+  // 부품 소모: 최근 2개월 (날짜 미파싱 시 전체로 fallback)
+  const primeParts   = Object.keys(primeCons).length  ? primeCons  : primePartAll;
+  const gravityParts = Object.keys(gravityCons).length? gravityCons: gravityPartAll;
+  const partsLabel   = Object.keys(primeCons).length  ? '최근 2개월' : '전체 누적';
+
+  // ── 히트맵 빌더 (부품 × 원인) ──
+  const buildHeatmap = (partCause, partMap, modelColor, topPartsN=8, topCauseN=6) => {
+    const topParts  = Object.entries(partMap).sort((a,b)=>b[1]-a[1]).slice(0,topPartsN).map(([p])=>p);
+    const causeTotal = {};
+    topParts.forEach(p => {
+      Object.entries(partCause[p]||{}).forEach(([c,n]) => { causeTotal[c]=(causeTotal[c]||0)+n; });
+    });
+    const topCauses = Object.entries(causeTotal).sort((a,b)=>b[1]-a[1]).slice(0,topCauseN).map(([c])=>c);
+    if (!topParts.length || !topCauses.length) return '<div style="color:#9CA3AF;font-size:12px;padding:12px 0">데이터 없음</div>';
+
+    const allVals = topParts.flatMap(p => topCauses.map(c => (partCause[p]||{})[c]||0));
+    const maxVal  = Math.max(...allVals, 1);
+
+    // 색상 강도 계산 (hex)
+    const cellBg = (v) => {
+      if (!v) return '#F8F9FC';
+      const t = v / maxVal;
+      // modelColor를 RGB로 파싱해서 투명도 적용
+      const r = parseInt(modelColor.slice(1,3),16);
+      const g = parseInt(modelColor.slice(3,5),16);
+      const b = parseInt(modelColor.slice(5,7),16);
+      const alpha = 0.08 + t * 0.72;
+      return `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
+    };
+    const cellTxt = (v) => v ? (v > maxVal*0.5 ? '#fff' : '#17181C') : '#B4BBC7';
+
+    const thStyle = 'padding:6px 10px;font-size:10px;font-weight:700;color:#8B93A1;text-align:left;white-space:nowrap;border-bottom:2px solid #E7E9EE;background:#F8F9FC;';
+    const thCStyle= 'padding:6px 8px;font-size:10px;font-weight:700;color:#8B93A1;text-align:center;white-space:nowrap;border-bottom:2px solid #E7E9EE;background:#F8F9FC;max-width:80px;';
+
+    return `<div style="overflow-x:auto">
+<table style="width:100%;border-collapse:collapse;font-size:11px;">
+  <thead><tr>
+    <th style="${thStyle}">부품</th>
+    ${topCauses.map(c=>`<th style="${thCStyle}">${c}</th>`).join('')}
+    <th style="${thStyle}text-align:right">합계</th>
+  </tr></thead>
+  <tbody>
+  ${topParts.map(p => {
+    const rowTotal = topCauses.reduce((s,c)=>s+((partCause[p]||{})[c]||0),0);
+    return `<tr>
+      <td style="padding:6px 10px;font-weight:600;color:#17181C;white-space:nowrap;border-bottom:1px solid #F0F1F4">${p}</td>
+      ${topCauses.map(c => {
+        const v = (partCause[p]||{})[c]||0;
+        return `<td style="padding:6px 8px;text-align:center;border-bottom:1px solid #F0F1F4;border-radius:4px;background:${cellBg(v)};color:${cellTxt(v)};font-weight:${v?'700':'400'}">${v||'—'}</td>`;
+      }).join('')}
+      <td style="padding:6px 10px;text-align:right;font-weight:700;color:${modelColor};border-bottom:1px solid #F0F1F4">${fmtN2(rowTotal)}</td>
+    </tr>`;
+  }).join('')}
+  </tbody>
+</table></div>`;
+  };
+
+  const primeHeatmap   = buildHeatmap(primePartCause,   primePartAll,   '#5D86F7');
+  const gravityHeatmap = buildHeatmap(gravityPartCause, gravityPartAll, '#47A786');
+
+  // ── 배지 레벨 ──
+  const primeLevel   = primeStats   ? (primeStats.critical>0||parseFloat(primeStats.m1r)>=8  ? '위험' : parseFloat(primeStats.m1r)>=5 ? '주의' : '정상') : (primeAnoms.length   ? '주의' : '정상');
+  const gravityLevel = gravityStats ? (gravityStats.critical>0||parseFloat(gravityStats.m1r)>=8? '위험' : parseFloat(gravityStats.m1r)>=5? '주의' : '정상') : (gravityAnoms.length ? '주의' : '정상');
+  const levelColor = lv => lv==='위험'?'#dc2626':lv==='주의'?'#b45309':'#15803d';
+  const levelBg    = lv => lv==='위험'?'rgba(220,38,38,.12)':lv==='주의'?'rgba(180,83,9,.10)':'rgba(21,128,61,.10)';
+
+  // ── HTML 리포트 ──
+  const html = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Reencle CS 품질 주간 보고 — ${periodRange}</title>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Pretendard,-apple-system,sans-serif;font-size:13px;color:#17181C;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+.page{max-width:900px;margin:0 auto;padding:36px 32px;}
+
+/* ── 헤더 ── */
+.hdr{display:flex;justify-content:space-between;align-items:center;padding:20px 24px;background:#fff;border:1px solid #E7E9EE;border-radius:14px;margin-bottom:24px;box-shadow:0 2px 12px rgba(23,24,28,.06);}
+.hdr-left{display:flex;align-items:center;gap:14px;}
+.hdr-icon{width:42px;height:42px;border-radius:10px;background:#5D86F7;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;flex-shrink:0;}
+.hdr-brand-name{font-size:18px;font-weight:800;color:#17181C;letter-spacing:-.03em;line-height:1.15;}
+.hdr-brand-sub{font-size:11px;color:#8B93A1;margin-top:2px;font-weight:500;}
+.hdr-divider{width:1px;height:36px;background:#E7E9EE;margin:0 4px;}
+.hdr-meta{text-align:right;}
+.hdr-date{font-size:13px;font-weight:700;color:#17181C;margin-bottom:3px;}
+.hdr-range{font-size:11px;color:#5F6673;line-height:1.65;}
+.hdr-badge{display:inline-block;margin-top:6px;font-size:10px;font-weight:600;color:#5D86F7;background:#EEF3FF;border:1px solid #C5D6FF;border-radius:999px;padding:2px 10px;}
+
+/* ── 섹션 라벨 ── */
+.sec{font-size:9px;font-weight:800;letter-spacing:.16em;color:#8B93A1;text-transform:uppercase;margin:24px 0 12px;display:flex;align-items:center;gap:10px;}
+.sec::before{content:'';width:3px;height:12px;border-radius:2px;background:#5D86F7;flex-shrink:0;}
+.sec::after{content:'';flex:1;height:1px;background:#EEF0F4;}
+
+/* ── AI 박스 ── */
+.ai-box{background:#F8F9FC;border:1px solid #E7E9EE;border-radius:12px;padding:20px 22px;margin-bottom:14px;}
+.ai-lbl{font-size:9px;font-weight:800;letter-spacing:.14em;color:#8B93A1;margin-bottom:14px;text-transform:uppercase;display:flex;align-items:center;gap:8px;}
+.ai-lbl::after{content:'';flex:1;height:1px;background:#E7E9EE;}
+.ai-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.ai-model{padding:14px 16px;border-radius:8px;background:#fff;border:1px solid #E7E9EE;}
+.ai-model-name{font-size:10px;font-weight:700;color:#5D86F7;margin-bottom:7px;letter-spacing:.05em;display:flex;align-items:center;gap:5px;}
+.ai-model-name::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.ai-model-text{font-size:12px;line-height:1.8;color:#3F4554;}
+
+/* ── 알림 카드 ── */
+.alert-row{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.alert-card{flex:1;min-width:190px;border-radius:10px;padding:14px 16px;position:relative;overflow:hidden;}
+.alert-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.alert-card.danger{background:#FEF2F2;border:1px solid #FECACA;} .alert-card.danger::before{background:#dc2626;}
+.alert-card.warning{background:#FFFBEB;border:1px solid #FDE68A;} .alert-card.warning::before{background:#d97706;}
+.alert-card.success{background:#F0FDF4;border:1px solid #BBF7D0;} .alert-card.success::before{background:#16a34a;}
+.alert-badge{font-size:9px;font-weight:800;padding:2px 8px;border-radius:999px;display:inline-block;margin-bottom:8px;letter-spacing:.03em;}
+.danger .alert-badge{background:#dc2626;color:#fff;}
+.warning .alert-badge{background:#d97706;color:#fff;}
+.success .alert-badge{background:#16a34a;color:#fff;}
+.alert-title{font-size:12px;font-weight:700;line-height:1.4;margin-bottom:4px;}
+.danger .alert-title{color:#991B1B;} .warning .alert-title{color:#92400E;} .success .alert-title{color:#14532D;}
+.alert-desc{font-size:11px;line-height:1.6;color:#6B7280;}
+
+/* ── 모델 컬럼 ── */
+.model-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;}
+.model-col{border-radius:10px;overflow:hidden;border:1px solid #E7E9EE;}
+.model-hdr{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}
+.model-hdr.prime{background:#EEF3FF;border-bottom:2px solid #5D86F7;}
+.model-hdr.gravity{background:#EAF7EF;border-bottom:2px solid #47A786;}
+.model-hdr.new{background:#F3F0FF;border-bottom:2px solid #826AF1;}
+.model-hdr-name{font-size:12px;font-weight:800;letter-spacing:.02em;}
+.model-hdr.prime .model-hdr-name{color:#3558B8;}
+.model-hdr.gravity .model-hdr-name{color:#2E7D50;}
+.model-hdr.new .model-hdr-name{color:#5A3EA0;}
+.model-hdr-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:999px;}
+.model-hdr.prime .model-hdr-badge{background:#C5D6FF;color:#3558B8;}
+.model-hdr.gravity .model-hdr-badge{background:#CDECD8;color:#2E7D50;}
+.model-hdr.new .model-hdr-badge{background:#DDD5FF;color:#5A3EA0;}
+table.ttbl{width:100%;border-collapse:collapse;background:#fff;}
+.ttbl td{padding:8px 14px;font-size:11.5px;border-bottom:1px solid #F5F6F8;color:#17181C;}
+.ttbl tr:last-child td{border-bottom:none;}
+.ttbl td:first-child{color:#5F6673;}
+.ttbl td:last-child{text-align:right;font-weight:600;}
+
+/* ── 부품 상태 카드 ── */
+.defect-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+.defect-card{border-radius:10px;padding:14px 16px;background:#fff;border:1px solid #E7E9EE;}
+.defect-model-row{display:flex;align-items:center;gap:6px;margin-bottom:7px;}
+.defect-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.defect-model-lbl{font-size:10px;font-weight:700;color:#8B93A1;letter-spacing:.03em;}
+.defect-sym{font-size:10px;color:#B4BBC7;margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;}
+.defect-part{font-size:15px;font-weight:800;color:#17181C;margin-bottom:5px;letter-spacing:-.01em;}
+.defect-note{font-size:11px;font-weight:600;}
+
+/* ── 부품 소모 ── */
+.parts-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.parts-col{border-radius:10px;overflow:hidden;border:1px solid #E7E9EE;}
+.parts-hdr{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;}
+.parts-hdr.prime{background:#EEF3FF;border-bottom:2px solid #5D86F7;}
+.parts-hdr.gravity{background:#EAF7EF;border-bottom:2px solid #47A786;}
+.parts-hdr-name{font-size:12px;font-weight:800;}
+.parts-hdr.prime .parts-hdr-name{color:#3558B8;}
+.parts-hdr.gravity .parts-hdr-name{color:#2E7D50;}
+.parts-hdr-sub{font-size:10px;color:#8B93A1;}
+table.ptbl{width:100%;border-collapse:collapse;background:#fff;}
+.ptbl td{padding:9px 16px;font-size:12px;border-bottom:1px solid #F5F6F8;color:#17181C;}
+.ptbl tr:last-child td{border-bottom:none;}
+.ptbl td:last-child{text-align:right;font-weight:700;}
+.ptbl .rank{color:#B4BBC7;font-size:10px;font-weight:700;width:20px;}
+
+/* ── 푸터 ── */
+.footer{margin-top:28px;padding:14px 18px;background:#F8F9FC;border-radius:10px;border:1px solid #EEF0F4;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#8B93A1;}
+.footer-left{display:flex;align-items:center;gap:6px;}
+.footer-dot{width:5px;height:5px;border-radius:50%;background:#5D86F7;}
+
+@media print{
+  body{background:#fff;}
+  .page{padding:14px;}
+  @page{size:A4 portrait;margin:8mm;}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+</style>
+</head>
+<body><div class="page">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="hdr-icon">R</div>
+    <div>
+      <div class="hdr-brand-name">Reencle</div>
+      <div class="hdr-brand-sub">CS 품질 주간 보고</div>
+    </div>
+    <div class="hdr-divider"></div>
+    <div style="font-size:11px;color:#8B93A1;line-height:1.7">
+      <div>총 <strong style="color:#17181C">${fmtN2(primeTotal + gravityTotal)}건</strong> 집계</div>
+      <div>Prime ${fmtN2(primeTotal)} · Gravity ${fmtN2(gravityTotal)}</div>
+    </div>
+  </div>
+  <div class="hdr-meta">
+    <div class="hdr-date">기준일 ${today}</div>
+    <div class="hdr-range">집계 기간: ${periodRange}</div>
+    <div class="hdr-badge">매주 월요일 오전 8시 자동 발송</div>
+  </div>
+</div>
+
+<!-- S1 -->
+<div class="sec">SECTION 1 — 이번 주 종합</div>
+<div class="ai-box">
+  <div class="ai-lbl">AI 요약</div>
+  <div class="ai-row">
+    <div class="ai-model">
+      <div class="ai-model-name">PRIME</div>
+      <div class="ai-model-text">${primeSummary || '데이터 집계 중입니다.'}</div>
+    </div>
+    <div class="ai-model">
+      <div class="ai-model-name" style="color:#47A786">GRAVITY</div>
+      <div class="ai-model-text">${gravitySummary || '데이터 집계 중입니다.'}</div>
+    </div>
+  </div>
+</div>
+<div class="alert-row">
+${alertCards.map(c => `<div class="alert-card ${c.cls}">
+  <div class="alert-badge">${c.level}</div>
+  <div class="alert-title">${c.title}</div>
+  <div class="alert-desc">${c.desc}</div>
+</div>`).join('')}
+</div>
+
+<!-- S2 -->
+<div class="sec">SECTION 2 — 모델별 불량 트렌드</div>
+<div style="font-size:10px;color:#8B93A1;margin-bottom:12px;display:flex;align-items:center;gap:6px">
+  <span style="background:${prevPeriod?'#EEF3FF':'#F5F6F8'};color:${prevPeriod?'#3558B8':'#B4BBC7'};border:1px solid ${prevPeriod?'#C5D6FF':'#E7E9EE'};border-radius:999px;padding:2px 10px;font-weight:600">${compareLabel}</span>
+  <span>${prevPeriod ? '대비 증감율. +20% 이상 ▲ 위험 / -20% 이하 ▼ 감소' : '— DB 저장 후 다음 주부터 비교 가능'}</span>
+</div>
+<div class="model-grid">
+  <div class="model-col">
+    <div class="model-hdr prime">
+      <span class="model-hdr-name">PRIME</span>
+      <span class="model-hdr-badge">${primeLevel}</span>
+    </div>
+    <table class="ttbl">${primeTrends.join('')}${primeTrends.length===0?'<tr><td colspan="2" style="padding:16px;color:#9CA3AF;text-align:center">데이터 없음</td></tr>':''}</table>
+  </div>
+  <div class="model-col">
+    <div class="model-hdr gravity">
+      <span class="model-hdr-name">GRAVITY</span>
+      <span class="model-hdr-badge">${gravityLevel}</span>
+    </div>
+    <table class="ttbl">${gravityTrends.join('')}${gravityTrends.length===0?'<tr><td colspan="2" style="padding:16px;color:#9CA3AF;text-align:center">데이터 없음</td></tr>':''}</table>
+  </div>
+  <div class="model-col">
+    <div class="model-hdr new">
+      <span class="model-hdr-name">Gravity Pro</span>
+      <span class="model-hdr-badge">신규</span>
+    </div>
+    <table class="ttbl"><tr><td colspan="2" style="padding:24px 14px;color:#9CA3AF;font-size:11px;text-align:center;line-height:1.8">2026-05 출시<br>데이터 수집 중<br>모니터링 시작</td></tr></table>
+  </div>
+</div>
+
+<div style="font-size:10px;font-weight:700;color:#8B93A1;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">주요 결함별 부품 상태</div>
+<div class="defect-grid">
+${defectItems.length ? defectItems.map(d => `<div class="defect-card">
+  <div class="defect-model-row">
+    <span class="defect-dot" style="background:${d.color}"></span>
+    <span class="defect-model-lbl">${d.model}</span>
+    <span class="defect-sym">${d.sym}</span>
+  </div>
+  <div class="defect-part">${d.part}</div>
+  <div class="defect-note" style="color:${d.levelColor}">${d.level}</div>
+</div>`).join('') : '<div style="color:#9CA3AF;font-size:12px;padding:8px 0">부품 데이터 없음</div>'}
+</div>
+
+<!-- S3 -->
+<div class="sec">SECTION 3 — 부품 소모 현황 (${partsLabel})</div>
+<div class="parts-grid">
+  <div class="parts-col">
+    <div class="parts-hdr prime">
+      <span class="parts-hdr-name">PRIME</span>
+      <span class="parts-hdr-sub">${partsLabel} 기준</span>
+    </div>
+    <table class="ptbl">
+      ${sortParts(primeParts).length ? sortParts(primeParts).map(([p,c],i) => `<tr><td class="rank">${i+1}</td><td>${p}</td><td style="color:#5D86F7">${fmtN2(c)}개</td></tr>`).join('') : '<tr><td colspan="3" style="color:#9CA3AF;padding:20px;text-align:center">데이터 없음</td></tr>'}
+    </table>
+  </div>
+  <div class="parts-col">
+    <div class="parts-hdr gravity">
+      <span class="parts-hdr-name">GRAVITY</span>
+      <span class="parts-hdr-sub">${partsLabel} 기준</span>
+    </div>
+    <table class="ptbl">
+      ${sortParts(gravityParts).length ? sortParts(gravityParts).map(([p,c],i) => `<tr><td class="rank">${i+1}</td><td>${p}</td><td style="color:#47A786">${fmtN2(c)}개</td></tr>`).join('') : '<tr><td colspan="3" style="color:#9CA3AF;padding:20px;text-align:center">데이터 없음</td></tr>'}
+    </table>
+  </div>
+</div>
+
+<!-- S4 Heatmap -->
+<div class="sec">SECTION 4 — 부품 × 원인 히트맵</div>
+<div style="font-size:11px;color:#8B93A1;margin-bottom:14px">어떤 부품이 무슨 이유로 교체되고 있는지 — 숫자가 클수록 색이 진합니다.</div>
+
+<div style="margin-bottom:14px">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <div style="width:8px;height:8px;border-radius:50%;background:#5D86F7;flex-shrink:0"></div>
+    <span style="font-size:11px;font-weight:700;color:#3558B8">PRIME</span>
+  </div>
+  ${primeHeatmap}
+</div>
+
+<div style="margin-bottom:0">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <div style="width:8px;height:8px;border-radius:50%;background:#47A786;flex-shrink:0"></div>
+    <span style="font-size:11px;font-weight:700;color:#2E7D50">GRAVITY</span>
+  </div>
+  ${gravityHeatmap}
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-left"><div class="footer-dot"></div>CX팀 · 자동 생성 · ${today}</div>
+  <div>부품 품질 불량만 집계 &nbsp;|&nbsp; 미생물 · 배송 · 기타 제외</div>
+</div>
+
+</div></body></html>`;
+
+  const w = window.open('', '_blank', 'width=960,height=800');
+  if (!w) { alert('팝업이 차단되었습니다. 팝업 허용 후 다시 시도해 주세요.'); return; }
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => { try { w.print(); } catch(e) {} }, 700);
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
