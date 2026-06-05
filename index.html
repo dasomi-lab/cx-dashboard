@@ -1516,7 +1516,7 @@ function renderDashboard(){
   renderDailyBars('dailyChBars', ds.map(d=>({label:d.date, value:d.ch, color:'#826AF1'})));
 
   renderModelDonut();
-  bars(D.symptomAll || [], 'symptomBars');
+  symptomDonut(D.symptomAll || []);
 }
 function renderDailyBars(id, items){
   const el = document.getElementById(id);
@@ -1532,6 +1532,35 @@ function renderDailyBars(id, items){
         <div class="vbar-label">${it.label}</div>
       </div>`).join('')
   }</div>`;
+}
+let symptomDonutChart = null;
+function symptomDonut(data){
+  const el = document.getElementById('symptomBars'); if(!el) return;
+  if(!data || !data.length){
+    if(symptomDonutChart){ symptomDonutChart.destroy(); symptomDonutChart = null; }
+    el.innerHTML = '<div class="empty-msg">데이터 없음</div>'; return;
+  }
+  const total = data.reduce((s,i)=>s+i.value,0);
+  el.innerHTML = `<div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+    <div class="donut-wrap" style="flex:0 0 auto;max-width:240px"><canvas id="symptomDonutCv"></canvas></div>
+    <div class="legend-col" style="flex:1;min-width:220px">${data.map((item,idx)=>`
+      <div class="legend-row">
+        <div class="legend-left"><div class="legend-dot" style="background:${COLORS[idx%COLORS.length]}"></div><div class="legend-label">${item.name}</div></div>
+        <div class="legend-right">${((item.value/total)*100).toFixed(1)}% <span>${fmtN(item.value)}건</span></div>
+      </div>`).join('')}</div>
+  </div>`;
+  if(symptomDonutChart) symptomDonutChart.destroy();
+  symptomDonutChart = new Chart(document.getElementById('symptomDonutCv'), {
+    type:'doughnut',
+    data:{ labels:data.map(i=>i.name),
+      datasets:[{data:data.map(i=>i.value), backgroundColor:data.map((_,idx)=>COLORS[idx%COLORS.length]), borderWidth:0}] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'62%',
+      plugins:{
+        legend:{display:false},
+        datalabels:{ display:(ctx)=>(ctx.dataset.data[ctx.dataIndex]/total)>=0.05, color:'#FFFFFF', font:{weight:'bold',size:11}, formatter:(val)=>fmtN(val) },
+        tooltip:{callbacks:{label:(ctx)=>`${ctx.label}: ${fmtN(ctx.raw)}건 (${((ctx.raw/total)*100).toFixed(1)}%)`}}
+      } }
+  });
 }
 function renderModelDonut(){
   const data = D.modelDist || [];
@@ -1554,26 +1583,24 @@ function renderModelDonut(){
 
   if(modelDonutChart) modelDonutChart.destroy();
   modelDonutChart = new Chart(canvas, {
-    type:'doughnut',
+    type:'bar',
     data:{
-      labels:data.map(i=>i.name),
-      datasets:[{data:data.map(i=>i.value), backgroundColor:data.map((_,idx)=>COLORS[idx % COLORS.length]), borderWidth:0}]
+      labels:data.map(i=>modelShortName(i.name)),
+      datasets:[{data:data.map(i=>i.value), backgroundColor:data.map((_,idx)=>COLORS[idx % COLORS.length]), borderWidth:0, borderRadius:4}]
     },
     options:{
+      indexAxis:'y',
       responsive:true,
       maintainAspectRatio:false,
-      cutout:'66%',
+      layout:{padding:{right:34}},
       plugins:{
         legend:{display:false},
-        datalabels:{
-          display:true,
-          color:'#FFFFFF',
-          font:{weight:'bold',size:13},
-          formatter:(val)=>fmtN(val)+'건',
-          anchor:'center',
-          align:'center',
-        },
-        tooltip:{callbacks:{label:(ctx)=>`${ctx.label}: ${fmtN(ctx.raw)}건`}}
+        datalabels:{ display:true, anchor:'end', align:'end', color:'#6B7280', font:{weight:'bold',size:11}, formatter:(val)=>fmtN(val) },
+        tooltip:{callbacks:{label:(ctx)=>`${fmtN(ctx.raw)}건 (${((ctx.raw/total)*100).toFixed(1)}%)`}}
+      },
+      scales:{
+        x:{beginAtZero:true, ticks:{font:{size:10}}, grid:{color:'rgba(0,0,0,.05)'}},
+        y:{ticks:{font:{size:11}}, grid:{display:false}}
       }
     }
   });
