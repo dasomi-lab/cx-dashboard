@@ -645,14 +645,13 @@ tr:hover td{background:var(--bg-alt);}
             </div>
           </div>
           <div class="daily-divider"></div>
-          <div class="daily-grid">
+          <div class="daily-grid" style="grid-template-columns:1fr">
             <div class="daily-panel">
-              <div class="daily-panel-title">CS 처리 현황</div>
-              <div id="dailyCsBars"></div>
-            </div>
-            <div class="daily-panel">
-              <div class="daily-panel-title accent">채널톡 인입 현황</div>
-              <div id="dailyChBars"></div>
+              <div style="display:flex;gap:18px;align-items:center;margin-bottom:10px;font-size:13px;font-weight:600;flex-wrap:wrap">
+                <span style="display:flex;align-items:center;gap:6px;color:#25306E"><span style="width:12px;height:12px;border-radius:3px;background:#5D86F7"></span>CS 처리 (막대)</span>
+                <span style="display:flex;align-items:center;gap:6px;color:#6C5CE7"><span style="width:16px;height:3px;border-radius:2px;background:#826AF1"></span>채널톡 인입 (꺾은선)</span>
+              </div>
+              <div style="position:relative;width:100%;height:280px;max-width:100%"><canvas id="dailyComboCv"></canvas></div>
             </div>
           </div>
         </div>
@@ -1512,8 +1511,7 @@ function renderDashboard(){
 
   const ds = D.dailyStats || [];
   document.getElementById('dailySummary').textContent = ds.length ? `${ds[0].date} ~ ${ds[ds.length-1].date}` : '—';
-  renderDailyBars('dailyCsBars', ds.map(d=>({label:d.date, value:d.cs, color:'#5D86F7'})));
-  renderDailyBars('dailyChBars', ds.map(d=>({label:d.date, value:d.ch, color:'#826AF1'})));
+  renderDailyCombo(ds);
 
   renderModelDonut();
   symptomDonut(D.symptomAll || []);
@@ -1532,6 +1530,33 @@ function renderDailyBars(id, items){
         <div class="vbar-label">${it.label}</div>
       </div>`).join('')
   }</div>`;
+}
+let dailyComboChart = null;
+function renderDailyCombo(ds){
+  const cv = document.getElementById('dailyComboCv');
+  if(!cv) return;
+  if(dailyComboChart){ dailyComboChart.destroy(); dailyComboChart = null; }
+  if(!ds || !ds.length) return;
+  dailyComboChart = new Chart(cv, {
+    data:{
+      labels: ds.map(d=>d.date),
+      datasets:[
+        { type:'bar', label:'CS 처리', data:ds.map(d=>d.cs), backgroundColor:'#5D86F7', borderRadius:6, maxBarThickness:38, yAxisID:'y',
+          datalabels:{ display:true, anchor:'end', align:'end', color:'#25306E', font:{weight:'bold',size:11}, formatter:v=>fmtN(v) } },
+        { type:'line', label:'채널톡 인입', data:ds.map(d=>d.ch), borderColor:'#826AF1', backgroundColor:'#826AF1', tension:.3, pointRadius:4, borderWidth:2.5, yAxisID:'y1',
+          datalabels:{ display:true, align:'top', color:'#6C5CE7', font:{weight:'bold',size:11}, formatter:v=>fmtN(v) } }
+      ]
+    },
+    options:{ responsive:true, maintainAspectRatio:false,
+      layout:{padding:{top:18,right:8}},
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:(ctx)=>`${ctx.dataset.label}: ${fmtN(ctx.raw)}건`}} },
+      scales:{
+        y:{ beginAtZero:true, position:'left', title:{display:true,text:'CS',font:{size:11}}, grid:{color:'rgba(0,0,0,.05)'} },
+        y1:{ beginAtZero:true, position:'right', title:{display:true,text:'채널톡',font:{size:11}}, grid:{drawOnChartArea:false} },
+        x:{ grid:{display:false}, ticks:{font:{size:11}} }
+      }
+    }
+  });
 }
 let symptomDonutChart = null;
 function symptomDonut(data){
