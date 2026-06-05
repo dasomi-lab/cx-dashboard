@@ -3014,8 +3014,10 @@ function renderReentryDiagnosis(){
   const D2 = REENTRY_DATA;
   if (!D2) { el.innerHTML = ''; return; }
 
+  const sel = (typeof reentryModelFilter !== 'undefined' && reentryModelFilter) ? reentryModelFilter : '전체';
+  const isAll = sel === '전체';
   const hdr = `<div class="card-hdr"><i data-lucide="stethoscope" class="icon card-hdr-icon-lc"></i>
-    <div class="card-title">재인입 원인 진단</div>
+    <div class="card-title">재인입 원인 진단${isAll ? '' : ' — ' + modelDisplayName(sel)}</div>
     <span style="font-size:12px;color:var(--text-tertiary);margin-left:8px">경영 요약 — 추세·비용·원인 귀책</span></div>`;
 
   if (D2._isSnapshot || !REENTRY_RAW.size) {
@@ -3023,8 +3025,8 @@ function renderReentryDiagnosis(){
     return;
   }
 
-  const reList = D2.reentries || [];
-  const allCS  = [...REENTRY_RAW.values()].filter(r => r.회수일자 && !isNaN(r.회수일자));
+  const reList = (D2.reentries || []).filter(re => isAll || (re.curr && re.curr.모델버킷 === sel));
+  const allCS  = [...REENTRY_RAW.values()].filter(r => r.회수일자 && !isNaN(r.회수일자) && (isAll || r.모델버킷 === sel));
   if (!allCS.length || !reList.length) { el.innerHTML = hdr + '<div class="empty-msg">분석 데이터 없음</div>'; return; }
 
   const wkCS = {}, wkRe = {};
@@ -3093,6 +3095,40 @@ function renderReentryDiagnosis(){
   if (groups[0])
     actions.push(`재인입 원인의 <strong>${Math.round(groups[0][1]/groupTotal*100)}%가 ${groups[0][0]} 귀책</strong> — 해당 영역 개선이 비용 절감 폭 최대`);
 
+  // 전체 보기 — 모델별 요약 표 (행 클릭 시 해당 모델로 슬라이서 전환)
+  let modelSummary = '';
+  if (isAll) {
+    const msRows = Object.keys(modelCSc).filter(b => b && b !== '기타' && b !== '소모품').map(b => {
+      const cs = modelCSc[b] || 0;
+      const reb = reList.filter(re => re.curr.모델버킷 === b);
+      const cost = reb.reduce((s,re) => s + _asCost(re), 0);
+      const crit = reb.filter(re => re.pri === 0).length;
+      return { b, cs, re: reb.length, rate: cs ? +((reb.length/cs)*100).toFixed(1) : 0, cost, crit };
+    }).filter(x => x.cs >= 10).sort((a,b) => b.cost - a.cost);
+    if (msRows.length) {
+      modelSummary = `
+    <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:8px">모델별 요약 — 행을 클릭하면 해당 모델 기준으로 전환됩니다</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px">
+      <thead><tr style="color:var(--text-tertiary);font-size:12px;text-align:left">
+        <th style="padding:6px 8px;font-weight:600">모델</th>
+        <th style="padding:6px 8px;text-align:right;font-weight:600">CS</th>
+        <th style="padding:6px 8px;text-align:right;font-weight:600">재인입</th>
+        <th style="padding:6px 8px;text-align:right;font-weight:600">재인입률</th>
+        <th style="padding:6px 8px;text-align:right;font-weight:600">CRITICAL</th>
+        <th style="padding:6px 8px;text-align:right;font-weight:600">손실(실부담)</th>
+      </tr></thead>
+      <tbody>${msRows.map(x => `<tr onclick="setReentryModel('${x.b}')" style="cursor:pointer;border-top:1px solid var(--border-subtle)">
+        <td style="padding:7px 8px;font-weight:600">${modelDisplayName(x.b)}</td>
+        <td style="padding:7px 8px;text-align:right">${x.cs.toLocaleString()}</td>
+        <td style="padding:7px 8px;text-align:right">${x.re.toLocaleString()}</td>
+        <td style="padding:7px 8px;text-align:right;font-weight:700;color:${x.rate >= 10 ? 'var(--danger-text)' : 'var(--text-primary)'}">${x.rate}%</td>
+        <td style="padding:7px 8px;text-align:right">${x.crit.toLocaleString()}</td>
+        <td style="padding:7px 8px;text-align:right;font-weight:700">${fmtWon(x.cost)}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+    }
+  }
+
   const mc = (label, value, sub, color) => `
     <div style="background:var(--bg-alt);border-radius:10px;padding:14px 16px;min-width:0">
       <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:4px">${label}</div>
@@ -3107,6 +3143,7 @@ function renderReentryDiagnosis(){
       ${mc('누적 손실(실부담)', fmtWon(totalCost), `수납 차감 ${fmtWon(sumFeeAll)} · 유상 ${paidCnt.toLocaleString()}/무상 ${freeCnt.toLocaleString()}`, null)}
     </div>
 
+    ${modelSummary}
     <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:8px">주차별 재인입률 추이 (최근 12주)</div>
     <div style="position:relative;width:100%;height:170px;margin-bottom:20px"><canvas id="diagTrendCv"></canvas></div>
 
