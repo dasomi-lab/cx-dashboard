@@ -618,9 +618,9 @@ tr:hover td{background:var(--bg-alt);}
           <input type="file" accept=".json" style="display:none" onchange="importJSON(this)">
         </label>
         <button class="btn btn-outline" id="saveDbBtn" onclick="saveReportToSupabase()"><i data-lucide="cloud-upload" class="icon"></i>DB 저장</button>
-        <label class="btn btn-outline" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px" title="as_history.json 선택 → Supabase 일괄 저장">
+        <label class="btn btn-outline" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px" title="as_history.json 또는 월별 AS 엑셀 파일 선택 → Supabase 일괄 저장 (재인입 분석용 원본 포함)">
           <i data-lucide="database" class="icon"></i><span id="historyJsonBtn">히스토리 DB저장</span>
-          <input type="file" accept=".json" style="display:none" onchange="uploadHistoryJSON(this.files[0]);this.value=''">
+          <input type="file" multiple accept=".json,.xlsx,.xls,.csv" style="display:none" onchange="handleHistoryDB(this.files);this.value=''">
         </label>
         <label class="btn btn-outline" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px" title="월별 AS파일 여러 개 선택 → 주차별 자동 저장">
           <i data-lucide="history" class="icon"></i><span id="historyImportBtn">히스토리 가져오기</span>
@@ -746,6 +746,9 @@ tr:hover td{background:var(--bg-alt);}
             <div class="reentry-header-meta" id="reentryMeta">분석 실행: — · 원본 —행 / CS기준 —건</div>
           </div>
           <div class="reentry-header-actions">
+            <button class="btn btn-outline" id="reentryDbBtn" onclick="loadReentryFromDB()" title="Supabase 히스토리(보고서와 동일 데이터)에서 전체 주차 로드">
+              <i data-lucide="database" class="icon"></i>DB 불러오기
+            </button>
             <label class="btn btn-outline" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
               <i data-lucide="upload-cloud" class="icon"></i>Drive 불러오기
               <input type="file" multiple accept=".csv,.xlsx,.xls" style="display:none"
@@ -1979,8 +1982,8 @@ function renderReentry(){
   if (!REENTRY_DATA) {
     const noData = `<div class="reentry-no-data">
       <div class="reentry-no-data-icon"><i data-lucide="upload-cloud" class="icon"></i></div>
-      <div class="reentry-no-data-title">AS재인입 파일을 업로드해 주세요</div>
-      <div class="reentry-no-data-desc">AS_202501.csv ~ AS_202604.csv 파일을<br>상단 Drive 불러오기 버튼으로 한 번에 올리면 자동 분석됩니다.</div>
+      <div class="reentry-no-data-title">DB 불러오기 또는 AS재인입 파일을 업로드해 주세요</div>
+      <div class="reentry-no-data-desc">히스토리 DB저장으로 업로드한 데이터가 있으면 상단 <strong>DB 불러오기</strong> 버튼으로 바로 분석됩니다.<br>또는 AS_202501.csv ~ AS_202604.csv 파일을 상단 Drive 불러오기 버튼으로 한 번에 올리면 자동 분석됩니다.</div>
     </div>`;
     ['reentrySlicerRow','reentryKpiGrid','reentryModelTable','reentryTypeList',
      'reentrySymptomByModel','reentryPartsByModel',
@@ -1989,7 +1992,7 @@ function renderReentry(){
      'reentryProdAnomalySection','reentryPrioritySection','reentryAiSection']
       .forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML = id==='reentrySlicerRow'?'':noData; });
     const metaEl = document.getElementById('reentryMeta');
-    if(metaEl) metaEl.textContent = '데이터 미로드 — AS재인입 파일을 업로드하면 자동 분석됩니다.';
+    if(metaEl) metaEl.textContent = '데이터 미로드 — DB 불러오기 또는 AS재인입 파일 업로드 시 자동 분석됩니다.';
     lucide.createIcons();
     return;
   }
@@ -4520,6 +4523,48 @@ function getWeekRange(date) {
 }
 
 /* ── 월별 AS 파일 일괄 히스토리 저장 ── */
+/* ── 히스토리 DB저장 라우터: JSON·엑셀 모두 지원 ── */
+async function handleHistoryDB(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+  const jsonFiles  = files.filter(f => /\.json$/i.test(f.name));
+  const excelFiles = files.filter(f => /\.(xlsx|xls|csv)$/i.test(f.name));
+  for (const jf of jsonFiles) await uploadHistoryJSON(jf);
+  if (excelFiles.length) await importHistoricalAS(excelFiles);
+}
+
+/* ── AS 행 → 재인입 분석용 슬림 레코드 (CS번호 기준 그룹핑, 고객명 마스킹) ── */
+function buildSlimASRows(rows) {
+  const map = new Map();
+  rows.forEach(row => {
+    const csNo = String(pickCol(row, ['CS No.(접수번호)','CS No.','접수번호']) || '').trim();
+    if (!csNo) return;
+    if (!map.has(csNo)) {
+      const rawDt   = pickCol(row, ['회수일자','최근수리일자']);
+      const d       = rawDt ? rtParseDate(rawDt) : null;
+      const prodRaw = String(pickCol(row, ['생산일자']) || '').trim();
+      const custNm  = String(pickCol(row, ['고객명(접수/구매)','고객명']) || '').trim();
+      map.set(csNo, {
+        csNo,
+        recvDt : d && !isNaN(d) ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` : null,
+        model  : String(pickCol(row, ['품명','상품명','모델명']) || '').trim(),
+        custNm : custNm ? custNm.slice(0,1) + '**' : '',
+        phone  : String(pickCol(row, ['연락처']) || '').trim(),
+        prodYM : prodRaw.match(/^(\d{4}-\d{2})/) ? prodRaw.slice(0,7) : null,
+        srNo   : String(pickCol(row, ['Sr.No','SR No']) || '').trim(),
+        asTypes: [], syms: [], parts: [], causes: []
+      });
+    }
+    const rec  = map.get(csNo);
+    const push = (arr, v) => { v = String(v || '').trim(); if (v && !arr.includes(v)) arr.push(v); };
+    push(rec.asTypes, pickCol(row, ['A/S유형','AS유형']));
+    push(rec.syms,    pickCol(row, ['증상기준','A/S증상','증상']));
+    push(rec.parts,   pickCol(row, ['부품']));
+    push(rec.causes,  pickCol(row, ['원인']));
+  });
+  return [...map.values()];
+}
+
 /* ── as_history.json → Supabase 일괄 업로드 ── */
 async function uploadHistoryJSON(file) {
   if (!file) return;
@@ -4630,7 +4675,9 @@ async function importHistoricalAS(fileList) {
               periodRange: range,
               rowCount: bucket.rows.length,
               sourceFile: file.name,
-            }
+            },
+            // 재인입 분석용 원본 행 (CS번호 그룹핑·고객명 마스킹) — 보고서 트렌드와 동일 row 참조
+            asRows: buildSlimASRows(bucket.rows)
           },
           updated_at: new Date().toISOString()
         };
@@ -4656,6 +4703,92 @@ async function importHistoricalAS(fileList) {
     : `✅ ${files.length}개 파일 → ${totalWeeks}개 주차 저장 완료`;
   showSaveToast(msg);
   console.log('[히스토리] 저장된 주차:', savedKeys.sort().join(', '));
+
+  // 업로드 완료 → 재인입 분석도 동일 DB 데이터로 자동 갱신
+  if (totalWeeks > 0) {
+    try { await loadReentryFromDB({ switchTab: false }); }
+    catch(e) { console.error('[재인입 자동 갱신 실패]', e); }
+  }
+}
+
+/* ── Supabase 히스토리(asRows) → 재인입 분석 로드 — 보고서 트렌드와 동일 데이터 참조 ── */
+function rtBuildFromSlimRows(slimRows) {
+  (slimRows || []).forEach(s => {
+    if (!s || !s.csNo) return;
+    if (!REENTRY_RAW.has(s.csNo)) {
+      REENTRY_RAW.set(s.csNo, {
+        csNo     : s.csNo,
+        회수일자 : s.recvDt ? rtParseDate(s.recvDt) : null,
+        모델버킷 : normalizeModelBucket(s.model || ''),
+        모델원본 : s.model || '',
+        고객명   : s.custNm || '',
+        연락처   : s.phone || '',
+        고객키   : `${s.custNm || ''}|${s.phone || ''}`,
+        srNo     : s.srNo || '',
+        생산년월 : s.prodYM || null,
+        asTypeSet: new Set(),
+        증상Set  : new Set(),
+        부품Set  : new Set(),
+        원인Set  : new Set(),
+      });
+    }
+    const rec = REENTRY_RAW.get(s.csNo);
+    (s.asTypes || []).forEach(v => rec.asTypeSet.add(v));
+    (s.syms    || []).forEach(v => rec.증상Set.add(v));
+    (s.parts   || []).forEach(v => rec.부품Set.add(v));
+    (s.causes  || []).forEach(v => rec.원인Set.add(v));
+  });
+}
+
+async function loadReentryFromDB(opts) {
+  const switchTab = !opts || opts.switchTab !== false;
+  const btn = document.getElementById('reentryDbBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '불러오는 중...'; }
+  document.getElementById('ldr').classList.add('on');
+  try {
+    // 페이지네이션으로 전체 주차 로드
+    const PAGE = 200;
+    let from = 0, all = [];
+    while (true) {
+      const { data, error } = await sb
+        .from('cx_reports')
+        .select('report_key, data')
+        .not('data->asRows', 'is', null)
+        .order('report_key', { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) throw error;
+      all = all.concat(data || []);
+      if (!data || data.length < PAGE) break;
+      from += PAGE;
+    }
+
+    const weekRows = all.filter(r => Array.isArray(r.data?.asRows) && r.data.asRows.length);
+    if (!weekRows.length) {
+      showSaveToast('⚠️ DB에 재인입용 원본 데이터 없음 — 히스토리 DB저장(엑셀)으로 먼저 업로드해 주세요');
+      return;
+    }
+
+    REENTRY_RAW = new Map();
+    weekRows.forEach(r => rtBuildFromSlimRows(r.data.asRows));
+    REENTRY_FILE_CNT = weekRows.length;
+    reentrySymFilter = null;
+    REENTRY_DATA = rtAggregate();
+
+    if (switchTab) { if (curTab === 'reentry') renderReentry(); else goTab('reentry'); }
+    else if (curTab === 'reentry') renderReentry();
+
+    showSaveToast(`✅ DB ${weekRows.length}개 주차 로드 — CS ${REENTRY_RAW.size.toLocaleString()}건 재인입 분석 완료`);
+  } catch(e) {
+    console.error('[재인입 DB 로드]', e);
+    showSaveToast('❌ DB 불러오기 실패: ' + e.message);
+  } finally {
+    document.getElementById('ldr').classList.remove('on');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="database" class="icon"></i>DB 불러오기';
+      lucide.createIcons();
+    }
+  }
 }
 
 async function generateReportPDF() {
@@ -5276,3 +5409,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 </script>
 </body>
 </html>
+                   
