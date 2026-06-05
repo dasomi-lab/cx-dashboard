@@ -3018,6 +3018,7 @@ function renderReentryDiagnosis(){
   const isAll = sel === '전체';
   const hdr = `<div class="card-hdr"><i data-lucide="stethoscope" class="icon card-hdr-icon-lc"></i>
     <div class="card-title">재인입 원인 진단${isAll ? '' : ' — ' + modelDisplayName(sel)}</div>
+    ${isAll ? '' : `<button class="btn btn-outline" style="margin-left:auto;font-size:12px;padding:4px 12px" onclick="setReentryModel('전체')">← 전체 보기</button>`}
     <span style="font-size:12px;color:var(--text-tertiary);margin-left:8px">경영 요약 — 추세·비용·원인 귀책</span></div>`;
 
   if (D2._isSnapshot || !REENTRY_RAW.size) {
