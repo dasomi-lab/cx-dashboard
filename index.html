@@ -2991,7 +2991,7 @@ function renderReentry(){
 /* ══════════════════════════════════════════════════════════════
    재인입 원인 진단 — 경영 요약·추이·부품 유발률·로트 이상·귀책 구성
 ══════════════════════════════════════════════════════════════ */
-const REENTRY_COST_PER_CASE = 36000; // 건당 손실 단가(왕복택배+공임+CS응대) — 추정 기준값
+const REENTRY_COST_PER_CASE = 36800; // 건당 표준 처리비 = 공임비+포장비+택배비+배양미생물 (AS 파일 유상 건 합계 기준)
 const CAUSE_GROUP_MAP = {
   '공정':    ['조립불량','조립불량(X)','납땜불량','누락','탈거','빠짐'],
   '물류':    ['배송중 파손'],
@@ -3038,8 +3038,12 @@ function renderReentryDiagnosis(){
   const recentRe = reList.filter(re => re.curr.회수일자 && re.curr.회수일자 >= cutoff);
   const paidCnt = reList.filter(re => [...(re.curr.asTypeSet||[])].some(t => String(t).includes('유상'))).length;
   const freeCnt = reList.length - paidCnt;
-  const monthCost = recentRe.length * REENTRY_COST_PER_CASE;
-  const totalCost = reList.length * REENTRY_COST_PER_CASE;
+  // 실부담 = 표준 처리비 36,800 − 고객수납(A/S비용 최종) · CS번호당 1회 계산 (행 반복값 합산 금지)
+  const _asCost = re => Math.max(0, REENTRY_COST_PER_CASE - ((re.curr && re.curr.수납액) || 0));
+  const monthCost = recentRe.reduce((s,re) => s + _asCost(re), 0);
+  const totalCost = reList.reduce((s,re) => s + _asCost(re), 0);
+  const feeCnt = reList.filter(re => re.curr && re.curr.수납액 != null).length;
+  const sumFeeAll = reList.reduce((s,re) => s + Math.min((re.curr && re.curr.수납액) || 0, REENTRY_COST_PER_CASE), 0);
   const lastRate = rates.length ? rates[rates.length-1] : 0;
   const prevRate = rates.length > 1 ? rates[rates.length-2] : lastRate;
   const delta = +(lastRate - prevRate).toFixed(1);
@@ -3099,8 +3103,8 @@ function renderReentryDiagnosis(){
   el.innerHTML = hdr + `
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px">
       ${mc('최근 주차 재인입률', lastRate + '%', (delta > 0 ? '▲ +' + delta : delta < 0 ? '▼ ' + delta : '—') + '%p vs 직전 주', delta > 0 ? 'var(--danger-text)' : '#0F6E56')}
-      ${mc('최근 30일 손실비용(추정)', fmtWon(monthCost), `재인입 ${recentRe.length}건 × 36,000원`, null)}
-      ${mc('누적 손실비용(추정)', fmtWon(totalCost), `재인입 ${reList.length.toLocaleString()}건 — 유상 ${paidCnt.toLocaleString()} / 무상 ${freeCnt.toLocaleString()}`, null)}
+      ${mc('최근 30일 손실(실부담)', fmtWon(monthCost), `재인입 ${recentRe.length}건 — 처리비 36,800 − 수납`, null)}
+      ${mc('누적 손실(실부담)', fmtWon(totalCost), `수납 차감 ${fmtWon(sumFeeAll)} · 유상 ${paidCnt.toLocaleString()}/무상 ${freeCnt.toLocaleString()}`, null)}
     </div>
 
     <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:8px">주차별 재인입률 추이 (최근 12주)</div>
@@ -3130,7 +3134,7 @@ function renderReentryDiagnosis(){
     <div style="border:1px solid var(--border-subtle);border-radius:10px;padding:14px 16px;background:var(--bg-alt)">
       <div style="font-size:13px;font-weight:700;margin-bottom:8px">🎯 권장 액션</div>
       ${actions.length ? actions.map((a,i) => `<div style="font-size:13px;color:var(--text-secondary);padding:3px 0">${i+1}. ${a}</div>`).join('') : '<div style="font-size:13px;color:var(--text-tertiary)">임계 기준을 넘는 이슈 없음</div>'}
-      <div style="font-size:11px;color:var(--text-tertiary);margin-top:8px">* 손실비용은 건당 36,000원(왕복택배+공임+CS응대) 기준 추정치입니다</div>
+      <div style="font-size:11px;color:var(--text-tertiary);margin-top:8px">* 실부담 = 표준 처리비 36,800원(공임+포장+택배+미생물) − 고객수납(A/S비용 최종) · CS번호당 1회 계산 ${feeCnt ? `(수납 데이터 ${feeCnt.toLocaleString()}/${reList.length.toLocaleString()}건)` : '(수납 데이터 없음 — AS 엑셀 재업로드 시 반영)'}</div>
     </div>`;
 
   if (typeof Chart !== 'undefined') {
@@ -3536,6 +3540,8 @@ function rtBuildCSRecords(allSheetRows) {
     sym    : ci['증상기준']            ?? 24,
     part   : ci['부품']               ?? 25,
     cause  : ci['원인']               ?? 26,
+    cost   : ci['A/S비용']            ?? 32,
+    fee    : ci['A/S비용 최종']       ?? 33,
   };
 
   for (let ri = 3; ri < allSheetRows.length; ri++) {
@@ -3565,6 +3571,8 @@ function rtBuildCSRecords(allSheetRows) {
         고객키    : `${custNm}|${phone}`,
         srNo      : String(row[COL.srNo] || '').trim(),
         생산년월  : prodYM,
+        수리비    : null,
+        수납액    : null,
         asTypeSet : new Set(),
         증상Set   : new Set(),
         부품Set   : new Set(),
@@ -3578,6 +3586,8 @@ function rtBuildCSRecords(allSheetRows) {
     if (partVal)   rec.부품Set.add(partVal);
     const causeVal = String(row[COL.cause] || '').trim();
     if (causeVal)  rec.원인Set.add(causeVal);
+    if (rec.수리비 == null) rec.수리비 = _asNum(row[COL.cost]);
+    if (rec.수납액 == null) rec.수납액 = _asNum(row[COL.fee]);
   }
 }
 
@@ -4715,6 +4725,8 @@ async function handleHistoryDB(fileList) {
   if (excelFiles.length) await importHistoricalAS(excelFiles);
 }
 
+const _asNum = v => { if (v === null || v === undefined || v === '') return null; const n = Number(String(v).replace(/[^0-9.\-]/g,'')); return isNaN(n) ? null : n; };
+
 /* ── AS 행 → 재인입 분석용 슬림 레코드 (CS번호 기준 그룹핑, 고객명 마스킹) ── */
 function buildSlimASRows(rows) {
   const map = new Map();
@@ -4734,6 +4746,8 @@ function buildSlimASRows(rows) {
         phone  : String(pickCol(row, ['연락처']) || '').trim(),
         prodYM : prodRaw.match(/^(\d{4}-\d{2})/) ? prodRaw.slice(0,7) : null,
         srNo   : String(pickCol(row, ['Sr.No','SR No']) || '').trim(),
+        cost   : _asNum(pickCol(row, ['A/S비용'])),
+        fee    : _asNum(pickCol(row, ['A/S비용 최종','A/S비용최종'])),
         asTypes: [], syms: [], parts: [], causes: []
       });
     }
@@ -4743,6 +4757,8 @@ function buildSlimASRows(rows) {
     push(rec.syms,    pickCol(row, ['증상기준','A/S증상','증상']));
     push(rec.parts,   pickCol(row, ['부품']));
     push(rec.causes,  pickCol(row, ['원인']));
+    if (rec.cost == null) rec.cost = _asNum(pickCol(row, ['A/S비용']));
+    if (rec.fee  == null) rec.fee  = _asNum(pickCol(row, ['A/S비용 최종','A/S비용최종']));
   });
   return [...map.values()];
 }
@@ -4908,6 +4924,8 @@ function rtBuildFromSlimRows(slimRows) {
         고객키   : `${s.custNm || ''}|${s.phone || ''}`,
         srNo     : s.srNo || '',
         생산년월 : s.prodYM || null,
+        수리비   : (s.cost != null ? s.cost : null),
+        수납액   : (s.fee  != null ? s.fee  : null),
         asTypeSet: new Set(),
         증상Set  : new Set(),
         부품Set  : new Set(),
