@@ -1654,14 +1654,17 @@ function renderByModel(){
       .filter(x=>x.value>0)
       .sort((a,b)=>b.value-a.value) : []; // 모든 유형 표시
     const typeTotal = typeEntries.reduce((s,i)=>s+i.value,0);
-    const maxType = Math.max(...typeEntries.map(i=>i.value),1);
+    const typeTop = typeEntries.slice(0,5); // 표시는 TOP5, 집계·비율은 전체 기준
+    const typeRest = typeEntries.length - typeTop.length;
+    const typeRestCnt = typeEntries.slice(5).reduce((s,i)=>s+i.value,0);
+    const maxType = Math.max(...typeTop.map(i=>i.value),1);
     const donutItems = symptoms.length > 5
       ? [...symptoms.slice(0,5), {name:'기타', value: symptoms.slice(5).reduce((s,i)=>s+i.value,0)}]
       : symptoms;
     const donut = buildMiniDonut(donutItems, palette.base);
-    const symTop  = symptoms.slice(0, 10);
+    const symTop  = symptoms.slice(0, 5); // 표시는 TOP5, 합계·비율은 전체 기준
     const symRest = symptoms.length - symTop.length;
-    const symRestCnt = symptoms.slice(10).reduce((s,i)=>s+i.value,0);
+    const symRestCnt = symptoms.slice(5).reduce((s,i)=>s+i.value,0);
 
     return `<div class="model-symptom-card" data-bucket="${item.name}">
       <div class="model-top-meta">
@@ -1674,7 +1677,7 @@ function renderByModel(){
       <div class="model-section-title">AS 유형별</div>
       ${
         typeEntries.length ? `<div class="type-bars">${
-          typeEntries.map((row, idx)=>{
+          typeTop.map((row, idx)=>{
             const pct = typeTotal ? ((row.value/typeTotal)*100).toFixed(1) : '0.0';
             return `<div class="type-row">
               <div class="type-label">${row.name}</div>
@@ -1684,7 +1687,7 @@ function renderByModel(){
               <div class="type-num">${pct}% · ${fmtN(row.value)}건</div>
             </div>`;
           }).join('')
-        }</div>` : `<div class="model-empty">집계된 AS 유형이 없습니다</div>`
+        }</div>` + (typeRest > 0 ? `<div style="font-size:11px;color:var(--text-tertiary);padding:4px 0 0 2px">외 ${typeRest}개 유형 ${fmtN(typeRestCnt)}건</div>` : '') : `<div class="model-empty">집계된 AS 유형이 없습니다</div>`
       }
 
       <div class="model-section-title">AS 증상별</div>
