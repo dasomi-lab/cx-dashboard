@@ -2498,6 +2498,7 @@ function renderReentry(){
     </div>`;
 
   // ── 소음 → 후속 고장 관계 분석 ──
+  const NOISE_MIN_CASES = 5; // 소음 후 재인입 표본 최소 건수 — 미만 모델은 통계 의미 낮아 숨김
   const NOISE_EXCLUDE_PARTS = ['린클'];
   const NOISE_EXCLUDE_SYMS  = new Set(['내외부부품손상','내외부부품손상(기능)','업그레이드','추가구매','추가발송']);
 
@@ -2522,7 +2523,7 @@ function renderReentry(){
     const modelNoiseCards = buckets.map(b => {
       const bRe  = D2.reentries.filter(r => r.curr.모델버킷 === b);
       const stat = buildNoiseStats(bRe);
-      if (!stat.count) return '';
+      if (stat.count < NOISE_MIN_CASES) return '';
       const mc   = getModelColor(b);
       const rate = D2.modelStats[b].total ? (stat.count/D2.modelStats[b].total*100).toFixed(1) : '0.0';
       return `
@@ -2562,11 +2563,19 @@ function renderReentry(){
       </div>
       ${modelNoiseCards.length
         ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">${modelNoiseCards.join('')}</div>`
-        : '<div class="empty-msg">소음 후 재인입 케이스 없음</div>'}`;
+        : '<div class="empty-msg">소음 후 재인입 표본 5건 이상 모델 없음 — 표본 부족 모델은 표시하지 않습니다</div>'}`;
 
   } else {
     // ▶ 모델별 뷰: 해당 모델 상세
     const stat = buildNoiseStats(filtRe);
+    if (stat.count < NOISE_MIN_CASES) {
+      document.getElementById('reentryNoiseSection').innerHTML = `
+      <div class="card-hdr">
+        <i data-lucide="activity" class="icon card-hdr-icon-lc"></i>
+        <div class="card-title">소음 → 후속 고장 관계 분석 — ${modelDisplayName(sel)}</div>
+      </div>
+      <div class="empty-msg">소음 후 재인입 ${stat.count}건 — 표본 부족(${NOISE_MIN_CASES}건 미만)으로 통계적 의미가 낮아 분석을 표시하지 않습니다.</div>`;
+    } else {
     const topParts = Object.entries(stat.parts).sort((a,b)=>b[1]-a[1]).slice(0,8);
     const topSyms  = Object.entries(stat.syms).sort((a,b)=>b[1]-a[1]).slice(0,5);
     const maxNP = topParts[0]?.[1]||1;
@@ -2620,6 +2629,7 @@ function renderReentry(){
           </div>`:''}
         </div>
       </div>`;
+    }
   }
 
   // ── 생산월별 부품 집중도 Heatmap ──
