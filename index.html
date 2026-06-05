@@ -4533,33 +4533,45 @@ async function uploadHistoryJSON(file) {
     const weeks = Object.values(data);
     const total = weeks.length;
     let ok = 0, err = 0;
+    const errMsgs = [];
 
-    // 10개씩 배치 upsert
-    const BATCH = 10;
-    for (let i = 0; i < weeks.length; i += BATCH) {
-      const batch = weeks.slice(i, i + BATCH).map(w => ({
+    console.log(`[히스토리] 시작: ${total}개 주차`);
+
+    // 1개씩 upsert (배치 오류 방지)
+    for (let i = 0; i < weeks.length; i++) {
+      const w = weeks[i];
+      const row = {
         report_key: w.report_key,
         title:      `AS 히스토리 ${w.period}`,
         period:     w.period,
         data:       { asAnalysis: w.asAnalysis },
         updated_at: new Date().toISOString()
-      }));
+      };
       const { error } = await sb
         .from('cx_reports')
-        .upsert(batch, { onConflict: 'report_key' });
-      if (error) { err += batch.length; console.error('[히스토리]', error.message); }
-      else ok += batch.length;
+        .upsert(row, { onConflict: 'report_key' });
+      if (error) {
+        err++;
+        if (errMsgs.length < 3) errMsgs.push(`${w.report_key}: ${error.message}`);
+        console.error('[히스토리]', w.report_key, error.message);
+      } else {
+        ok++;
+      }
 
-      // 진행률 표시
-      if (btn) btn.textContent = `업로드 중... ${Math.round((i+BATCH)/total*100)}%`;
-      await new Promise(r => setTimeout(r, 80)); // rate limit 방지
+      if (btn && i % 5 === 0) btn.textContent = `업로드 중... ${ok}/${total}`;
+      await new Promise(r => setTimeout(r, 50));
     }
 
-    showSaveToast(`✅ ${ok}개 주차 DB 저장 완료${err ? ` (⚠️ ${err}개 실패)` : ''}`);
+    const msg = err
+      ? `✅ ${ok}개 완료 / ❌ ${err}개 실패\n${errMsgs.join('\n')}`
+      : `✅ ${ok}개 주차 DB 저장 완료`;
+    showSaveToast(err ? `⚠️ ${ok}개 성공 / ${err}개 실패 — F12 콘솔 확인` : `✅ ${ok}개 주차 저장 완료`);
+    if (err) alert(msg);
     console.log(`[히스토리] 완료: 성공 ${ok} / 실패 ${err}`);
   } catch(e) {
     showSaveToast('❌ 업로드 실패: ' + e.message);
-    console.error(e);
+    console.error('[히스토리 오류]', e);
+    alert('업로드 실패: ' + e.message);
   } finally {
     document.getElementById('ldr').classList.remove('on');
     if (btn) btn.textContent = '히스토리 DB저장';
@@ -5025,7 +5037,7 @@ body{font-family:Pretendard,-apple-system,sans-serif;font-size:13px;color:#17181
 .alert-desc{font-size:11px;line-height:1.6;color:#6B7280;}
 
 /* ── 모델 컬럼 ── */
-.model-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;}
+.model-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
 .model-col{border-radius:10px;overflow:hidden;border:1px solid #E7E9EE;}
 .model-hdr{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}
 .model-hdr.prime{background:#EEF3FF;border-bottom:2px solid #5D86F7;}
@@ -5150,13 +5162,6 @@ ${alertCards.map(c => `<div class="alert-card ${c.cls}">
       <span class="model-hdr-badge">${gravityLevel}</span>
     </div>
     <table class="ttbl">${gravityTrends.join('')}${gravityTrends.length===0?'<tr><td colspan="2" style="padding:16px;color:#9CA3AF;text-align:center">데이터 없음</td></tr>':''}</table>
-  </div>
-  <div class="model-col">
-    <div class="model-hdr new">
-      <span class="model-hdr-name">Gravity Pro</span>
-      <span class="model-hdr-badge">신규</span>
-    </div>
-    <table class="ttbl"><tr><td colspan="2" style="padding:24px 14px;color:#9CA3AF;font-size:11px;text-align:center;line-height:1.8">2026-05 출시<br>데이터 수집 중<br>모니터링 시작</td></tr></table>
   </div>
 </div>
 
