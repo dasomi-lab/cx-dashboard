@@ -619,7 +619,7 @@ tr:hover td{background:var(--bg-alt);}
           <input type="file" accept=".json" style="display:none" onchange="importJSON(this)">
         </label>
         <button class="btn btn-outline" id="saveDbBtn" onclick="saveReportToSupabase()"><i data-lucide="cloud-upload" class="icon"></i>DB 저장</button>
-        <label class="btn btn-outline" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px" title="as_history.json 또는 월별 AS 엑셀 파일 선택 → Supabase 일괄 저장 (재인입 분석용 원본 포함)">
+        <label class="btn btn-outline" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px" title="as_history.json · 월별 AS 엑셀 · 방문점검관리 엑셀 선택 → Supabase 일괄 저장 (재인입 분석용 원본 포함)">
           <i data-lucide="database" class="icon"></i><span id="historyJsonBtn">히스토리 DB저장</span>
           <input type="file" multiple accept=".json,.xlsx,.xls,.csv" style="display:none" onchange="handleHistoryDB(this.files);this.value=''">
         </label>
@@ -4923,6 +4923,7 @@ async function importHistoricalAS(fileList) {
       // 주차별 Supabase upsert
       for (const [weekKey, bucket] of Object.entries(weekBuckets)) {
         if (bucket.rows.length < 2) continue; // 너무 적으면 스킵
+        const isVisit   = /방문점검/.test(file.name); // 방문점검관리 파일 → visit- 키로 분리 저장 (AS 주차 덮어쓰기 방지)
         const analysis  = computeASAnalysis(bucket.rows);
         const minDate   = new Date(Math.min(...bucket.dates));
         const maxDate   = new Date(Math.max(...bucket.dates));
@@ -4945,6 +4946,12 @@ async function importHistoricalAS(fileList) {
           },
           updated_at: new Date().toISOString()
         };
+
+        if (isVisit) {
+          payload.report_key = 'visit-' + weekKey;
+          payload.title = `방문점검 히스토리 ${period}`;
+          payload.data = { visitRows: buildSlimASRows(bucket.rows), sourceFile: file.name };
+        }
 
         const { error } = await sb
           .from('cx_reports')
@@ -5029,6 +5036,17 @@ async function loadReentryFromDB(opts) {
     }
 
     const weekRows = all.filter(r => Array.isArray(r.data?.asRows) && r.data.asRows.length);
+
+    // 방문점검 히스토리 (visit-*) — 재인입 매칭에 함께 사용
+    let visitWeeks = [];
+    try {
+      const { data: vd, error: ve } = await sb.from('cx_reports')
+        .select('report_key, data')
+        .like('report_key', 'visit-%')
+        .order('report_key', { ascending: true })
+        .range(0, 999);
+      if (!ve && vd) visitWeeks = vd.filter(r => Array.isArray(r.data?.visitRows) && r.data.visitRows.length);
+    } catch(e) { console.warn('[방문점검 로드]', e); }
     if (!weekRows.length) {
       showSaveToast('⚠️ DB에 재인입용 원본 데이터 없음 — 히스토리 DB저장(엑셀)으로 먼저 업로드해 주세요');
       return;
@@ -5036,14 +5054,15 @@ async function loadReentryFromDB(opts) {
 
     REENTRY_RAW = new Map();
     weekRows.forEach(r => rtBuildFromSlimRows(r.data.asRows));
-    REENTRY_FILE_CNT = weekRows.length;
+    visitWeeks.forEach(r => rtBuildFromSlimRows(r.data.visitRows));
+    REENTRY_FILE_CNT = weekRows.length + visitWeeks.length;
     reentrySymFilter = null;
     REENTRY_DATA = rtAggregate();
 
     if (switchTab) { if (curTab === 'reentry') renderReentry(); else goTab('reentry'); }
     else if (curTab === 'reentry') renderReentry();
 
-    showSaveToast(`✅ DB ${weekRows.length}개 주차 로드 — CS ${REENTRY_RAW.size.toLocaleString()}건 재인입 분석 완료`);
+    showSaveToast(`✅ DB ${weekRows.length}개 주차${visitWeeks.length ? ` + 방문점검 ${visitWeeks.length}개 주차` : ''} 로드 — CS ${REENTRY_RAW.size.toLocaleString()}건 재인입 분석 완료`);
   } catch(e) {
     console.error('[재인입 DB 로드]', e);
     showSaveToast('❌ DB 불러오기 실패: ' + e.message);
