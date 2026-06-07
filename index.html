@@ -662,10 +662,7 @@ tr:hover td{background:var(--bg-alt);}
               <i data-lucide="pie-chart" class="icon card-hdr-icon-lc"></i>
               <div class="card-title">모델별 CS 분포</div>
             </div>
-            <div class="donut-panel">
-              <div class="donut-wrap"><canvas id="modelDonut"></canvas></div>
-              <div id="modelLegend" class="legend-col"></div>
-            </div>
+            <div style="position:relative;width:100%;height:360px"><canvas id="modelDonut"></canvas></div>
           </div>
           <div class="card">
             <div class="card-hdr">
@@ -1588,44 +1585,41 @@ function symptomDonut(data){
   });
 }
 function renderModelDonut(){
-  const data = D.modelDist || [];
+  const raw = D.modelDist || [];
   const canvas = document.getElementById('modelDonut');
   const legend = document.getElementById('modelLegend');
-  if(!data.length){
+  if(legend) legend.innerHTML = '';
+  if(!raw.length){
     if(modelDonutChart){ modelDonutChart.destroy(); modelDonutChart = null; }
-    legend.innerHTML = '<div class="empty-msg">데이터 없음</div>';
     return;
   }
-  const total = data.reduce((s,i)=>s+i.value, 0);
-  legend.innerHTML = data.map((item, idx)=>`
-    <div class="legend-row">
-      <div class="legend-left">
-        <div class="legend-dot" style="background:${COLORS[idx % COLORS.length]}"></div>
-        <div class="legend-label">${modelDisplayName(item.name)}</div>
-      </div>
-      <div class="legend-right">${((item.value/total)*100).toFixed(1)}% <span>${fmtN(item.value)}건</span></div>
-    </div>`).join('');
+  const total = raw.reduce((s,i)=>s+i.value, 0);
+  const data = [...raw].sort((a,b)=>b.value-a.value); // 건수 내림차순
+  const colorOf = name => { const i = raw.findIndex(r=>r.name===name); return COLORS[i % COLORS.length]; };
 
   if(modelDonutChart) modelDonutChart.destroy();
   modelDonutChart = new Chart(canvas, {
     type:'bar',
     data:{
-      labels:data.map(i=>modelShortName(i.name)),
-      datasets:[{data:data.map(i=>i.value), backgroundColor:data.map((_,idx)=>COLORS[idx % COLORS.length]), borderWidth:0, borderRadius:4}]
+      labels:data.map(i=>modelDisplayName(i.name)),
+      datasets:[{data:data.map(i=>i.value), backgroundColor:data.map(i=>colorOf(i.name)), borderWidth:0, borderRadius:5}]
     },
     options:{
       indexAxis:'y',
       responsive:true,
       maintainAspectRatio:false,
-      layout:{padding:{right:34}},
+      layout:{padding:{right:96}},
       plugins:{
         legend:{display:false},
-        datalabels:{ display:true, anchor:'end', align:'end', color:'#6B7280', font:{weight:'bold',size:11}, formatter:(val)=>fmtN(val) },
+        datalabels:{
+          display:true, anchor:'end', align:'end', clamp:true, color:'#374151', font:{weight:'bold',size:12},
+          formatter:(val)=>`${((val/total)*100).toFixed(1)}% · ${fmtN(val)}건`
+        },
         tooltip:{callbacks:{label:(ctx)=>`${fmtN(ctx.raw)}건 (${((ctx.raw/total)*100).toFixed(1)}%)`}}
       },
       scales:{
-        x:{beginAtZero:true, ticks:{font:{size:10}}, grid:{color:'rgba(0,0,0,.05)'}},
-        y:{ticks:{font:{size:11}}, grid:{display:false}}
+        x:{beginAtZero:true, suggestedMax:Math.max(...data.map(i=>i.value))*1.18, ticks:{font:{size:11}}, grid:{color:'rgba(0,0,0,.05)'}},
+        y:{ticks:{font:{size:12.5},autoSkip:false}, grid:{display:false}}
       }
     }
   });
