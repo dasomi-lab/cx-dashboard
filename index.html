@@ -4802,9 +4802,12 @@ function getWeekRange(date) {
   const sun = new Date(d); sun.setDate(d.getDate() - d.getDay());
   const sat = new Date(sun); sat.setDate(sun.getDate() + 6);
   const fmt = x => `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
-  const mon = sun.getMonth()+1;
-  const wk  = getWeekKey(sun).slice(-2); // "w1" etc
-  return { start: fmt(sun), end: fmt(sat), period: `${mon}월 ${wk}차`, range: `${fmt(sun)} ~ ${fmt(sat)}` };
+  const md  = x => `${x.getMonth()+1}/${x.getDate()}`;
+  const mon   = sun.getMonth()+1;
+  const wkNum = (getWeekKey(sun).match(/w(\d+)$/) || [,''])[1];
+  return { start: fmt(sun), end: fmt(sat),
+    period: `${mon}월 ${wkNum}주차 (${md(sun)}~${md(sat)})`,
+    range: `${fmt(sun)} ~ ${fmt(sat)}` };
 }
 
 /* ── 월별 AS 파일 일괄 히스토리 저장 ── */
