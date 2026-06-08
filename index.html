@@ -3047,6 +3047,8 @@ function renderReentry(){
    재인입 원인 진단 — 경영 요약·추이·부품 유발률·로트 이상·귀책 구성
 ══════════════════════════════════════════════════════════════ */
 const REENTRY_COST_PER_CASE = 36800; // 건당 표준 처리비 = 공임비+포장비+택배비+배양미생물 (AS 파일 유상 건 합계 기준)
+let REENTRY_DIAG_WINDOW = 30; // 진단 카드 기준 기간(일): 7=주간 / 30=월간
+function setDiagWindow(d){ REENTRY_DIAG_WINDOW = d; renderReentryDiagnosis(); }
 const CAUSE_GROUP_MAP = {
   '공정':    ['조립불량','조립불량(X)','납땜불량','누락','탈거','빠짐'],
   '물류':    ['배송중 파손'],
@@ -3102,6 +3104,22 @@ function renderReentryDiagnosis(){
   const totalCost = reList.reduce((s,re) => s + _asCost(re), 0);
   const feeCnt = reList.filter(re => re.curr && re.curr.수납액 != null).length;
   const sumFeeAll = reList.reduce((s,re) => s + Math.min((re.curr && re.curr.수납액) || 0, REENTRY_COST_PER_CASE), 0);
+  // ── 기준 기간(주간 7일 / 월간 30일) 통일 집계 ──
+  const winDays = REENTRY_DIAG_WINDOW === 7 ? 7 : 30;
+  const winLabel  = winDays === 7 ? '주간(7일)' : '월간(30일)';
+  const prevLabel = winDays === 7 ? '직전 7일' : '직전 30일';
+  const winCut = new Date(maxDate); winCut.setDate(winCut.getDate()-winDays); winCut.setHours(0,0,0,0);
+  const prevCut = new Date(winCut); prevCut.setDate(prevCut.getDate()-winDays);
+  const _inWin  = d => d && !isNaN(d) && d >= winCut && d <= maxDate;
+  const _inPrev = d => d && !isNaN(d) && d >= prevCut && d < winCut;
+  const winRe   = reList.filter(re => _inWin(re.curr.회수일자));
+  const winCS   = allCS.filter(r => _inWin(r.회수일자)).length;
+  const winRate = winCS ? +((winRe.length/winCS)*100).toFixed(1) : 0;
+  const pRe     = reList.filter(re => _inPrev(re.curr.회수일자)).length;
+  const pCS     = allCS.filter(r => _inPrev(r.회수일자)).length;
+  const pRate   = pCS ? +((pRe/pCS)*100).toFixed(1) : winRate;
+  const rateDelta = +(winRate - pRate).toFixed(1);
+  const winCost = winRe.reduce((s,re) => s + _asCost(re), 0);
   const lastRate = rates.length ? rates[rates.length-1] : 0;
   const prevRate = rates.length > 1 ? rates[rates.length-2] : lastRate;
   const delta = +(lastRate - prevRate).toFixed(1);
@@ -3192,10 +3210,15 @@ function renderReentryDiagnosis(){
       <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">${sub}</div>
     </div>`;
 
+  const _tgBtn = (d,txt) => `<button onclick="setDiagWindow(${d})" style="font-size:12px;font-weight:600;padding:5px 14px;border-radius:999px;cursor:pointer;border:1px solid ${winDays===d?'var(--primary-500)':'var(--border-subtle)'};background:${winDays===d?'var(--primary-500)':'transparent'};color:${winDays===d?'#fff':'var(--text-secondary)'}">${txt}</button>`;
   el.innerHTML = hdr + `
+    <div style="display:flex;gap:6px;margin-bottom:12px;align-items:center">
+      <span style="font-size:11px;color:var(--text-tertiary);margin-right:4px">기준 기간</span>
+      ${_tgBtn(7,'주간')}${_tgBtn(30,'월간')}
+    </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px">
-      ${mc('최근 주차 재인입률', lastRate + '%', (delta > 0 ? '▲ +' + delta : delta < 0 ? '▼ ' + delta : '—') + '%p vs 직전 주', delta > 0 ? 'var(--danger-text)' : '#0F6E56')}
-      ${mc('최근 30일 손실(실부담)', fmtWon(monthCost), `재인입 ${recentRe.length}건 — 처리비 36,800 − 수납`, null)}
+      ${mc(`${winLabel} 재인입률`, winRate + '%', (rateDelta > 0 ? '▲ +' + rateDelta : rateDelta < 0 ? '▼ ' + rateDelta : '—') + `%p vs ${prevLabel}`, rateDelta > 0 ? 'var(--danger-text)' : '#0F6E56')}
+      ${mc(`${winLabel} 손실(실부담)`, fmtWon(winCost), `재인입 ${winRe.length}건 — 처리비 36,800 − 수납`, null)}
       ${mc('누적 손실(실부담)', fmtWon(totalCost), `수납 차감 ${fmtWon(sumFeeAll)} · 유상 ${paidCnt.toLocaleString()}/무상 ${freeCnt.toLocaleString()}`, null)}
     </div>
 
