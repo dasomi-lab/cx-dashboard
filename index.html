@@ -5313,7 +5313,8 @@ async function generateReportPDF() {
 
   const prevPrimeSymMap   = prevAnalysis?.prime?.symMap;
   const prevGravitySymMap = prevAnalysis?.gravity?.symMap;
-  const compareLabel = prevPeriod ? `vs ${prevPeriod}` : '이전 주 데이터 없음';
+  const curPeriodLabel = _asDateSample ? getWeekRange(_asDateSample).period : (D.period || '현재 주');
+  const compareLabel = prevPeriod ? `${curPeriodLabel}  vs  ${prevPeriod}` : `${curPeriodLabel} · 이전 주 데이터 없음`;
 
   // ── 증상 TOP5 ──
   const primeSyms   = topN(trendPrimeSymMap,   5); // 트렌드: 최신 주 기준
@@ -5660,18 +5661,6 @@ ${alertCards.map(c => `<div class="alert-card ${c.cls}">
   </div>
 </div>
 
-<div style="font-size:10px;font-weight:700;color:#8B93A1;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">주요 결함별 부품 상태</div>
-<div class="defect-grid">
-${defectItems.length ? defectItems.map(d => `<div class="defect-card">
-  <div class="defect-model-row">
-    <span class="defect-dot" style="background:${d.color}"></span>
-    <span class="defect-model-lbl">${d.model}</span>
-    <span class="defect-sym">${d.sym}</span>
-  </div>
-  <div class="defect-part">${d.part}</div>
-  <div class="defect-note" style="color:${d.levelColor}">${d.level}</div>
-</div>`).join('') : '<div style="color:#9CA3AF;font-size:12px;padding:8px 0">부품 데이터 없음</div>'}
-</div>
 
 <!-- S3 -->
 <div class="sec">SECTION 3 — 부품 소모 현황 (${partsLabel})</div>
