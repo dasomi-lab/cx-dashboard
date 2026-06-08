@@ -662,14 +662,14 @@ tr:hover td{background:var(--bg-alt);}
               <i data-lucide="pie-chart" class="icon card-hdr-icon-lc"></i>
               <div class="card-title">모델별 CS 분포</div>
             </div>
-            <div style="position:relative;width:100%;height:360px"><canvas id="modelDonut"></canvas></div>
+            <div style="position:relative;width:100%;height:440px"><canvas id="modelDonut"></canvas></div>
           </div>
           <div class="card">
             <div class="card-hdr">
               <i data-lucide="wrench" class="icon card-hdr-icon-lc"></i>
               <div class="card-title">AS 증상 TOP10</div>
             </div>
-            <div id="symptomBars"><div class="empty-msg">—</div></div>
+            <div style="position:relative;width:100%;height:440px"><canvas id="symptomBarCv"></canvas></div>
           </div>
         </div>
 
@@ -1555,33 +1555,41 @@ function renderDailyCombo(ds){
     }
   });
 }
-let symptomDonutChart = null;
+let symptomBarChart = null;
 function symptomDonut(data){
-  const el = document.getElementById('symptomBars'); if(!el) return;
+  const cv = document.getElementById('symptomBarCv'); if(!cv) return;
   if(!data || !data.length){
-    if(symptomDonutChart){ symptomDonutChart.destroy(); symptomDonutChart = null; }
-    el.innerHTML = '<div class="empty-msg">데이터 없음</div>'; return;
+    if(symptomBarChart){ symptomBarChart.destroy(); symptomBarChart = null; }
+    return;
   }
   const total = data.reduce((s,i)=>s+i.value,0);
-  el.innerHTML = `<div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
-    <div class="donut-wrap" style="flex:0 0 auto;max-width:240px"><canvas id="symptomDonutCv"></canvas></div>
-    <div class="legend-col" style="flex:1;min-width:220px">${data.map((item,idx)=>`
-      <div class="legend-row">
-        <div class="legend-left"><div class="legend-dot" style="background:${COLORS[idx%COLORS.length]}"></div><div class="legend-label">${item.name}</div></div>
-        <div class="legend-right">${((item.value/total)*100).toFixed(1)}% <span>${fmtN(item.value)}건</span></div>
-      </div>`).join('')}</div>
-  </div>`;
-  if(symptomDonutChart) symptomDonutChart.destroy();
-  symptomDonutChart = new Chart(document.getElementById('symptomDonutCv'), {
-    type:'doughnut',
-    data:{ labels:data.map(i=>i.name),
-      datasets:[{data:data.map(i=>i.value), backgroundColor:data.map((_,idx)=>COLORS[idx%COLORS.length]), borderWidth:0}] },
-    options:{ responsive:true, maintainAspectRatio:false, cutout:'62%',
+  const sorted = [...data].sort((a,b)=>b.value-a.value); // 건수 내림차순
+  const colorOf = name => { const i = data.findIndex(r=>r.name===name); return COLORS[i % COLORS.length]; };
+  if(symptomBarChart) symptomBarChart.destroy();
+  symptomBarChart = new Chart(cv, {
+    type:'bar',
+    data:{
+      labels:sorted.map(i=>i.name),
+      datasets:[{data:sorted.map(i=>i.value), backgroundColor:sorted.map(i=>colorOf(i.name)), borderWidth:0, borderRadius:5}]
+    },
+    options:{
+      indexAxis:'y',
+      responsive:true,
+      maintainAspectRatio:false,
+      layout:{padding:{right:96}},
       plugins:{
         legend:{display:false},
-        datalabels:{ display:(ctx)=>(ctx.dataset.data[ctx.dataIndex]/total)>=0.05, color:'#FFFFFF', font:{weight:'bold',size:11}, formatter:(val)=>fmtN(val) },
-        tooltip:{callbacks:{label:(ctx)=>`${ctx.label}: ${fmtN(ctx.raw)}건 (${((ctx.raw/total)*100).toFixed(1)}%)`}}
-      } }
+        datalabels:{
+          display:true, anchor:'end', align:'end', clamp:true, color:'#374151', font:{weight:'bold',size:12},
+          formatter:(val)=>`${((val/total)*100).toFixed(1)}% · ${fmtN(val)}건`
+        },
+        tooltip:{callbacks:{label:(ctx)=>`${fmtN(ctx.raw)}건 (${((ctx.raw/total)*100).toFixed(1)}%)`}}
+      },
+      scales:{
+        x:{beginAtZero:true, suggestedMax:Math.max(...sorted.map(i=>i.value))*1.18, ticks:{font:{size:11}}, grid:{color:'rgba(0,0,0,.05)'}},
+        y:{ticks:{font:{size:12.5},autoSkip:false}, grid:{display:false}}
+      }
+    }
   });
 }
 function renderModelDonut(){
