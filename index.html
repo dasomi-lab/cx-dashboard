@@ -5103,11 +5103,36 @@ async function loadReentryFromDB(opts) {
   }
 }
 
+// ── DB(REENTRY_RAW) → 보고서용 행 재구성 (AS 파일 없이 보고서 생성용) ──
+function buildReportRowsFromDB() {
+  const out = [];
+  if (!REENTRY_RAW || !REENTRY_RAW.size) return out;
+  for (const rec of REENTRY_RAW.values()) {
+    const d = rec.회수일자;
+    const recvStr = (d && !isNaN(d)) ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` : '';
+    const prodStr = rec.생산년월 || '';
+    const syms  = [...(rec.증상Set||[])];
+    const parts = [...(rec.부품Set||[])];
+    const causes= [...(rec.원인Set||[])];
+    const symStr = syms.join(',');
+    if (parts.length) {
+      parts.forEach((p, i) => out.push({
+        '품명': rec.모델원본, '증상기준': symStr, '부품': p,
+        '원인': causes[i] || causes[0] || '', '회수일자': recvStr, '생산일자': prodStr
+      }));
+    } else {
+      out.push({ '품명': rec.모델원본, '증상기준': symStr, '부품': '', '원인': causes[0]||'', '회수일자': recvStr, '생산일자': prodStr });
+    }
+  }
+  return out;
+}
+
 async function generateReportPDF() {
-  // AS관리(PDF전용) → 없으면 CS관리로 fallback
-  const csRows = (FILES.get('as')?.rows || FILES.get('cs')?.rows || []);
+  // 1순위 AS관리 → 2순위 CS관리 → 3순위 DB(재인입 불러온 데이터)
+  let csRows = (FILES.get('as')?.rows || FILES.get('cs')?.rows || []);
+  if (!csRows.length) csRows = buildReportRowsFromDB();
   if (!csRows.length) {
-    alert('AS관리 파일을 먼저 업로드해 주세요 (상단 업로드 버튼).');
+    alert('AS관리 파일을 업로드하거나, A/S 재인입 탭에서 "DB 불러오기"를 먼저 실행해 주세요.');
     return;
   }
 
