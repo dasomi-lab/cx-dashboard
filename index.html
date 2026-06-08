@@ -5236,12 +5236,34 @@ async function generateReportPDF() {
     curKey = deriveReportKey();
   }
 
+  // ── 트렌드 비교용: 최신 주(일~토) 단위 증상맵 — 누적 vs 단주 왜곡 방지 ──
+  const primeSymMapWk = {}, gravitySymMapWk = {};
+  let primeTotalWk = 0, gravityTotalWk = 0;
+  if (_asDateSample) {
+    const _wEnd = new Date(_asDateSample); _wEnd.setDate(_wEnd.getDate() + (6 - _wEnd.getDay())); _wEnd.setHours(23,59,59,999);
+    const _wStart = new Date(_wEnd); _wStart.setDate(_wStart.getDate() - 6); _wStart.setHours(0,0,0,0);
+    csRows.forEach(row => {
+      const bucket = normalizeModelBucket(pickCol(row, ['품명','상품명','모델명']) || '');
+      const isP = bucket === PRIME, isG = bucket === GRAVITY || bucket === GRAVITY_W;
+      if (!isP && !isG) return;
+      const rd = parseDate(pickCol(row, ['회수일자','최근수리일자']));
+      if (!rd || rd < _wStart || rd > _wEnd) return;
+      const sym = String(pickCol(row, ['증상기준','A/S증상','증상']) || '').trim();
+      if (isP) { primeTotalWk++; if (sym) primeSymMapWk[sym] = (primeSymMapWk[sym]||0)+1; }
+      else     { gravityTotalWk++; if (sym) gravitySymMapWk[sym] = (gravitySymMapWk[sym]||0)+1; }
+    });
+  }
+  // 날짜로 주간 추출이 안 되면(날짜 없는 파일) 전체 맵으로 fallback
+  const _hasWk = Object.keys(primeSymMapWk).length || Object.keys(gravitySymMapWk).length;
+  const trendPrimeSymMap   = _hasWk ? primeSymMapWk   : primeSymMap;
+  const trendGravitySymMap = _hasWk ? gravitySymMapWk : gravitySymMap;
+
   // ── 현재 주 AS_ANALYSIS 저장 (DB 저장 시 함께 올라감) ──
   AS_ANALYSIS = {
     period: D.period || periodRange,
     periodRange: D.periodRange || periodRange,
-    prime:   { symMap: {...primeSymMap},   partMap: {...primePartAll},   total: primeTotal },
-    gravity: { symMap: {...gravitySymMap}, partMap: {...gravityPartAll}, total: gravityTotal }
+    prime:   { symMap: {...trendPrimeSymMap},   partMap: {...primePartAll},   total: _hasWk ? primeTotalWk : primeTotal },
+    gravity: { symMap: {...trendGravitySymMap}, partMap: {...gravityPartAll}, total: _hasWk ? gravityTotalWk : gravityTotal }
   };
 
   // ── 이전 주 데이터 Supabase에서 조회 ──
@@ -5294,8 +5316,8 @@ async function generateReportPDF() {
   const compareLabel = prevPeriod ? `vs ${prevPeriod}` : '이전 주 데이터 없음';
 
   // ── 증상 TOP5 ──
-  const primeSyms   = topN(primeSymMap,   5);
-  const gravitySyms = topN(gravitySymMap, 5);
+  const primeSyms   = topN(trendPrimeSymMap,   5); // 트렌드: 최신 주 기준
+  const gravitySyms = topN(trendGravitySymMap, 5);
 
   // ── 부품 TOP3 ──
   const primePrtTop   = topN(primePartAll,   3);
@@ -5616,10 +5638,10 @@ ${alertCards.map(c => `<div class="alert-card ${c.cls}">
 </div>
 
 <!-- S2 -->
-<div class="sec">SECTION 2 — 모델별 불량 트렌드</div>
+<div class="sec">SECTION 2 — 전주 대비 급증 증상 (조기경보)</div>
 <div style="font-size:10px;color:#8B93A1;margin-bottom:12px;display:flex;align-items:center;gap:6px">
   <span style="background:${prevPeriod?'#EEF3FF':'#F5F6F8'};color:${prevPeriod?'#3558B8':'#B4BBC7'};border:1px solid ${prevPeriod?'#C5D6FF':'#E7E9EE'};border-radius:999px;padding:2px 10px;font-weight:600">${compareLabel}</span>
-  <span>${prevPeriod ? '대비 증감율. +20% 이상 ▲ 위험 / -20% 이하 ▼ 감소' : '— DB 저장 후 다음 주부터 비교 가능'}</span>
+  <span>${prevPeriod ? '최신 1주 vs 직전 1주 증상 건수 증감율 · +20%↑ ▲ 위험 / -20%↓ ▼ 감소' : '— DB 저장 후 다음 주부터 비교 가능'}</span>
 </div>
 <div class="model-grid">
   <div class="model-col">
