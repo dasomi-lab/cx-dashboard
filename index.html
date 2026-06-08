@@ -5479,6 +5479,84 @@ async function generateReportPDF() {
   const levelBg    = lv => lv==='위험'?'rgba(220,38,38,.12)':lv==='주의'?'rgba(180,83,9,.10)':'rgba(21,128,61,.10)';
 
   // ── HTML 리포트 ──
+  // ══ 전체 모델 집계 (보고서 카드 그리드용) ══
+  const REPORT_MODELS = ['프라임','그래비티','그래비티 W','프라임S','RC-02','이지','RT220'];
+  const MAIN_MODELS   = new Set(['프라임','그래비티']);
+  const magg = {};
+  REPORT_MODELS.forEach(m => magg[m] = { sym:{}, symWk:{}, part:{}, cons:{}, total:0, totalWk:0 });
+  let _wkS=null,_wkE=null;
+  if (_asDateSample){ _wkE=new Date(_asDateSample); _wkE.setDate(_wkE.getDate()+(6-_wkE.getDay())); _wkE.setHours(23,59,59,999); _wkS=new Date(_wkE); _wkS.setDate(_wkS.getDate()-6); _wkS.setHours(0,0,0,0); }
+  csRows.forEach(row => {
+    const b = normalizeModelBucket(pickCol(row, ['품명','상품명','모델명']) || '');
+    const a = magg[b]; if (!a) return;
+    a.total++;
+    const sym  = String(pickCol(row, ['증상기준','A/S증상','증상']) || '').trim();
+    const part = String(pickCol(row, ['부품']) || '').trim();
+    const rd   = parseDate(pickCol(row, ['회수일자','최근수리일자']));
+    if (sym)  a.sym[sym] = (a.sym[sym]||0)+1;
+    if (part){ a.part[part]=(a.part[part]||0)+1; if (rd && rd>=twoMonthsAgo) a.cons[part]=(a.cons[part]||0)+1; }
+    if (_wkS && rd && rd>=_wkS && rd<=_wkE){ a.totalWk++; if (sym) a.symWk[sym]=(a.symWk[sym]||0)+1; }
+  });
+  const aggHasWk = REPORT_MODELS.some(m => Object.keys(magg[m].symWk).length);
+
+  // AS_ANALYSIS에 전체 모델 주간 스냅샷 추가 (다음 주 비교용)
+  AS_ANALYSIS.models = {};
+  REPORT_MODELS.forEach(m => { const a=magg[m]; AS_ANALYSIS.models[m] = { symMap: aggHasWk?{...a.symWk}:{...a.sym}, total: aggHasWk?a.totalWk:a.total }; });
+
+  // 직전 주 모델별 맵 (신규 models 우선, 없으면 legacy prime/gravity)
+  const prevModels = (prevAnalysis && prevAnalysis.models) ? {...prevAnalysis.models} : {};
+  if (!prevModels['프라임']   && prevAnalysis?.prime)   prevModels['프라임']   = { symMap: prevAnalysis.prime.symMap };
+  if (!prevModels['그래비티'] && prevAnalysis?.gravity) prevModels['그래비티'] = { symMap: prevAnalysis.gravity.symMap };
+
+  const levelOf = (bucket) => {
+    const st = REENTRY_DATA?.modelStats?.[bucket];
+    if (st) return (st.critical>0||parseFloat(st.m1r)>=8)?'위험':parseFloat(st.m1r)>=5?'주의':'정상';
+    return '정상';
+  };
+  const lvColor = lv => lv==='위험'?'#dc2626':lv==='주의'?'#b45309':'#15803d';
+
+  // ── SECTION 2 카드: 모델별 주간 증상 + 전주 대비 증감 ──
+  const reportModelCards = REPORT_MODELS.filter(m => magg[m].total>0).map(m => {
+    const a = magg[m];
+    const wkMap = aggHasWk ? a.symWk : a.sym;
+    const isMain = MAIN_MODELS.has(m);
+    const topSyms = Object.entries(wkMap).sort((x,y)=>y[1]-x[1]).slice(0, isMain?5:3);
+    const prevMap = prevModels[m]?.symMap || null;
+    const lv = levelOf(m); const c = getModelColor(m);
+    const rows = topSyms.map(([name,val]) => {
+      const { label, style } = calcTrend(val, prevMap, name);
+      return `<tr><td style="color:#5F6673;padding:6px 12px;font-size:11px;border-bottom:1px solid #F5F6F8">${name}<span style="color:#B4BBC7;font-size:10px;margin-left:4px">${fmtN2(val)}건</span></td><td style="text-align:right;padding:6px 12px;font-size:10.5px;border-bottom:1px solid #F5F6F8;${style}">${label}</td></tr>`;
+    }).join('') || '<tr><td colspan="2" style="padding:12px;color:#9CA3AF;text-align:center;font-size:11px">증상 데이터 없음</td></tr>';
+    return `<div style="border:1px solid #E7E9EE;border-radius:10px;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:${c.light||'#F4F6FB'};border-bottom:2px solid ${c.base}">
+        <span style="font-weight:700;font-size:12px;color:${c.base}">${modelDisplayName(m)}</span>
+        <span style="display:flex;gap:6px;align-items:center">
+          <span style="font-size:10px;color:#8B93A1">주간 ${fmtN2(aggHasWk?a.totalWk:a.total)}건</span>
+          <span style="font-size:10px;font-weight:700;color:#fff;background:${lvColor(lv)};border-radius:999px;padding:1px 8px">${lv}</span>
+        </span>
+      </div>
+      <table style="width:100%;border-collapse:collapse">${rows}</table>
+    </div>`;
+  }).join('');
+
+  // ── SECTION 3 카드: 모델별 부품 소모 ──
+  const reportPartCards = REPORT_MODELS.filter(m => magg[m].total>0).map(m => {
+    const a = magg[m];
+    const src = Object.keys(a.cons).length ? a.cons : a.part;
+    const isMain = MAIN_MODELS.has(m);
+    const tops = Object.entries(src).sort((x,y)=>y[1]-x[1]).slice(0, isMain?5:3);
+    const c = getModelColor(m);
+    const rows = tops.map(([p,cnt],i)=>`<tr><td style="padding:6px 10px;color:#B4BBC7;font-size:10px;width:24px">${i+1}</td><td style="padding:6px 10px;font-size:11px;color:#17181C">${p}</td><td style="padding:6px 10px;text-align:right;font-size:11px;font-weight:600;color:${c.base}">${fmtN2(cnt)}개</td></tr>`).join('') || '<tr><td colspan="3" style="padding:12px;color:#9CA3AF;text-align:center;font-size:11px">부품 데이터 없음</td></tr>';
+    return `<div style="border:1px solid #E7E9EE;border-radius:10px;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:${c.light||'#F4F6FB'};border-bottom:2px solid ${c.base}">
+        <span style="font-weight:700;font-size:12px;color:${c.base}">${modelDisplayName(m)}</span>
+        <span style="font-size:10px;color:#8B93A1">${partsLabel} 기준</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse">${rows}</table>
+    </div>`;
+  }).join('');
+
+
   const html = `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -5639,51 +5717,17 @@ ${alertCards.map(c => `<div class="alert-card ${c.cls}">
 </div>
 
 <!-- S2 -->
-<div class="sec">SECTION 2 — 전주 대비 급증 증상 (조기경보)</div>
+<div class="sec">SECTION 2 — 모델별 주간 증상 현황 (전주 대비)</div>
 <div style="font-size:10px;color:#8B93A1;margin-bottom:12px;display:flex;align-items:center;gap:6px">
   <span style="background:${prevPeriod?'#EEF3FF':'#F5F6F8'};color:${prevPeriod?'#3558B8':'#B4BBC7'};border:1px solid ${prevPeriod?'#C5D6FF':'#E7E9EE'};border-radius:999px;padding:2px 10px;font-weight:600">${compareLabel}</span>
   <span>${prevPeriod ? '최신 1주 vs 직전 1주 증상 건수 증감율 · +20%↑ ▲ 위험 / -20%↓ ▼ 감소' : '— DB 저장 후 다음 주부터 비교 가능'}</span>
 </div>
-<div class="model-grid">
-  <div class="model-col">
-    <div class="model-hdr prime">
-      <span class="model-hdr-name">PRIME</span>
-      <span class="model-hdr-badge">${primeLevel}</span>
-    </div>
-    <table class="ttbl">${primeTrends.join('')}${primeTrends.length===0?'<tr><td colspan="2" style="padding:16px;color:#9CA3AF;text-align:center">데이터 없음</td></tr>':''}</table>
-  </div>
-  <div class="model-col">
-    <div class="model-hdr gravity">
-      <span class="model-hdr-name">GRAVITY</span>
-      <span class="model-hdr-badge">${gravityLevel}</span>
-    </div>
-    <table class="ttbl">${gravityTrends.join('')}${gravityTrends.length===0?'<tr><td colspan="2" style="padding:16px;color:#9CA3AF;text-align:center">데이터 없음</td></tr>':''}</table>
-  </div>
-</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${reportModelCards || '<div style="color:#9CA3AF;font-size:12px;padding:8px 0">모델 데이터 없음</div>'}</div>
 
 
 <!-- S3 -->
 <div class="sec">SECTION 3 — 부품 소모 현황 (${partsLabel})</div>
-<div class="parts-grid">
-  <div class="parts-col">
-    <div class="parts-hdr prime">
-      <span class="parts-hdr-name">PRIME</span>
-      <span class="parts-hdr-sub">${partsLabel} 기준</span>
-    </div>
-    <table class="ptbl">
-      ${sortParts(primeParts).length ? sortParts(primeParts).map(([p,c],i) => `<tr><td class="rank">${i+1}</td><td>${p}</td><td style="color:#5D86F7">${fmtN2(c)}개</td></tr>`).join('') : '<tr><td colspan="3" style="color:#9CA3AF;padding:20px;text-align:center">데이터 없음</td></tr>'}
-    </table>
-  </div>
-  <div class="parts-col">
-    <div class="parts-hdr gravity">
-      <span class="parts-hdr-name">GRAVITY</span>
-      <span class="parts-hdr-sub">${partsLabel} 기준</span>
-    </div>
-    <table class="ptbl">
-      ${sortParts(gravityParts).length ? sortParts(gravityParts).map(([p,c],i) => `<tr><td class="rank">${i+1}</td><td>${p}</td><td style="color:#47A786">${fmtN2(c)}개</td></tr>`).join('') : '<tr><td colspan="3" style="color:#9CA3AF;padding:20px;text-align:center">데이터 없음</td></tr>'}
-    </table>
-  </div>
-</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${reportPartCards || '<div style="color:#9CA3AF;font-size:12px;padding:8px 0">부품 데이터 없음</div>'}</div>
 
 <!-- S4 Heatmap -->
 <div class="sec">SECTION 4 — 부품 × 원인 히트맵</div>
