@@ -1641,7 +1641,7 @@ function renderReviews(){
 
   const pos = (D.repReviews?.pos || []).slice(0,3);
   const neg = (D.repReviews?.neg || []).slice(0,3);
-  const trim = (s,n=80)=>{ const t=String(s||'—'); return t.length>n ? t.slice(0,n)+'…' : t; };
+  const trim = (s)=>String(s||'—'); // 리뷰 전문 표시 (자르지 않음)
   document.getElementById('repPosReviews').innerHTML = pos.length ? pos.map(r=>`
     <div class="review-card pos">
       <div class="review-card-hdr">
