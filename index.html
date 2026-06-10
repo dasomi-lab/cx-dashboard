@@ -1539,18 +1539,18 @@ function renderDailyCombo(ds){
       labels: ds.map(d=>d.date),
       datasets:[
         { type:'bar', label:'CS 처리', data:ds.map(d=>d.cs), backgroundColor:'#5D86F7', borderRadius:6, maxBarThickness:38, yAxisID:'y',
-          datalabels:{ display:(c)=>c.dataset.data[c.dataIndex]>0, anchor:'end', align:'start', offset:2, clamp:true, color:'#fff', font:{weight:'bold',size:11}, formatter:v=>fmtN(v) } },
+          datalabels:{ display:(c)=>c.dataset.data[c.dataIndex]>0, anchor:'end', align:'start', offset:4, clamp:true, color:'#fff', font:{weight:'bold',size:14}, formatter:v=>fmtN(v) } },
         { type:'line', label:'채널톡 인입', data:ds.map(d=>d.ch), borderColor:'#826AF1', backgroundColor:'#826AF1', tension:.3, pointRadius:4, borderWidth:2.5, yAxisID:'y1',
-          datalabels:{ display:true, align:'top', offset:8, clip:false, color:'#6C5CE7', font:{weight:'bold',size:11}, formatter:v=>fmtN(v) } }
+          datalabels:{ display:true, align:'top', offset:8, clip:false, color:'#6C5CE7', font:{weight:'bold',size:14}, formatter:v=>fmtN(v) } }
       ]
     },
     options:{ responsive:true, maintainAspectRatio:false,
       layout:{padding:{top:18,right:8}},
       plugins:{ legend:{display:false}, tooltip:{callbacks:{label:(ctx)=>`${ctx.dataset.label}: ${fmtN(ctx.raw)}건`}} },
       scales:{
-        y:{ beginAtZero:true, position:'left', title:{display:true,text:'CS',font:{size:11}}, grid:{color:'rgba(0,0,0,.05)'} },
-        y1:{ beginAtZero:true, position:'right', title:{display:true,text:'채널톡',font:{size:11}}, grid:{drawOnChartArea:false} },
-        x:{ grid:{display:false}, ticks:{font:{size:11}} }
+        y:{ beginAtZero:true, position:'left', title:{display:true,text:'CS',font:{size:13}}, ticks:{font:{size:13}}, grid:{color:'rgba(0,0,0,.05)'} },
+        y1:{ beginAtZero:true, position:'right', title:{display:true,text:'채널톡',font:{size:13}}, ticks:{font:{size:13}}, grid:{drawOnChartArea:false} },
+        x:{ grid:{display:false}, ticks:{font:{size:14}} }
       }
     }
   });
@@ -1580,14 +1580,14 @@ function symptomDonut(data){
       plugins:{
         legend:{display:false},
         datalabels:{
-          display:true, anchor:'end', align:'end', clamp:true, color:'#374151', font:{weight:'bold',size:12},
+          display:true, anchor:'end', align:'end', clamp:true, color:'#374151', font:{weight:'bold',size:14},
           formatter:(val)=>`${((val/total)*100).toFixed(1)}% · ${fmtN(val)}건`
         },
         tooltip:{callbacks:{label:(ctx)=>`${fmtN(ctx.raw)}건 (${((ctx.raw/total)*100).toFixed(1)}%)`}}
       },
       scales:{
-        x:{beginAtZero:true, suggestedMax:Math.max(...sorted.map(i=>i.value))*1.18, ticks:{font:{size:11}}, grid:{color:'rgba(0,0,0,.05)'}},
-        y:{ticks:{font:{size:12.5},autoSkip:false}, grid:{display:false}}
+        x:{beginAtZero:true, suggestedMax:Math.max(...sorted.map(i=>i.value))*1.18, ticks:{font:{size:13}}, grid:{color:'rgba(0,0,0,.05)'}},
+        y:{ticks:{font:{size:14},autoSkip:false}, grid:{display:false}}
       }
     }
   });
@@ -1620,14 +1620,14 @@ function renderModelDonut(){
       plugins:{
         legend:{display:false},
         datalabels:{
-          display:true, anchor:'end', align:'end', clamp:true, color:'#374151', font:{weight:'bold',size:12},
+          display:true, anchor:'end', align:'end', clamp:true, color:'#374151', font:{weight:'bold',size:14},
           formatter:(val)=>`${((val/total)*100).toFixed(1)}% · ${fmtN(val)}건`
         },
         tooltip:{callbacks:{label:(ctx)=>`${fmtN(ctx.raw)}건 (${((ctx.raw/total)*100).toFixed(1)}%)`}}
       },
       scales:{
-        x:{beginAtZero:true, suggestedMax:Math.max(...data.map(i=>i.value))*1.18, ticks:{font:{size:11}}, grid:{color:'rgba(0,0,0,.05)'}},
-        y:{ticks:{font:{size:12.5},autoSkip:false}, grid:{display:false}}
+        x:{beginAtZero:true, suggestedMax:Math.max(...data.map(i=>i.value))*1.18, ticks:{font:{size:13}}, grid:{color:'rgba(0,0,0,.05)'}},
+        y:{ticks:{font:{size:14},autoSkip:false}, grid:{display:false}}
       }
     }
   });
