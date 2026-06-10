@@ -4812,11 +4812,12 @@ function computeASAnalysis(rows) {
 }
 
 function getWeekKey(date) {
-  const y = date.getFullYear();
-  const m = date.getMonth();
+  const sun = new Date(date); sun.setDate(date.getDate() - date.getDay());
+  const wed = new Date(sun); wed.setDate(sun.getDate() + 3);
+  const y = wed.getFullYear(), m = wed.getMonth();
   const first = new Date(y, m, 1);
-  const firstSun = 1 + ((7 - first.getDay()) % 7);
-  const week = date.getDate() < firstSun ? 1 : Math.floor((date.getDate() - firstSun) / 7) + 2;
+  const firstWed = 1 + ((3 - first.getDay() + 7) % 7);
+  const week = Math.floor((wed.getDate() - firstWed) / 7) + 1;
   return `${y}-${String(m+1).padStart(2,'0')}-w${week}`;
 }
 
@@ -4826,8 +4827,9 @@ function getWeekRange(date) {
   const sat = new Date(sun); sat.setDate(sun.getDate() + 6);
   const fmt = x => `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
   const md  = x => `${x.getMonth()+1}/${x.getDate()}`;
-  const mon   = sun.getMonth()+1;
-  const wkNum = (getWeekKey(sun).match(/w(\d+)$/) || [,''])[1];
+  const wed = new Date(sun); wed.setDate(sun.getDate() + 3);
+  const mon   = wed.getMonth()+1;
+  const wkNum = (getWeekKey(d).match(/w(\d+)$/) || [,''])[1];
   return { start: fmt(sun), end: fmt(sat),
     period: `${mon}월 ${wkNum}주차 (${md(sun)}~${md(sat)})`,
     range: `${fmt(sun)} ~ ${fmt(sat)}` };
@@ -5246,15 +5248,7 @@ async function generateReportPDF() {
 
   let curKey;
   if (_asDateSample) {
-    // 해당 날짜의 주차 키 계산
-    const _d = _asDateSample;
-    const _dow = (_d.getDay()); // 0=일
-    const _sun = new Date(_d); _sun.setDate(_d.getDate() - _dow);
-    const _first = new Date(_sun.getFullYear(), _sun.getMonth(), 1);
-    const _fs = (7 - _first.getDay()) % 7;
-    const _fsd = new Date(_first); _fsd.setDate(1 + _fs);
-    const _wk = _sun < _fsd ? 1 : Math.floor((_sun - _fsd) / 604800000) + 2;
-    curKey = `${_sun.getFullYear()}-${String(_sun.getMonth()+1).padStart(2,'0')}-w${_wk}`;
+    curKey = getWeekKey(_asDateSample);
   } else {
     curKey = deriveReportKey();
   }
