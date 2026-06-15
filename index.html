@@ -4522,8 +4522,9 @@ async function handleFiles(fileList){
 
     if (!n.endsWith('.xlsx') && !n.endsWith('.xls') && !n.endsWith('.csv')) continue;
 
-    // AS재인입·방문점검 파일은 Drive 불러오기 전용 — 상단 업로드에서는 스킵
-    if (isASReentryFilename(file.name)) continue;
+    // 방문점검 파일만 Drive 불러오기(재인입) 전용 — 상단 업로드 스킵
+    // (AS_202604.xlsx 등 AS 월별 파일은 보고서용 'as' 타입으로 등록되도록 통과)
+    if (/방문점검/.test(file.name) && /\.(csv|xlsx|xls)$/i.test(file.name)) continue;
 
     try{
       const buf = await file.arrayBuffer();
