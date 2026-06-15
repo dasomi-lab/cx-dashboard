@@ -3363,6 +3363,8 @@ function applyFiles(){
     }));
     D.exTotal = D.exchangeList.filter(r=>String(r.status).includes('교환완료')).length;
     D.exPending = D.exchangeList.filter(r=>!String(r.status).includes('교환완료')).length;
+  } else {
+    D.exchangeList = []; D.exTotal = 0; D.exPending = 0;
   }
 
   if (rfR.length) {
@@ -3380,6 +3382,8 @@ function applyFiles(){
     }));
     D.rfTotal = D.refundList.filter(r=>String(r.status).includes('환불완료')).length;
     D.rfPending = D.refundList.filter(r=>!String(r.status).includes('환불완료')).length;
+  } else {
+    D.refundList = []; D.rfTotal = 0; D.rfPending = 0;
   }
 
   if (chR.length) {
@@ -3430,6 +3434,9 @@ function applyFiles(){
       pos: byRich(allReviews.filter(r=>r.rating>=5), 3),
       neg: byRich(allReviews.filter(r=>r.rating>0 && r.rating<=3), 3),
     };
+  } else {
+    D.rvTotal = 0; D.avgRating = 0; D.negReviews = 0;
+    D.lowRvList = []; D.reviewFullList = []; D.repReviews = { pos: [], neg: [] };
   }
 
   if (chR.length || csR.length) {
