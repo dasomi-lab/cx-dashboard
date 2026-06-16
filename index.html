@@ -3790,7 +3790,6 @@ function rtAggregate() {
   const upgradeCS  = allCS.filter(r => r.증상Set.has('업그레이드')).length;
 
   // ── 모델별 재인입률 ──
-  // 표준 모델은 데이터 없어도 0 placeholder 카드 표시 — 데이터 쌓이면 자동 채워짐
   const STD_MODELS = ['RC-02','RT220','프라임','프라임S','그래비티','그래비티 W','이지'];
   const buckets = [...new Set([...STD_MODELS, ...allCS.map(r => r.모델버킷)])].filter(b => b && b !== '기타' && b !== '소모품');
   const modelStats = {};
@@ -3982,7 +3981,7 @@ function rtAggregate() {
 }
 
 function rtGenInsights({ reentries, modelStats, typeCount, anomalies, r1m, r3m, totalCS }) {
-  if (!totalCS) return []; // 데이터 없는 모델은 AI 인사이트에서 제외(재인입률 카드에는 0으로 표시됨)
+  if (!totalCS) return [];
   const ms = Object.values(modelStats)[0] || {};
   const m1r = +(ms.m1r || 0);
   const reTot = reentries.length || 0;
@@ -3990,47 +3989,1202 @@ function rtGenInsights({ reentries, modelStats, typeCount, anomalies, r1m, r3m, 
   const critShare = reTot ? +(crit / reTot * 100).toFixed(0) : 0;
   const diffPart = typeCount['동일증상+다른부품'] || 0;
   const cand = [];
-
-  // 동일증상+동일부품: 비중에 따라 심각도 차등 (무조건 CRITICAL 방지)
   if (crit > 0) {
     const isCrit = critShare >= 25 || crit >= 30;
     cand.push({ score: 40 + critShare, level: isCrit ? 'CRITICAL' : 'HIGH', cls: isCrit ? 'reentry-level-critical' : 'reentry-level-high',
       title:`동일증상+동일부품 ${crit.toLocaleString()}건 (재인입의 ${critShare}%)`,
       detail:`수리 후 같은 증상·같은 부품이 ${crit.toLocaleString()}건 반복됐습니다. 수리 품질 또는 부품 자체 결함 가능성을 점검하세요.` });
   }
-  // 1개월 재인입률
   if (m1r > 3) {
     const isCrit = m1r >= 8;
     cand.push({ score: 35 + m1r, level: isCrit ? 'CRITICAL' : 'HIGH', cls: isCrit ? 'reentry-level-critical' : 'reentry-level-high',
       title:`1개월 이내 재인입률 ${m1r}%`,
       detail:`수리 후 30일 이내 재방문 비율이 ${m1r}%입니다. 해당 모델 수리 프로세스 점검이 필요합니다.` });
   }
-  // 생산 로트 이상
   if (anomalies.length > 0) {
     const a = anomalies[0];
     cand.push({ score: 25 + (+a.배율 || 0), level:'HIGH', cls:'reentry-level-high',
       title:`${a.생산년월} 생산 — ${a.부품} ${a.배율}배 집중`,
       detail:`${a.생산년월} 생산 제품에서 '${a.부품}' 교체율이 ${a.비율}%로 평균(${a.평균비율}%)의 ${a.배율}배입니다. 해당 생산 배치 점검이 필요합니다.` });
   }
-  // 동일증상+다른부품 (근본원인 미해결)
   if (diffPart > 0) {
     cand.push({ score: 12 + Math.min(diffPart, 10), level:'HIGH', cls:'reentry-level-high',
       title:`동일증상 재발 ${diffPart.toLocaleString()}건 — 근본 원인 미해결 의심`,
       detail:`같은 증상이 다른 부품 교체 후에도 재발했습니다. 임시 수리로 근본 원인이 해결되지 않았을 가능성이 있습니다.` });
   }
-  // 1~3개월 구간 (보조)
   if (r3m > 0 && totalCS) {
     const r3Rate = ((r3m / totalCS) * 100).toFixed(1);
     cand.push({ score: 6, level:'MID', cls:'reentry-level-mid',
       title:`1~3개월 재인입 ${r3Rate}%`,
       detail:`전체 AS 중 ${r3m.toLocaleString()}건(${r3Rate}%)이 31~90일 구간에 재입고됩니다. 수리 완성도·부품 내구성 점검을 권장합니다.` });
   }
-  // 이슈 없음
-  if (!cand.length) {
-    cand.push({ score: 0, level:'정상', cls:'reentry-level-mid',
-      title:'특이 재인입 패턴 없음', detail:'임계 기준을 넘는 재인입 이슈가 없습니다. 정상 범위입니다.' });
+  return cand.sort((a, b) => b.score - a.score).slice(0, 4);
+}
+
+function setReentrySym(sym) {
+  reentrySymFilter = (reentrySymFilter === sym) ? null : sym;
+  renderReentry();
+}
+// Esc로 증상상세 닫기
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && reentrySymFilter) { reentrySymFilter = null; renderReentry(); }
+});
+
+function setC1mModel(key) {
+  _c1mModelFilter = (_c1mModelFilter === key) ? null : key;
+  renderReentry();
+}
+
+function setPriorityFilter(key) {
+  _priorityFilter = (_priorityFilter === key) ? null : key;
+  renderReentry();
+  if (key) {
+    requestAnimationFrame(() => {
+      document.getElementById('reentryPrioritySection')?.scrollIntoView({ behavior:'smooth', block:'start' });
+    });
   }
-  return cand.sort((a,b) => b.score - a.score).slice(0, 4);
+}
+
+function setProdAnomalySort(key) {
+  _prodAnomalySortKey = key;
+  // 정렬 버튼 active 상태 갱신
+  document.querySelectorAll('#reentryProdAnomalySection button[onclick^="setProdAnomalySort"]').forEach(btn => {
+    const k = btn.getAttribute('onclick').replace("setProdAnomalySort('","").replace("')","");
+    btn.style.background = k === key ? 'var(--primary-500)' : 'var(--bg-surface)';
+    btn.style.color      = k === key ? '#fff' : 'var(--text-secondary)';
+  });
+  renderProdAnomalyTable();
+}
+
+function renderProdAnomalyTable() {
+  const wrap = document.getElementById('prodAnomalyTableWrap');
+  if (!wrap) return;
+
+  const data = [..._prodAnomalyAll];
+  const key = _prodAnomalySortKey;
+
+  // 정렬
+  if (key === '배율')    data.sort((a,b) => +b.배율 - +a.배율);
+  else if (key === '건수') data.sort((a,b) => +b.건수 - +a.건수);
+  else if (key === '생산년월') data.sort((a,b) => a.생산년월.localeCompare(b.생산년월));
+  else if (key === '모델') data.sort((a,b) => a.모델.localeCompare(b.모델));
+
+  if (!data.length) {
+    wrap.innerHTML = '<div class="empty-msg">이상 탐지 없음</div>';
+    return;
+  }
+
+  // 배율 최대값 (바 차트용)
+  const maxRatio = Math.max(...data.map(a=>+a.배율), 1);
+
+  wrap.innerHTML = `<div class="tbl-wrap" style="max-height:480px;overflow-y:auto">
+    <table class="prod-anomaly-tbl" style="width:100%;border-collapse:collapse;min-width:700px">
+      <thead style="position:sticky;top:0;background:var(--bg-surface);z-index:1">
+        <tr>
+          ${['모델','생산년월','부품','건수','생산월내 전체','교체율','모델평균','배율'].map(h=>`<th>${h}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>${data.map(a => {
+        const ratioBar = Math.round(+a.배율 / maxRatio * 100);
+        return `<tr class="prod-anomaly-row-hi">
+          <td>${a.모델}</td>
+          <td style="font-weight:600">${a.생산년월}</td>
+          <td style="font-weight:600">${a.부품}</td>
+          <td style="font-weight:700;color:var(--danger-text)">${a.건수}</td>
+          <td style="color:var(--text-secondary)">${a.전체}</td>
+          <td style="font-weight:600">${a.비율}%</td>
+          <td style="color:var(--text-tertiary)">${a.평균비율}%</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="width:60px;height:6px;background:var(--border-subtle);border-radius:3px;overflow:hidden">
+                <div style="height:100%;width:${ratioBar}%;background:${+a.배율>=3?'var(--danger-text)':+a.배율>=2?'var(--warning-text)':'var(--primary-400)'};border-radius:3px"></div>
+              </div>
+              <span class="prod-anomaly-x">${a.배율}×</span>
+            </div>
+          </td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+
+function renderSymDrill() {
+  const el = document.getElementById('reentrySymDrill');
+  if (!el) return;
+  if (!reentrySymFilter) { el.style.display = 'none'; return; }
+
+  const sym   = reentrySymFilter;
+  const sel   = reentryModelFilter;
+  const isAll = sel === '전체';
+  const D2    = REENTRY_DATA;
+
+  // rawEmpty: CSV 없고 DB 스냅샷만 있는 상태
+  const rawCSCount = REENTRY_RAW ? [...REENTRY_RAW.values()].filter(r => r.회수일자 && !isNaN(r.회수일자)).length : 0;
+  const rawEmpty   = rawCSCount === 0 && D2 && D2.totalCS > 0;
+
+  let matched, reMatched, reRate;
+
+  if (rawEmpty) {
+    // DB 로드 후 fallback: D2.reentries 에서 증상 필터링 후 공통 구조로 정규화
+    const allRe  = D2.reentries || [];
+    const filtRe = isAll ? allRe : allRe.filter(r => r.curr.모델버킷 === sel);
+    const symRe  = filtRe.filter(r => r.curr.증상Set && r.curr.증상Set.has(sym));
+    if (!symRe.length) { el.style.display = 'none'; return; }
+    // 공통 구조로 정규화 (reentry record → CS-like)
+    matched   = symRe.map(r => ({
+      csNo:     r.curr.csNo,
+      모델버킷: r.curr.모델버킷,
+      증상Set:  r.curr.증상Set,
+      부품Set:  r.curr.부품Set,
+      원인Set:  new Set(),
+    }));
+    reMatched = matched; // D2.reentries 는 전부 재인입 케이스
+    reRate    = null;    // 총 CS 모수 없으므로 % 미표시
+  } else {
+    if (!REENTRY_RAW) { el.style.display = 'none'; return; }
+    const allCS  = [...REENTRY_RAW.values()].filter(r => r.회수일자 && !isNaN(r.회수일자));
+    const filtCS = isAll ? allCS : allCS.filter(r => r.모델버킷 === sel);
+    matched = filtCS.filter(r => r.증상Set && r.증상Set.has(sym));
+    if (!matched.length) { el.style.display = 'none'; return; }
+    const reentryNos = D2 ? new Set(D2.reentries.map(r => r.curr.csNo)) : new Set();
+    reMatched = matched.filter(r => reentryNos.has(r.csNo));
+    reRate    = Math.round(reMatched.length / matched.length * 100);
+  }
+
+  const reCount = reMatched.length;
+
+  // 교체 부품 빈도 — 재인입 케이스 기준
+  const partMap = {};
+  reMatched.forEach(r => r.부품Set && r.부품Set.forEach(p => { if(p) partMap[p] = (partMap[p]||0)+1; }));
+  const topParts = topN(partMap, 10);
+  const maxPart  = topParts[0]?.value || 1;
+
+  // 부품별 원인 맵 전역 저장 (rawEmpty 시 원인 데이터 없음)
+  const partCauseLocal = {};
+  reMatched.forEach(r => {
+    if (!r.부품Set || !r.원인Set) return;
+    r.부품Set.forEach(p => {
+      if (!p) return;
+      if (!partCauseLocal[p]) partCauseLocal[p] = {};
+      r.원인Set.forEach(c => { if(c) partCauseLocal[p][c] = (partCauseLocal[p][c]||0)+1; });
+    });
+  });
+  _drillPartCause = partCauseLocal;
+
+  // 모델 분포
+  const modelMap = {};
+  reMatched.forEach(r => { const m = modelDisplayName(r.모델버킷); modelMap[m] = (modelMap[m]||0)+1; });
+  const topModels = Object.entries(modelMap).sort((a,b)=>b[1]-a[1]);
+
+  const safeKey = s => s.replace(/[^a-zA-Z0-9가-힣]/g,'_');
+  const closeFn = `setReentrySym('${sym.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')`;
+
+  // 기본 선택: 첫 번째 부품
+  const defaultPart = topParts[0]?.name || null;
+  const defaultSk   = defaultPart ? safeKey(defaultPart) : '';
+
+  el.style.display = '';
+  el.innerHTML = `
+    <div class="card sym-drill-card">
+      <div class="sym-drill-hdr">
+        <div>
+          <div class="sym-drill-title">증상 상세: ${sym}</div>
+          <div class="sym-drill-sub" style="margin-top:4px;display:flex;align-items:center;flex-wrap:wrap;gap:6px">
+            <span style="font-size:12px;color:var(--text-tertiary)">${rawEmpty ? '' : '전체 AS '+matched.length.toLocaleString()+'건'}${!isAll?' — '+modelDisplayName(sel):''}</span>
+            <span style="display:inline-flex;align-items:center;background:var(--danger-50,#fff0f0);border:1px solid var(--danger-200,#fca5a5);color:var(--danger-text);font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px">
+              재인입 ${reCount.toLocaleString()}건${reRate !== null ? ' ('+reRate+'%)' : ''}
+            </span>
+            <span style="font-size:11px;color:var(--text-disabled)">재인입 케이스 기준 · 부품 클릭 → 우측 원인 즉시 확인</span>
+          </div>
+        </div>
+        <button class="sym-drill-close" onclick="${closeFn}">× 닫기</button>
+      </div>
+
+      <div class="sym-drill-2col">
+        <!-- 왼쪽: 교체 부품 목록 -->
+        <div>
+          <div class="sym-drill-col-ttl">교체 부품 TOP${topParts.length} <span style="font-size:10px;font-weight:400;color:var(--text-disabled)">(클릭 → 우측 원인)</span></div>
+          ${topParts.length ? topParts.map(it => {
+            const sk  = safeKey(it.name);
+            const pct = Math.round(it.value / maxPart * 100);
+            const isDefault = it.name === defaultPart;
+            return `<div class="sym-drill-part-row${isDefault?' active':''}" id="drill-part-row-${sk}"
+                onclick="selectDrillPart('${sk}','${it.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">
+              <div class="sym-drill-bar-name" title="${it.name}">${it.name}</div>
+              <div class="sym-drill-bar-track">
+                <div class="sym-drill-bar-fill" style="width:${pct}%"></div>
+              </div>
+              <div class="sym-drill-bar-val">${it.value}</div>
+            </div>`;
+          }).join('') : '<div style="color:var(--text-tertiary);font-size:13px">부품 데이터 없음</div>'}
+          ${topModels.length ? `
+            <div class="sym-drill-col-ttl" style="margin-top:16px">모델 분포</div>
+            <div class="sym-drill-model-pills">
+              ${topModels.map(([m,n])=>`<span class="sym-drill-model-pill">${m} <strong>${n}</strong></span>`).join('')}
+            </div>` : ''}
+        </div>
+
+        <!-- 오른쪽: 선택 부품의 교체 원인 -->
+        <div class="sym-drill-cause-panel" id="drill-cause-panel">
+          <div style="font-size:11px;color:var(--text-disabled);text-align:center;margin-top:30px">← 왼쪽 부품을 클릭하세요</div>
+        </div>
+      </div>
+    </div>`;
+
+  // 첫 번째 부품 자동 선택
+  if (defaultPart) selectDrillPart(defaultSk, defaultPart);
+  // 드릴다운으로 스크롤 (DOM 업데이트 후)
+  requestAnimationFrame(() => {
+    el.scrollIntoView({ behavior:'smooth', block:'start' });
+  });
+}
+
+function selectDrillPart(sk, partName) {
+  // 왼쪽 active 표시
+  document.querySelectorAll('.sym-drill-part-row').forEach(r => r.classList.remove('active'));
+  const rowEl = document.getElementById('drill-part-row-' + sk);
+  if (rowEl) rowEl.classList.add('active');
+
+  // 오른쪽 원인 패널 업데이트
+  const panel = document.getElementById('drill-cause-panel');
+  if (!panel) return;
+
+  const causeMap = _drillPartCause[partName] || {};
+  const causes   = topN(causeMap, 7);
+  const maxC     = causes[0]?.value || 1;
+
+  if (!causes.length) {
+    panel.innerHTML = `<div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:8px">${partName}</div>
+      <div style="font-size:12px;color:var(--text-disabled)">원인 데이터 없음</div>`;
+    return;
+  }
+
+  panel.innerHTML = `
+    <div style="font-size:11px;font-weight:700;color:var(--text-secondary);letter-spacing:.4px;margin-bottom:10px">
+      ${partName} — 교체 원인 TOP${causes.length}
+    </div>
+    ${causes.map(c => {
+      const pct = Math.round(c.value / maxC * 100);
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="width:120px;font-size:12px;color:var(--text-primary);flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${c.name}">${c.name}</div>
+        <div style="flex:1;height:7px;background:var(--border-subtle);border-radius:999px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#fcd34d 0%,#f59e0b 100%);border-radius:999px"></div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--warning-text);min-width:24px;text-align:right">${c.value}</div>
+      </div>`;
+    }).join('')}`;
+}
+
+function exportReentryExcel() {
+  if (!REENTRY_DATA) { alert('분석 데이터가 없습니다. 파일을 먼저 업로드해 주세요.'); return; }
+  const D2 = REENTRY_DATA;
+  const wb = XLSX.utils.book_new();
+  const fmtDate = d => d instanceof Date && !isNaN(d) ? d.toLocaleDateString('ko-KR') : (d||'');
+  const joinSet = s => s ? [...s].filter(Boolean).join(', ') : '';
+
+  // 헤더 셀 스타일 헬퍼
+  const applyHeaderStyle = (ws, rowIdx, numCols) => {
+    const hStyle = { font:{bold:true,sz:11}, fill:{patternType:'solid',fgColor:{rgb:'2C4A8C'}}, font2:{color:{rgb:'FFFFFF'}} };
+    for (let c = 0; c < numCols; c++) {
+      const addr = XLSX.utils.encode_cell({r:rowIdx, c});
+      if (!ws[addr]) ws[addr] = {t:'s',v:''};
+      ws[addr].s = { font:{bold:true,color:{rgb:'FFFFFF'},sz:11}, fill:{patternType:'solid',fgColor:{rgb:'2C4A8C'}}, alignment:{horizontal:'center',vertical:'center'} };
+    }
+  };
+  const applySectionStyle = (ws, rowIdx, numCols) => {
+    for (let c = 0; c < numCols; c++) {
+      const addr = XLSX.utils.encode_cell({r:rowIdx, c});
+      if (!ws[addr]) ws[addr] = {t:'s',v:''};
+      ws[addr].s = { font:{bold:true,sz:12}, fill:{patternType:'solid',fgColor:{rgb:'E8EEF9'}}, alignment:{vertical:'center'} };
+    }
+  };
+
+  /* ══ Sheet 0: 보고서 가이드 ══ */
+  const r1r = D2.totalCS ? ((D2.r1m/D2.totalCS)*100).toFixed(1)+'%' : '-';
+  const r3r = D2.totalCS ? ((D2.r3m/D2.totalCS)*100).toFixed(1)+'%' : '-';
+  const byM1 = Object.values(D2.modelStats).sort((a,b)=>+b.m1r-+a.m1r);
+  const topModel = byM1[0] || {};
+  const g0 = [
+    ['📊 Reencle A/S 재인입 분석 보고서', ''],
+    ['생성일시', new Date().toLocaleString('ko-KR')],
+    ['분석 파일 수', D2.fileCount + '개'],
+    ['분석 CS 건수', D2.totalCS.toLocaleString() + '건'],
+    [''],
+    ['━━━ 핵심 요약 ━━━', ''],
+    ['1개월 재인입률 (0~30일)', r1r + ' (' + D2.r1m + '건)'],
+    ['1~3개월 재인입 (31~90일)', r3r + ' (' + D2.r3m + '건)'],
+    ['동일부품 반복', D2.partRepeat + '건'],
+    ['CRITICAL (동일증상+동일부품)', D2.critical + '건 → 즉시 확인 필요'],
+    ['1개월 재인입률 최고 모델', (topModel.모델||'-') + ' ' + (topModel.m1r||0) + '%'],
+    [''],
+    ['━━━ 시트 구성 안내 ━━━', ''],
+    ['시트명', '내용 및 활용법'],
+    ['요약보고서', '전체 KPI / 모델별 재인입률 / 재인입 유형 분포 → 경영진 보고용'],
+    ['재인입케이스', '재인입으로 판정된 개별 케이스 전체 → 건별 확인 및 필터링'],
+    ['부품-원인(피벗용)', '전체 CS의 부품·원인 분해 데이터 → 피벗 테이블로 부품별 원인 집계'],
+    ['증상-모델(피벗용)', '전체 CS의 증상 분해 데이터 → 피벗 테이블로 모델별 증상 빈도 분석'],
+    [''],
+    ['━━━ 피벗 테이블 활용 가이드 ━━━', ''],
+    ['①', '부품-원인(피벗용) 시트 선택 → [삽입] → [피벗 테이블]'],
+    ['②', '행: 모델 / 열: 원인(전체) / 값: CS번호 개수 → 모델별 원인 집계표 완성'],
+    ['③', '재인입여부 = "재인입" 필터 적용 → 재인입 케이스만 분석 가능'],
+    ['④', '증상-모델(피벗용) 시트도 동일 방법으로 → 모델별 반복 증상 파악'],
+    [''],
+    ['━━━ 보고서 작성 권장 순서 ━━━', ''],
+    ['STEP 1', '요약보고서 시트의 KPI 값을 보고서 표지에 기재'],
+    ['STEP 2', '모델별 재인입률 표에서 상위 3개 모델 집중 분석'],
+    ['STEP 3', '요약보고서 시트 "CRITICAL+1개월" 섹션에서 재발 증상·재교체 부품 TOP 확인'],
+    ['STEP 4', '재인입케이스 시트 → 경과일구간="1개월" + 재인입유형="동일증상+동일부품" 필터 → 개별 케이스 확인'],
+    ['STEP 5', '피벗 테이블로 해당 모델의 반복 부품·원인 도출 → 기술팀 공유'],
+    ['※ RT220', 'RT220(스마트휴지통)은 음식물처리기와 성격이 다른 제품 — 지표 해석 시 별도 참고'],
+  ];
+  const ws0 = XLSX.utils.aoa_to_sheet(g0);
+  ws0['!cols'] = [{ wch: 28 }, { wch: 58 }];
+  // 타이틀행 스타일
+  if (ws0['A1']) ws0['A1'].s = { font:{bold:true,sz:14,color:{rgb:'1A2F6B'}}, alignment:{vertical:'center'} };
+  ['A6','A13','A20','A26'].forEach(addr => {
+    if (ws0[addr]) ws0[addr].s = { font:{bold:true,sz:11,color:{rgb:'2C4A8C'}}, fill:{patternType:'solid',fgColor:{rgb:'E8EEF9'}} };
+  });
+  XLSX.utils.book_append_sheet(wb, ws0, '📋보고서가이드');
+
+  /* ══ Sheet 1: 요약보고서 ══ */
+  const s1 = [];
+  const H = v => ({ v, t:'s' });
+
+  // KPI
+  s1.push(['[KPI 요약]', '', '']);
+  s1.push(['항목', '값', '비율']);
+  const prr = D2.totalCS ? ((D2.partRepeat/D2.totalCS)*100).toFixed(1)+'%' : '-';
+  const crr = D2.totalCS ? ((D2.critical/D2.totalCS)*100).toFixed(1)+'%' : '-';
+  s1.push(['분석 대상 A/S', D2.totalCS, D2.fileCount+'개 파일']);
+  s1.push(['1개월 이내 재인입 (0~30일)', D2.r1m, r1r]);
+  s1.push(['1~3개월 재인입 (31~90일)', D2.r3m, r3r]);
+  s1.push(['동일부품 반복', D2.partRepeat, prr]);
+  s1.push(['동일증상+동일부품 (CRITICAL)', D2.critical, crr]);
+  s1.push(['업그레이드 포함', D2.upgradeCS, '']);
+  s1.push([]);
+
+  // 모델별 재인입률
+  s1.push(['[모델별 재인입률]', '', '', '', '', '', '', '', '']);
+  s1.push(['모델', '전체AS', '1개월(0~30일)', '1개월%', '1~3개월(31~90일)', '1~3개월%', '3~6개월(91~180일)', '3~6개월%', '6~12개월(건)', '6~12개월%']);
+  Object.values(D2.modelStats).sort((a,b)=>+b.m1r-+a.m1r).forEach(r => {
+    s1.push([r.모델, r.total, r.m1, r.m1r+'%', r.m3, r.m3r+'%', r.m6, r.m6r+'%', r.m12, r.m12r+'%']);
+  });
+  s1.push([]);
+
+  // 재인입 유형
+  s1.push(['[재인입 유형 분포]', '']);
+  s1.push(['유형', '건수']);
+  ['동일증상+동일부품','동일증상+다른부품','다른증상+동일부품','상이증상+상이부품'].forEach(t => {
+    s1.push([t, D2.typeCount[t]||0]);
+  });
+  s1.push([]);
+
+  // CRITICAL + 1개월 집중 분석
+  const c1mAll = D2.reentries.filter(r => r.pri === 0 && r.days <= 30);
+  const c1mSymCnt = {}, c1mPartCnt = {}, c1mMdlCnt = {};
+  c1mAll.forEach(r => {
+    (r.symOverlap||[]).forEach(s => { c1mSymCnt[s]=(c1mSymCnt[s]||0)+1; });
+    (r.partOverlap||[]).forEach(p => { c1mPartCnt[p]=(c1mPartCnt[p]||0)+1; });
+    const m = modelDisplayName(r.curr.모델버킷||'기타');
+    c1mMdlCnt[m]=(c1mMdlCnt[m]||0)+1;
+  });
+  const c1mTopSym  = Object.entries(c1mSymCnt).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const c1mTopPart = Object.entries(c1mPartCnt).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  s1.push([`[CRITICAL + 1개월 이내 집중 분석]  총 ${c1mAll.length}건 (동일증상+동일부품 · 30일 이내 재방문)`, '', '']);
+  s1.push(['모델별 건수', Object.entries(c1mMdlCnt).sort((a,b)=>b[1]-a[1]).map(([m,n])=>`${m}:${n}건`).join(' / '), '']);
+  s1.push([]);
+  s1.push(['  재발한 증상 TOP (symOverlap 기준)', '건수', '  재교체 부품 TOP (partOverlap 기준)', '건수']);
+  const maxLen = Math.max(c1mTopSym.length, c1mTopPart.length);
+  for (let i=0; i<maxLen; i++) {
+    s1.push([
+      c1mTopSym[i]  ? `  ${i+1}. ${c1mTopSym[i][0]}`  : '',
+      c1mTopSym[i]  ? c1mTopSym[i][1]  : '',
+      c1mTopPart[i] ? `  ${i+1}. ${c1mTopPart[i][0]}` : '',
+      c1mTopPart[i] ? c1mTopPart[i][1] : '',
+    ]);
+  }
+  s1.push([]);
+
+  // 생산월별 이상
+  s1.push(['[생산월별 부품 집중도 이상 탐지]', '', '', '', '', '', '']);
+  s1.push(['모델', '생산년월', '부품', '해당건수', '생산월내전체', '교체율%', '모델평균%', '배율']);
+  D2.anomalies.forEach(a => {
+    s1.push([a.모델, a.생산년월, a.부품, a.건수, a.전체, a.비율, a.평균비율, a.배율+'×']);
+  });
+
+  const ws1 = XLSX.utils.aoa_to_sheet(s1);
+  ws1['!cols'] = [32,14,14,12,14,12,14,12,12].map(w=>({wch:w}));
+  [1, 10, 17, 22].forEach(ri => applyHeaderStyle(ws1, ri, 9));
+  [0, 9, 16, 21].forEach(ri => applySectionStyle(ws1, ri, 9));
+  XLSX.utils.book_append_sheet(wb, ws1, '요약보고서');
+
+  /* ══ Sheet 2: 재인입케이스 (피벗용 원시데이터) ══ */
+  const hdrs2 = ['모델','재인입유형','경과일구간','경과일(일)','현재CS번호','현재회수일자',
+    '현재증상','현재부품','현재원인','이전CS번호','이전회수일자','이전증상','이전부품',
+    '공통증상','공통부품','생산년월','고객명(마스킹)'];
+  const rows2 = D2.reentries.map(r => [
+    modelDisplayName(r.curr.모델버킷),
+    r.type,
+    r.period,
+    r.days,
+    r.curr.csNo,
+    fmtDate(r.curr.회수일자),
+    joinSet(r.curr.증상Set),
+    joinSet(r.curr.부품Set),
+    joinSet(r.curr.원인Set),
+    r.prev.csNo,
+    fmtDate(r.prev.회수일자),
+    joinSet(r.prev.증상Set),
+    joinSet(r.prev.부품Set),
+    r.symOverlap.join(', '),
+    r.partOverlap.join(', '),
+    r.curr.생산년월 || '',
+    r.curr.고객명 ? r.curr.고객명.slice(0,1)+'**' : '',
+  ]);
+  const ws2 = XLSX.utils.aoa_to_sheet([hdrs2, ...rows2]);
+  ws2['!cols'] = [20,18,12,10,18,14,30,30,20,18,14,30,30,20,20,12,10].map(w=>({wch:w}));
+  ws2['!views'] = [{ state:'frozen', ySplit:1 }];
+  applyHeaderStyle(ws2, 0, hdrs2.length);
+  XLSX.utils.book_append_sheet(wb, ws2, '재인입케이스');
+
+  /* ══ Sheet 3+4: 피벗 원시데이터 ══ */
+  const allCS3   = [...REENTRY_RAW.values()].filter(r => r.회수일자 && !isNaN(r.회수일자));
+  const reTypeMap = new Map(D2.reentries.map(r => [r.curr.csNo, r.type])); // O(n) 룩업
+
+  // Sheet 3: 부품 원인 (1행 = 모델·CS·부품, 원인은 콤마 조인)
+  const hdrs3 = ['모델','CS번호','회수일자','부품','원인(전체)','재인입여부','재인입유형','생산년월'];
+  const rows3 = [];
+  allCS3.forEach(rec => {
+    const reType   = reTypeMap.get(rec.csNo) || '';
+    const isRe     = !!reType;
+    const causesStr = joinSet(rec.원인Set);
+    const parts    = rec.부품Set && rec.부품Set.size ? [...rec.부품Set].filter(Boolean) : [''];
+    parts.forEach(p => rows3.push([
+      modelDisplayName(rec.모델버킷), rec.csNo, fmtDate(rec.회수일자),
+      p, causesStr, isRe?'재인입':'일반', reType, rec.생산년월||'',
+    ]));
+  });
+  const ws3 = XLSX.utils.aoa_to_sheet([hdrs3, ...rows3]);
+  ws3['!cols'] = [20,18,12,24,16,10,20,12].map(w=>({wch:w}));
+  ws3['!views'] = [{ state:'frozen', ySplit:1 }];
+  applyHeaderStyle(ws3, 0, hdrs3.length);
+  XLSX.utils.book_append_sheet(wb, ws3, '부품-원인(피벗용)');
+
+  // Sheet 4: 증상 (1행 = 모델·CS·증상)
+  const hdrs4 = ['모델','CS번호','회수일자','증상','재인입여부','재인입유형','생산년월'];
+  const rows4 = [];
+  allCS3.forEach(rec => {
+    const reType = reTypeMap.get(rec.csNo) || '';
+    const isRe   = !!reType;
+    const syms   = rec.증상Set && rec.증상Set.size ? [...rec.증상Set].filter(Boolean) : [''];
+    syms.forEach(s => rows4.push([
+      modelDisplayName(rec.모델버킷), rec.csNo, fmtDate(rec.회수일자),
+      s, isRe?'재인입':'일반', reType, rec.생산년월||'',
+    ]));
+  });
+  const ws4 = XLSX.utils.aoa_to_sheet([hdrs4, ...rows4]);
+  ws4['!cols'] = [20,18,12,24,10,20,12].map(w=>({wch:w}));
+  ws4['!views'] = [{ state:'frozen', ySplit:1 }];
+  applyHeaderStyle(ws4, 0, hdrs4.length);
+  XLSX.utils.book_append_sheet(wb, ws4, '증상-모델(피벗용)');
+
+  const today = new Date().toISOString().slice(0,10);
+  try {
+    XLSX.writeFile(wb, `Reencle_재인입분석_${today}.xlsx`, { cellStyles: true });
+  } catch(e) {
+    console.error('Excel 저장 오류:', e);
+    alert('Excel 생성 오류: ' + e.message);
+  }
+}
+
+async function handleReentryFiles(fileList){
+  const files = Array.from(fileList || []).filter(f => isASReentryFilename(f.name));
+  if (!files.length) return;
+  reentrySymFilter = null;
+  document.getElementById('ldr').classList.add('on');
+  for (const file of files) {
+    try {
+      const buf = await file.arrayBuffer();
+      const wb  = XLSX.read(buf, {type:'array', raw:true});
+      const ws  = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:'', header:1, raw:false});
+      rtBuildCSRecords(rows);
+      REENTRY_FILE_CNT++;
+    } catch(e) { console.error('AS재인입 파싱 오류:', file.name, e); }
+  }
+  REENTRY_DATA = rtAggregate();
+  document.getElementById('ldr').classList.remove('on');
+  if (curTab === 'reentry') renderReentry();
+  else goTab('reentry');
+}
+
+async function handleFiles(fileList){
+  ACTIVE_REPORT_KEY = null;
+  const files = Array.from(fileList || []);
+  if(!files.length) return;
+
+  document.getElementById('ldr').classList.add('on');
+  let latestWeeklyFile = null;
+
+  for(const file of files){
+    const n = file.name.toLowerCase();
+
+    if (n.endsWith('.pdf') || n.endsWith('.ppt') || n.endsWith('.pptx') || n.endsWith('.docx') || n.endsWith('.txt')) {
+      latestWeeklyFile = file;
+      continue;
+    }
+
+    if (!n.endsWith('.xlsx') && !n.endsWith('.xls') && !n.endsWith('.csv')) continue;
+
+    // 방문점검 파일만 Drive 불러오기(재인입) 전용 — 상단 업로드 스킵
+    // (AS_202604.xlsx 등 AS 월별 파일은 보고서용 'as' 타입으로 등록되도록 통과)
+    if (/방문점검/.test(file.name) && /\.(csv|xlsx|xls)$/i.test(file.name)) continue;
+
+    try{
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, {defval:null});
+      const rows = normalizeRows(json);
+      const headers = rows.length ? Object.keys(rows[0]) : [];
+      const type = detectType(file.name, headers);
+
+      if(type !== 'unknown') {
+          FILES.set(type, {name:file.name, rows, headers});
+      } else {
+        latestWeeklyFile = file;
+      }
+    }catch(e){
+      console.error(e);
+    }
+  }
+
+  if (latestWeeklyFile) {
+    await parseWeeklyFiles([latestWeeklyFile]);
+  }
+
+
+  document.getElementById('fi').value = '';
+  document.getElementById('ldr').classList.remove('on');
+
+  applyFiles();
+  saveData();
+  updateChips();
+  rebuildUList();
+  renderAll();
+}
+
+function deleteFile(type){
+  FILES.delete(type);
+  applyFiles();
+  saveData();
+  updateChips();
+  rebuildUList();
+  renderAll();
+}
+function rebuildUList(){
+  const ul = document.getElementById('ulist');
+  ul.innerHTML = '';
+  const lbl = { cs:'CS관리', as:'AS관리(PDF전용)', exchange:'교환관리', refund:'환불관리', review:'리뷰', channel:'채널톡' };
+
+  FILES.forEach((f, type)=>{
+    const el = document.createElement('div');
+    el.className = 'uf ok';
+    el.innerHTML = `<span>${f.name} <span style="color:var(--text-tertiary);font-weight:400">[${lbl[type] || type}]</span></span><button class="uf-x" onclick="deleteFile('${type}')">×</button>`;
+    ul.appendChild(el);
+  });
+
+  if(WEEKLY_FILE){
+    const el = document.createElement('div');
+    el.className = 'uf ok';
+    el.innerHTML = `<span>${WEEKLY_FILE} <span style="color:var(--text-tertiary);font-weight:400">[공유 자료 1개]</span></span><button class="uf-x" onclick="clearWeeklyAsset();rebuildUList();">×</button>`;
+    ul.appendChild(el);
+  }
+}
+function updateChips(){
+  const lbl = { cs:'CS', as:'AS(PDF)', exchange:'교환', refund:'환불', review:'리뷰', channel:'채널톡' };
+  const base = Array.from(FILES.entries()).map(([type])=>`<div class="chip"><span>${lbl[type]||type}</span><button class="chip-x" onclick="deleteFile('${type}')">×</button></div>`).join('');
+  const weekly = WEEKLY_FILE ? `<div class="chip" id="weeklyChip"><span>공유 자료 1개</span></div>` : '';
+  document.getElementById('fileChips').innerHTML = base + weekly;
+
+  const badge = document.getElementById('sbPeriodBadge');
+  if (badge) {
+    let periodLabel, dateRange;
+    if (D.manualPeriod && D.period && D.periodRange) {
+      const m = String(D.period).match(/(\d{1,2})월\s*(\d{1,2})주차/);
+      periodLabel = m ? `${m[1]}월 ${m[2]}주차` : REPORT_WEEK_LABEL;
+      dateRange = D.periodRange;
+    } else {
+      periodLabel = REPORT_WEEK_LABEL;
+      dateRange = REPORT_DATE_RANGE;
+    }
+    badge.innerHTML = `${periodLabel}<br>${dateRange}`;
+  }
+}
+
+function openUB(){ document.getElementById('ub').classList.add('on'); }
+function closeUB(){ document.getElementById('ub').classList.remove('on'); }
+function bgClose(e){ if(e.target.id==='ub') closeUB(); }
+function dzOv(e){ e.preventDefault(); document.getElementById('dz').classList.add('ov'); }
+function dzLv(){ document.getElementById('dz').classList.remove('ov'); }
+function dzDp(e){ e.preventDefault(); document.getElementById('dz').classList.remove('ov'); const files = e.dataTransfer.files; if(files?.length) handleFiles(files); }
+
+function openMobileMenu(){ document.getElementById('sb').classList.add('mobile-open'); document.getElementById('sbOverlay').classList.add('on'); }
+function closeMobileMenu(){ document.getElementById('sb').classList.remove('mobile-open'); document.getElementById('sbOverlay').classList.remove('on'); }
+
+function goTab(tab){
+  curTab = tab;
+  document.querySelectorAll('.pane').forEach(el=>el.classList.remove('on'));
+  document.getElementById(`pane-${tab}`).classList.add('on');
+  document.querySelectorAll('.nv').forEach(el=>el.classList.remove('on'));
+  document.getElementById(`nv-${tab}`).classList.add('on');
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  document.getElementById('topTitle').textContent = ({
+    dashboard:'Dashboard', reviews:'Reviews', bymodel:'By Model', exchange_refund:'교환 / 환불', weekly:'Weekly 이슈', reentry:'A/S 재인입 분석'
+  })[tab];
+
+  if(tab==='reviews') renderReviews();
+  if(tab==='bymodel') renderByModel();
+  if(tab==='exchange_refund') renderExchangeRefund();
+  if(tab==='reentry') renderReentry();
+  if(tab==='weekly'){
+    const weeklyEl = document.getElementById('weeklyReport');
+    if(weeklyEl) weeklyEl.innerHTML = '';
+    renderWeekly();
+  }
+
+  closeMobileMenu();
+  lucide.createIcons();
+}
+
+const PDF_SECTIONS = [
+  { tab:'dashboard',       label:'Dashboard — KPI',                              sels:['#kpiGrid'] },
+  { tab:'dashboard',       label:'Dashboard — 일별 추이',                        sels:['.daily-card'] },
+  { tab:'dashboard',       label:'Dashboard — 모델별 분포 & AS 증상',            sels:['.equal-card-grid'] },
+  { tab:'bymodel',         label:'By Model — RC-02 · RT220',                     sels:['#modelCardGrid'], modelFilter:['RC-02','RT220'] },
+  { tab:'bymodel',         label:'By Model — 프라임 · 프라임S',                  sels:['#modelCardGrid'], modelFilter:['프라임','프라임S'] },
+  { tab:'bymodel',         label:'By Model — 그래비티 · 그래비티W',              sels:['#modelCardGrid'], modelFilter:['그래비티','그래비티 W'] },
+  { tab:'bymodel',         label:'By Model — 이지 · 기타',                       sels:['#modelCardGrid'], modelFilter:['이지','기타'] },
+  { tab:'exchange_refund', label:'교환 / 환불',                                  sels:['#exrf-stats','#exrf-detail'] },
+  { tab:'reviews',         label:'Reviews — 통계',                               sels:['#rv-stats'] },
+  { tab:'reviews',         label:'Reviews — 대표 리뷰',                          sels:['.review-grid-two'] },
+];
+
+async function dlPDF(){
+  const btn=document.getElementById('pdfBtn');
+  btn.innerHTML='<i data-lucide="loader" class="icon"></i> 생성중...';
+  btn.disabled=true;
+  lucide.createIcons();
+
+  try{
+    const {jsPDF}=window.jspdf;
+    const prev=curTab;
+
+    const PW=297, PH=210, MG=12;
+    const AW=PW-MG*2, AH=PH-MG*2;
+
+    const pdf=new jsPDF({orientation:'l',unit:'mm',format:'a4',compress:true});
+    let pageN=0;
+
+    const ct=document.getElementById('mainContent');
+
+    const toJpeg=(cv,q=0.72)=>{
+      const tmp=document.createElement('canvas');
+      tmp.width=cv.width; tmp.height=cv.height;
+      const ctx=tmp.getContext('2d');
+      ctx.fillStyle='#F5F6F8';
+      ctx.fillRect(0,0,tmp.width,tmp.height);
+      ctx.drawImage(cv,0,0);
+      return tmp.toDataURL('image/jpeg',q);
+    };
+
+    const capture=async()=>{
+      const fw=ct.offsetWidth;
+      const fh=ct.scrollHeight;
+      ct.scrollTop=0;
+      ct.style.height=fh+'px';
+      ct.style.overflow='visible';
+      ct.style.maxHeight='none';
+      await new Promise(r=>setTimeout(r,180));
+      const cv=await html2canvas(ct,{
+        scale:1.2,
+        useCORS:true,
+        backgroundColor:'#F5F6F8',
+        logging:false,
+        width:fw, height:fh,
+        scrollX:0, scrollY:0, x:0, y:0, windowWidth:fw
+      });
+      ct.style.height='';
+      ct.style.overflow='';
+      ct.style.maxHeight='';
+      return cv;
+    };
+
+    const lbl=(txt)=>{
+      pdf.setFontSize(7);pdf.setTextColor(160,160,160);
+      pdf.text(txt,PW-MG,MG-2,{align:'right'});
+    };
+
+    const addFit=(cv,text)=>{
+      const asp=cv.height/cv.width;
+      let iw=AW, ih=asp*AW;
+      if(ih>AH){ih=AH; iw=AH/asp;}
+      const x=MG+(AW-iw)/2, y=MG+(AH-ih)/2;
+      if(pageN++>0) pdf.addPage('a4','l');
+      lbl(text);
+      pdf.addImage(toJpeg(cv),'JPEG',x,y,iw,ih);
+    };
+
+    const addSlice=(cv,text)=>{
+      const pxMm=cv.width/AW;
+      const pageHpx=Math.round(AH*pxMm);
+      let yPx=0;
+      while(yPx<cv.height){
+        const sh=Math.min(pageHpx,cv.height-yPx);
+        const s=document.createElement('canvas');
+        s.width=cv.width; s.height=sh;
+        s.getContext('2d').drawImage(cv,0,-yPx);
+        if(pageN++>0) pdf.addPage('a4','l');
+        lbl(text);
+        pdf.addImage(toJpeg(s),'JPEG',MG,MG,AW,sh/pxMm);
+        yPx+=pageHpx;
+      }
+    };
+
+    goTab('dashboard');
+    await new Promise(r=>setTimeout(r,700));
+    addFit(await capture(),'Dashboard');
+
+    goTab('bymodel');
+    await new Promise(r=>setTimeout(r,700));
+    const cards=[...document.querySelectorAll('#modelCardGrid .model-symptom-card')];
+    if(cards.length){
+      const half=Math.ceil(cards.length/2);
+      cards.slice(half).forEach(c=>c.style.display='none');
+      await new Promise(r=>setTimeout(r,120));
+      addFit(await capture(),'By Model (1/2)');
+      cards.slice(half).forEach(c=>c.style.display='');
+      cards.slice(0,half).forEach(c=>c.style.display='none');
+      await new Promise(r=>setTimeout(r,120));
+      addFit(await capture(),'By Model (2/2)');
+      cards.slice(0,half).forEach(c=>c.style.display='');
+    }
+
+    goTab('exchange_refund');
+    await new Promise(r=>setTimeout(r,700));
+    addFit(await capture(),'교환 / 환불');
+
+    goTab('reviews');
+    await new Promise(r=>setTimeout(r,700));
+    addSlice(await capture(),'Reviews');
+
+    goTab(prev);
+    pdf.save('cx_dashboard.pdf');
+
+  }catch(e){
+    alert('PDF 오류: '+e.message);
+  }
+
+  btn.innerHTML='<i data-lucide="file-down" class="icon"></i>PDF';
+  btn.disabled=false;
+  lucide.createIcons();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   품질 주간 보고서 PDF 자동 생성
+   + 월별 히스토리 일괄 저장
+══════════════════════════════════════════════════════════════ */
+/* ── AS 분석 공통 헬퍼 ── */
+function computeASAnalysis(rows) {
+  const PRIME = '프라임', GRAVITY = '그래비티', GRAVITY_W = '그래비티 W';
+  const primeSymMap = {}, gravitySymMap = {};
+  const primePartMap = {}, gravityPartMap = {};
+  const primePartCauseMap = {}, gravityPartCauseMap = {};
+  let primeTotal = 0, gravityTotal = 0;
+
+  rows.forEach(row => {
+    const bucket = normalizeModelBucket(pickCol(row, ['품명','상품명','모델명']) || '');
+    const isP = bucket === PRIME;
+    const isG = bucket === GRAVITY || bucket === GRAVITY_W;
+    if (!isP && !isG) return;
+    if (isP) primeTotal++; else gravityTotal++;
+
+    const sym   = String(pickCol(row, ['증상기준','A/S증상','증상']) || '').trim();
+    const part  = String(pickCol(row, ['부품']) || '').trim();
+    const cause = String(pickCol(row, ['원인']) || '').trim();
+
+    const sMap = isP ? primeSymMap  : gravitySymMap;
+    const pMap = isP ? primePartMap : gravityPartMap;
+    const cMap = isP ? primePartCauseMap : gravityPartCauseMap;
+
+    if (sym)  sMap[sym]  = (sMap[sym]  || 0) + 1;
+    if (part) {
+      pMap[part] = (pMap[part] || 0) + 1;
+      if (cause) {
+        if (!cMap[part]) cMap[part] = {};
+        cMap[part][cause] = (cMap[part][cause] || 0) + 1;
+      }
+    }
+  });
+
+  return {
+    prime:   { symMap: primeSymMap,   partMap: primePartMap,   partCauseMap: primePartCauseMap,   total: primeTotal },
+    gravity: { symMap: gravitySymMap, partMap: gravityPartMap, partCauseMap: gravityPartCauseMap, total: gravityTotal }
+  };
+}
+
+function getWeekKey(date) {
+  const sun = new Date(date); sun.setDate(date.getDate() - date.getDay());
+  const wed = new Date(sun); wed.setDate(sun.getDate() + 3);
+  const y = wed.getFullYear(), m = wed.getMonth();
+  const first = new Date(y, m, 1);
+  const firstWed = 1 + ((3 - first.getDay() + 7) % 7);
+  const week = Math.floor((wed.getDate() - firstWed) / 7) + 1;
+  return `${y}-${String(m+1).padStart(2,'0')}-w${week}`;
+}
+
+function getWeekRange(date) {
+  const d = new Date(date);
+  const sun = new Date(d); sun.setDate(d.getDate() - d.getDay());
+  const sat = new Date(sun); sat.setDate(sun.getDate() + 6);
+  const fmt = x => `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+  const md  = x => `${x.getMonth()+1}/${x.getDate()}`;
+  const wed = new Date(sun); wed.setDate(sun.getDate() + 3);
+  const mon   = wed.getMonth()+1;
+  const wkNum = (getWeekKey(d).match(/w(\d+)$/) || [,''])[1];
+  return { start: fmt(sun), end: fmt(sat),
+    period: `${mon}월 ${wkNum}주차 (${md(sun)}~${md(sat)})`,
+    range: `${fmt(sun)} ~ ${fmt(sat)}` };
+}
+
+/* ── 월별 AS 파일 일괄 히스토리 저장 ── */
+/* ── 히스토리 DB저장 라우터: JSON·엑셀 모두 지원 ── */
+async function handleHistoryDB(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+  const jsonFiles  = files.filter(f => /\.json$/i.test(f.name));
+  const excelFiles = files.filter(f => /\.(xlsx|xls|csv)$/i.test(f.name));
+  for (const jf of jsonFiles) await uploadHistoryJSON(jf);
+  if (excelFiles.length) await importHistoricalAS(excelFiles);
+}
+
+const _asNum = v => { if (v === null || v === undefined || v === '') return null; const n = Number(String(v).replace(/[^0-9.\-]/g,'')); return isNaN(n) ? null : n; };
+
+/* ── AS 행 → 재인입 분석용 슬림 레코드 (CS번호 기준 그룹핑, 고객명 마스킹) ── */
+function buildSlimASRows(rows) {
+  const map = new Map();
+  rows.forEach(row => {
+    const csNo = String(pickCol(row, ['CS No.(접수번호)','CS No.','접수번호']) || '').trim();
+    if (!csNo) return;
+    if (!map.has(csNo)) {
+      const rawDt   = pickCol(row, ['회수일자','최근수리일자']);
+      const d       = rawDt ? rtParseDate(rawDt) : null;
+      const prodRaw = String(pickCol(row, ['생산일자']) || '').trim();
+      const custNm  = String(pickCol(row, ['고객명(접수/구매)','고객명']) || '').trim();
+      map.set(csNo, {
+        csNo,
+        recvDt : d && !isNaN(d) ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` : null,
+        model  : String(pickCol(row, ['품명','상품명','모델명']) || '').trim(),
+        custNm : custNm ? custNm.slice(0,1) + '**' : '',
+        phone  : String(pickCol(row, ['연락처']) || '').trim(),
+        prodYM : prodRaw.match(/^(\d{4}-\d{2})/) ? prodRaw.slice(0,7) : null,
+        srNo   : String(pickCol(row, ['Sr.No','SR No']) || '').trim(),
+        cost   : _asNum(pickCol(row, ['A/S비용'])),
+        fee    : _asNum(pickCol(row, ['A/S비용 최종','A/S비용최종'])),
+        asTypes: [], syms: [], parts: [], causes: []
+      });
+    }
+    const rec  = map.get(csNo);
+    const push = (arr, v) => { v = String(v || '').trim(); if (v && !arr.includes(v)) arr.push(v); };
+    push(rec.asTypes, pickCol(row, ['A/S유형','AS유형']));
+    push(rec.syms,    pickCol(row, ['증상기준','A/S증상','증상']));
+    push(rec.parts,   pickCol(row, ['부품']));
+    push(rec.causes,  pickCol(row, ['원인']));
+    if (rec.cost == null) rec.cost = _asNum(pickCol(row, ['A/S비용']));
+    if (rec.fee  == null) rec.fee  = _asNum(pickCol(row, ['A/S비용 최종','A/S비용최종']));
+  });
+  return [...map.values()];
+}
+
+/* ── as_history.json → Supabase 일괄 업로드 ── */
+async function uploadHistoryJSON(file) {
+  if (!file) return;
+  const btn = document.getElementById('historyJsonBtn');
+  if (btn) btn.textContent = '업로드 중...';
+  document.getElementById('ldr').classList.add('on');
+
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    const weeks = Object.values(data);
+    const total = weeks.length;
+    let ok = 0, err = 0;
+    const errMsgs = [];
+
+    console.log(`[히스토리] 시작: ${total}개 주차`);
+
+    // 1개씩 upsert (배치 오류 방지)
+    for (let i = 0; i < weeks.length; i++) {
+      const w = weeks[i];
+      const row = {
+        report_key: w.report_key,
+        title:      `AS 히스토리 ${w.period}`,
+        period:     w.period,
+        data:       { asAnalysis: w.asAnalysis },
+        updated_at: new Date().toISOString()
+      };
+      const { error } = await sb
+        .from('cx_reports')
+        .upsert(row, { onConflict: 'report_key' });
+      if (error) {
+        err++;
+        if (errMsgs.length < 3) errMsgs.push(`${w.report_key}: ${error.message}`);
+        console.error('[히스토리]', w.report_key, error.message);
+      } else {
+        ok++;
+      }
+
+      if (btn && i % 5 === 0) btn.textContent = `업로드 중... ${ok}/${total}`;
+      await new Promise(r => setTimeout(r, 50));
+    }
+
+    const msg = err
+      ? `✅ ${ok}개 완료 / ❌ ${err}개 실패\n${errMsgs.join('\n')}`
+      : `✅ ${ok}개 주차 DB 저장 완료`;
+    showSaveToast(err ? `⚠️ ${ok}개 성공 / ${err}개 실패 — F12 콘솔 확인` : `✅ ${ok}개 주차 저장 완료`);
+    if (err) alert(msg);
+    console.log(`[히스토리] 완료: 성공 ${ok} / 실패 ${err}`);
+  } catch(e) {
+    showSaveToast('❌ 업로드 실패: ' + e.message);
+    console.error('[히스토리 오류]', e);
+    alert('업로드 실패: ' + e.message);
+  } finally {
+    document.getElementById('ldr').classList.remove('on');
+    if (btn) btn.textContent = '히스토리 DB저장';
+  }
+}
+
+async function importHistoricalAS(fileList) {
+  const files = Array.from(fileList || []).filter(f => /\.(xlsx|xls|csv)$/i.test(f.name));
+  if (!files.length) return;
+
+  const btn = document.getElementById('historyImportBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
+  document.getElementById('ldr').classList.add('on');
+
+  let totalWeeks = 0, totalRows = 0, errorCount = 0;
+  const savedKeys = [];
+
+  for (const file of files) {
+    try {
+      const buf  = await file.arrayBuffer();
+      const wb   = XLSX.read(buf, { type:'array' });
+      const ws   = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, { defval: null });
+      const rows = normalizeRows(json);
+      totalRows += rows.length;
+
+      // 회수일자 기준 주차별 분리
+      const weekBuckets = {}; // weekKey → { rows[], dates[] }
+      rows.forEach(row => {
+        const raw = pickCol(row, ['회수일자','최근수리일자']);
+        if (!raw) return;
+        const d = rtParseDate(raw);
+        if (!d || isNaN(d)) return;
+        const wk = getWeekKey(d);
+        if (!weekBuckets[wk]) weekBuckets[wk] = { rows: [], dates: [] };
+        weekBuckets[wk].rows.push(row);
+        weekBuckets[wk].dates.push(d);
+      });
+
+      // 주차별 Supabase upsert
+      for (const [weekKey, bucket] of Object.entries(weekBuckets)) {
+        if (bucket.rows.length < 2) continue; // 너무 적으면 스킵
+        const isVisit   = /방문점검/.test(file.name); // 방문점검관리 파일 → visit- 키로 분리 저장 (AS 주차 덮어쓰기 방지)
+        const analysis  = computeASAnalysis(bucket.rows);
+        const minDate   = new Date(Math.min(...bucket.dates));
+        const maxDate   = new Date(Math.max(...bucket.dates));
+        const { period, range } = getWeekRange(minDate);
+
+        const payload = {
+          report_key: weekKey,
+          title:      `AS 히스토리 ${period}`,
+          period:     period,
+          data: {
+            asAnalysis: {
+              ...analysis,
+              period,
+              periodRange: range,
+              rowCount: bucket.rows.length,
+              sourceFile: file.name,
+            },
+            // 재인입 분석용 원본 행 (CS번호 그룹핑·고객명 마스킹) — 보고서 트렌드와 동일 row 참조
+            asRows: buildSlimASRows(bucket.rows)
+          },
+          updated_at: new Date().toISOString()
+        };
+
+        if (isVisit) {
+          payload.report_key = 'visit-' + weekKey;
+          payload.title = `방문점검 히스토리 ${period}`;
+          payload.data = { visitRows: buildSlimASRows(bucket.rows), sourceFile: file.name };
+        }
+
+        const { error } = await sb
+          .from('cx_reports')
+          .upsert(payload, { onConflict: 'report_key' });
+
+        if (error) { console.error('[히스토리]', weekKey, error.message); errorCount++; }
+        else { savedKeys.push(weekKey); totalWeeks++; }
+      }
+    } catch(e) {
+      console.error('[히스토리 파일 오류]', file.name, e.message);
+      errorCount++;
+    }
+  }
+
+  document.getElementById('ldr').classList.remove('on');
+  if (btn) { btn.disabled = false; btn.textContent = '히스토리 가져오기'; }
+
+  const msg = errorCount
+    ? `✅ ${totalWeeks}개 주차 저장 완료 (⚠️ ${errorCount}개 오류)`
+    : `✅ ${files.length}개 파일 → ${totalWeeks}개 주차 저장 완료`;
+  showSaveToast(msg);
+  console.log('[히스토리] 저장된 주차:', savedKeys.sort().join(', '));
+
+  // 업로드 완료 → 재인입 분석도 동일 DB 데이터로 자동 갱신
+  if (totalWeeks > 0) {
+    try { await loadReentryFromDB({ switchTab: false }); }
+    catch(e) { console.error('[재인입 자동 갱신 실패]', e); }
+  }
+}
+
+/* ── Supabase 히스토리(asRows) → 재인입 분석 로드 — 보고서 트렌드와 동일 데이터 참조 ── */
+function rtBuildFromSlimRows(slimRows) {
+  (slimRows || []).forEach(s => {
+    if (!s || !s.csNo) return;
+    if (!REENTRY_RAW.has(s.csNo)) {
+      REENTRY_RAW.set(s.csNo, {
+        csNo     : s.csNo,
+        회수일자 : s.recvDt ? rtParseDate(s.recvDt) : null,
+        모델버킷 : normalizeModelBucket(s.model || ''),
+        모델원본 : s.model || '',
+        고객명   : s.custNm || '',
+        연락처   : s.phone || '',
+        고객키   : `${s.custNm || ''}|${s.phone || ''}`,
+        srNo     : s.srNo || '',
+        생산년월 : s.prodYM || null,
+        수리비   : (s.cost != null ? s.cost : null),
+        수납액   : (s.fee  != null ? s.fee  : null),
+        asTypeSet: new Set(),
+        증상Set  : new Set(),
+        부품Set  : new Set(),
+        원인Set  : new Set(),
+      });
+    }
+    const rec = REENTRY_RAW.get(s.csNo);
+    (s.asTypes || []).forEach(v => rec.asTypeSet.add(v));
+    (s.syms    || []).forEach(v => rec.증상Set.add(v));
+    (s.parts   || []).forEach(v => rec.부품Set.add(v));
+    (s.causes  || []).forEach(v => rec.원인Set.add(v));
+  });
+}
+
+async function loadReentryFromDB(opts) {
+  const switchTab = !opts || opts.switchTab !== false;
+  const btn = document.getElementById('reentryDbBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '불러오는 중...'; }
+  document.getElementById('ldr').classList.add('on');
+  try {
+    // 페이지네이션으로 전체 주차 로드
+    const PAGE = 200;
+    let from = 0, all = [];
+    while (true) {
+      const { data, error } = await sb
+        .from('cx_reports')
+        .select('report_key, data')
+        .not('data->asRows', 'is', null)
+        .order('report_key', { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) throw error;
+      all = all.concat(data || []);
+      if (!data || data.length < PAGE) break;
+      from += PAGE;
+    }
+
+    const weekRows = all.filter(r => Array.isArray(r.data?.asRows) && r.data.asRows.length);
+
+    // 방문점검 히스토리 (visit-*) — 재인입 매칭에 함께 사용
+    let visitWeeks = [];
+    try {
+      const { data: vd, error: ve } = await sb.from('cx_reports')
+        .select('report_key, data')
+        .like('report_key', 'visit-%')
+        .order('report_key', { ascending: true })
+        .range(0, 999);
+      if (!ve && vd) visitWeeks = vd.filter(r => Array.isArray(r.data?.visitRows) && r.data.visitRows.length);
+    } catch(e) { console.warn('[방문점검 로드]', e); }
+    if (!weekRows.length) {
+      showSaveToast('⚠️ DB에 재인입용 원본 데이터 없음 — 히스토리 DB저장(엑셀)으로 먼저 업로드해 주세요');
+      return;
+    }
+
+    REENTRY_RAW = new Map();
+    weekRows.forEach(r => rtBuildFromSlimRows(r.data.asRows));
+    visitWeeks.forEach(r => rtBuildFromSlimRows(r.data.visitRows));
+    REENTRY_FILE_CNT = weekRows.length + visitWeeks.length;
+    reentrySymFilter = null;
+    REENTRY_DATA = rtAggregate();
+
+    const _wkKeys = weekRows.map(r => r.report_key).filter(Boolean).sort();
+    const _fmtWk = k => { const m = String(k).match(/^(\d{4})-(\d{2})-w(\d+)$/); return m ? `${m[1]}년 ${+m[2]}월 ${m[3]}주차` : k; };
+    const _rangeEl = document.getElementById('reentryDbRange');
+    if (_rangeEl && _wkKeys.length) {
+      _rangeEl.textContent = `DB 저장 범위: ${_fmtWk(_wkKeys[0])} ~ ${_fmtWk(_wkKeys[_wkKeys.length-1])} · 총 ${_wkKeys.length}개 주차${visitWeeks.length?` (방문점검 ${visitWeeks.length})`:''}`;
+    }
+
+    if (switchTab) { if (curTab === 'reentry') renderReentry(); else goTab('reentry'); }
+    else if (curTab === 'reentry') renderReentry();
+
+    showSaveToast(`✅ DB ${weekRows.length}개 주차${visitWeeks.length ? ` + 방문점검 ${visitWeeks.length}개 주차` : ''} 로드 — CS ${REENTRY_RAW.size.toLocaleString()}건 재인입 분석 완료`);
+  } catch(e) {
+    console.error('[재인입 DB 로드]', e);
+    showSaveToast('❌ DB 불러오기 실패: ' + e.message);
+  } finally {
+    document.getElementById('ldr').classList.remove('on');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="database" class="icon"></i>DB 불러오기';
+      lucide.createIcons();
+    }
+  }
+}
+
+// ── DB(REENTRY_RAW) → 보고서용 행 재구성 (AS 파일 없이 보고서 생성용) ──
+function buildReportRowsFromDB() {
+  const out = [];
+  if (!REENTRY_RAW || !REENTRY_RAW.size) return out;
+  for (const rec of REENTRY_RAW.values()) {
+    const d = rec.회수일자;
+    const recvStr = (d && !isNaN(d)) ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` : '';
+    const prodStr = rec.생산년월 || '';
+    const syms  = [...(rec.증상Set||[])];
+    const parts = [...(rec.부품Set||[])];
+    const causes= [...(rec.원인Set||[])];
+    const symStr = syms.join(',');
+    if (parts.length) {
+      parts.forEach((p, i) => out.push({
+        '품명': rec.모델원본, '증상기준': symStr, '부품': p,
+        '원인': causes[i] || causes[0] || '', '회수일자': recvStr, '생산일자': prodStr
+      }));
+    } else {
+      out.push({ '품명': rec.모델원본, '증상기준': symStr, '부품': '', '원인': causes[0]||'', '회수일자': recvStr, '생산일자': prodStr });
+    }
+  }
+  return out;
 }
 
 async function generateReportPDF() {
