@@ -5127,6 +5127,13 @@ async function loadReentryFromDB(opts) {
     reentrySymFilter = null;
     REENTRY_DATA = rtAggregate();
 
+    const _wkKeys = weekRows.map(r => r.report_key).filter(Boolean).sort();
+    const _fmtWk = k => { const m = String(k).match(/^(\d{4})-(\d{2})-w(\d+)$/); return m ? `${m[1]}년 ${+m[2]}월 ${m[3]}주차` : k; };
+    const _rangeEl = document.getElementById('reentryDbRange');
+    if (_rangeEl && _wkKeys.length) {
+      _rangeEl.textContent = `DB 저장 범위: ${_fmtWk(_wkKeys[0])} ~ ${_fmtWk(_wkKeys[_wkKeys.length-1])} · 총 ${_wkKeys.length}개 주차${visitWeeks.length?` (방문점검 ${visitWeeks.length})`:''}`;
+    }
+
     if (switchTab) { if (curTab === 'reentry') renderReentry(); else goTab('reentry'); }
     else if (curTab === 'reentry') renderReentry();
 
