@@ -403,7 +403,7 @@ tr:hover td{background:var(--bg-alt);}
 
 .reentry-insight-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
 @media(max-width:960px){.reentry-insight-grid{grid-template-columns:1fr;}}
-.model-insight-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:16px;}
+.model-insight-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:16px;}
 .model-insight-card{border:1px solid var(--border-subtle);border-radius:10px;padding:14px 16px;background:var(--bg-surface);transition:box-shadow .15s;}
 .model-insight-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.08);}
 .model-insight-sub-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
@@ -442,7 +442,7 @@ tr:hover td{background:var(--bg-alt);}
 .prod-anomaly-row-hi{background:rgba(194,70,70,.04);}
 .prod-anomaly-x{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--danger-bg);color:var(--danger-text);white-space:nowrap;}
 /* 핵심 부품 분석 */
-.key-parts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:12px;}
+.key-parts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:12px;}
 .key-part-card{border:1px solid var(--border-subtle);border-radius:10px;padding:12px 14px;background:var(--bg-alt);}
 .key-part-card-name{font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
 .key-part-card-name .kp-badge{font-size:10px;padding:1px 6px;border-radius:999px;font-weight:600;}
@@ -529,7 +529,7 @@ tr:hover td{background:var(--bg-alt);}
 .kpi-rate-fill{height:100%;border-radius:999px;background:var(--kpi-color);}
 
 /* 모델별 재인입률 카드 그리드 */
-.model-rate-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;align-items:start;}
+.model-rate-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px;align-items:start;}
 .model-rate-card{background:var(--bg-alt);border:1px solid var(--border-soft);border-radius:var(--r-md);padding:16px 16px 14px;display:flex;align-items:center;gap:14px;}
 .model-rate-card-stats{flex:1;min-width:0;}
 .model-rate-card-name{font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -785,7 +785,7 @@ tr:hover td{background:var(--bg-alt);}
         <div class="card" style="margin-bottom:20px" id="reentryNoiseSection"></div>
 
         <!-- 모델별 증상 TOP + 부품 TOP -->
-        <div class="two-col" style="margin-bottom:20px">
+        <div class="two-col" style="margin-bottom:20px" id="reentrySymPartRow">
           <div class="card" id="reentrySymptomByModel"></div>
           <div class="card" id="reentryPartsByModel"></div>
         </div>
@@ -794,7 +794,7 @@ tr:hover td{background:var(--bg-alt);}
         <div id="reentrySymDrill" style="display:none;margin-bottom:20px"></div>
 
         <!-- 교체 원인 분석 -->
-        <div class="two-col" style="margin-bottom:20px">
+        <div class="two-col" style="margin-bottom:20px" id="reentryCausePartRow">
           <div class="card" id="reentryCauseByModel"></div>
           <div class="card" id="reentryPartCause"></div>
         </div>
@@ -2067,6 +2067,9 @@ function renderReentry(){
   const D2  = REENTRY_DATA;
   const sel = reentryModelFilter;
   const isAll = sel === '전체';
+  { const _spr=document.getElementById('reentrySymPartRow'); if(_spr) _spr.style.display=isAll?'none':'';
+    const _cpr=document.getElementById('reentryCausePartRow'); if(_cpr) _cpr.style.display=isAll?'none':'';
+    const _sd=document.getElementById('reentrySymDrill'); if(isAll && _sd){ _sd.style.display='none'; _sd.innerHTML=''; } }
 
   // ── Filtered views ──
   const allCS   = [...REENTRY_RAW.values()].filter(r => r.회수일자 && !isNaN(r.회수일자));
