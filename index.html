@@ -741,6 +741,7 @@ tr:hover td{background:var(--bg-alt);}
             <div class="reentry-header-title">Reencle A/S Re-entry Analysis</div>
             <div class="reentry-header-desc">단순 VOC 통계가 아닌 반복 고장, 동일부품 재교체, 모델별 품질 위험도를 탐지하는 분석 화면입니다.</div>
             <div class="reentry-header-meta" id="reentryMeta">분석 실행: — · 원본 —행 / CS기준 —건</div>
+            <div class="reentry-header-meta" id="reentryDbRange" style="margin-top:2px;color:var(--text-tertiary)">DB 저장 범위 확인 중…</div>
           </div>
           <div class="reentry-header-actions">
             <button class="btn btn-outline" id="reentryDbBtn" onclick="loadReentryFromDB()" title="Supabase 히스토리(보고서와 동일 데이터)에서 전체 주차 로드">
@@ -5093,6 +5094,19 @@ function rtBuildFromSlimRows(slimRows) {
   });
 }
 
+async function loadDbRangeLabel(){
+  const el = document.getElementById('reentryDbRange'); if(!el) return;
+  try {
+    const { data, error } = await sb.from('cx_reports').select('report_key')
+      .not('data->asRows','is',null).not('report_key','like','visit-%')
+      .order('report_key',{ascending:true}).range(0,999);
+    if(error) throw error;
+    const keys=(data||[]).map(r=>r.report_key).filter(Boolean).sort();
+    const fmt=k=>{const m=String(k).match(/^(\d{4})-(\d{2})-w(\d+)$/);return m?`${m[1]}년 ${+m[2]}월 ${m[3]}주차`:k;};
+    el.textContent = keys.length ? `DB 저장 범위: ${fmt(keys[0])} ~ ${fmt(keys[keys.length-1])} · 총 ${keys.length}개 주차` : 'DB 저장 데이터 없음';
+  } catch(e){ el.textContent='DB 저장 범위 조회 실패'; console.warn('[DB범위]',e); }
+}
+
 async function loadReentryFromDB(opts) {
   const switchTab = !opts || opts.switchTab !== false;
   const btn = document.getElementById('reentryDbBtn');
@@ -5822,6 +5836,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderWeekly();
   document.getElementById('sbSavedTime').textContent = hasLocal ? '로컬 데이터 표시 중' : '기본 데이터 표시 중';
   await loadReportFromUrl();
+  loadDbRangeLabel();
 
   // ── 상단 이동 버튼 ──
   const topBtn = document.createElement('button');
