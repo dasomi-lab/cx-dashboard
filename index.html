@@ -3790,14 +3790,15 @@ function rtAggregate() {
   const upgradeCS  = allCS.filter(r => r.증상Set.has('업그레이드')).length;
 
   // ── 모델별 재인입률 ──
-  const buckets = [...new Set(allCS.map(r => r.모델버킷))].filter(b => b && b !== '기타' && b !== '소모품');
+  // 표준 모델은 데이터 없어도 0 placeholder 카드 표시 — 데이터 쌓이면 자동 채워짐
+  const STD_MODELS = ['RC-02','RT220','프라임','프라임S','그래비티','그래비티 W','이지'];
+  const buckets = [...new Set([...STD_MODELS, ...allCS.map(r => r.모델버킷)])].filter(b => b && b !== '기타' && b !== '소모품');
   const modelStats = {};
   for (const b of buckets) {
     const bCS = allCS.filter(r => r.모델버킷 === b);
     const bRe = reentries.filter(r => r.curr.모델버킷 === b);
     const tot = bCS.length;
-    if (!tot) continue;
-    const pct = (cnt) => ((cnt/tot)*100).toFixed(1);
+    const pct = (cnt) => tot ? ((cnt/tot)*100).toFixed(1) : '0.0';
     const m1 =bRe.filter(r=>r.days<=30).length,
           m3 =bRe.filter(r=>r.days>30&&r.days<=90).length,
           m6 =bRe.filter(r=>r.days>90&&r.days<=180).length,
@@ -3981,6 +3982,7 @@ function rtAggregate() {
 }
 
 function rtGenInsights({ reentries, modelStats, typeCount, anomalies, r1m, r3m, totalCS }) {
+  if (!totalCS) return []; // 데이터 없는 모델은 AI 인사이트에서 제외(재인입률 카드에는 0으로 표시됨)
   const ms = Object.values(modelStats)[0] || {};
   const m1r = +(ms.m1r || 0);
   const reTot = reentries.length || 0;
