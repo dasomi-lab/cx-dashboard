@@ -5138,8 +5138,8 @@ function renderQMonth(){
   if (!withProd.length){ body.innerHTML = '<div class="empty-msg">A/S 재인입 탭에서 "DB 불러오기"를 먼저 실행해 주세요 · 생산일자 있는 데이터가 필요합니다</div>'; return; }
 
   const isAll = qmModel==='전체';
-  const fr = withProd.filter(r => isAll || normalizeModelBucket(r.model)===qmModel);
-  const prods = [...new Set(fr.map(r => r.prodYM.slice(0,7)))].filter(p => p >= '2022-01').sort();
+  const fr = withProd.filter(r => (isAll || normalizeModelBucket(r.model)===qmModel) && r.prodYM.slice(0,7) >= '2022-01');
+  const prods = [...new Set(fr.map(r => r.prodYM.slice(0,7)))].sort();
   const mat = {}; prods.forEach(p=>mat[p]={});
   let cols = [];
   if (qmMode==='elapsed'){
