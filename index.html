@@ -45,6 +45,18 @@ html,body{height:100%;font-family:var(--font-sans);background:var(--bg-page);col
 
 .ub{display:none;position:fixed;inset:0;background:rgba(23,24,28,.28);z-index:500;align-items:flex-end;justify-content:center;}
 .ub.on{display:flex;}
+.dbm{display:none;position:fixed;inset:0;background:rgba(23,24,28,.42);z-index:600;align-items:center;justify-content:center;padding:20px;}
+.dbm.on{display:flex;}
+.dbm-box{background:#fff;border-radius:14px;width:min(740px,100%);max-height:82vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.25);}
+.dbm-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #EEF0F4;}
+.dbm-title{font-size:17px;font-weight:700;color:#17181C;}
+.dbm-x{border:none;background:none;font-size:22px;cursor:pointer;color:#8B93A1;line-height:1;}
+.dbm-sub{padding:12px 22px;font-size:13px;color:#5F6673;border-bottom:1px solid #F0F1F4;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.dbm-list{overflow-y:auto;padding:4px 0;}
+.dbm-row{display:flex;align-items:center;gap:12px;padding:10px 22px;border-bottom:1px solid #F5F6F8;font-size:13px;white-space:nowrap;}
+.dbm-row:hover{background:#F8F9FC;}
+.dbm-del{margin-left:auto;border:1px solid #F0A3A3;background:#fff;color:#C04040;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;}
+.dbm-del:hover{background:#FDECEC;}
 .us{background:var(--bg-surface);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:24px 24px 36px;width:100%;max-width:560px;box-shadow:var(--sh-float);animation:shu .22s ease;}
 @keyframes shu{from{transform:translateY(100%);}to{transform:translateY(0);}}
 .handle{width:40px;height:4px;background:var(--border-subtle);border-radius:2px;margin:0 auto 18px;}
@@ -574,6 +586,14 @@ tr:hover td{background:var(--bg-alt);}
   </div>
 </div>
 
+<div class="dbm" id="dbm" onclick="if(event.target.id==='dbm')closeDbManager()">
+  <div class="dbm-box">
+    <div class="dbm-head"><div class="dbm-title">히스토리 DB 관리</div><button class="dbm-x" onclick="closeDbManager()">&times;</button></div>
+    <div class="dbm-sub" id="dbmSummary">불러오는 중…</div>
+    <div class="dbm-list" id="dbmList"></div>
+  </div>
+</div>
+
 <div class="app">
   <aside class="sb" id="sb">
     <div class="sb-logo-wrap">
@@ -628,6 +648,7 @@ tr:hover td{background:var(--bg-alt);}
           <i data-lucide="history" class="icon"></i><span id="historyImportBtn">히스토리 가져오기</span>
           <input type="file" multiple accept=".xlsx,.xls,.csv" style="display:none" onchange="importHistoricalAS(this.files);this.value=''">
         </label>
+        <button class="btn btn-outline" onclick="openDbManager()"><i data-lucide="database-zap" class="icon"></i>DB 관리</button>
         <button class="btn btn-outline" onclick="generateReportPDF()"><i data-lucide="file-text" class="icon"></i>보고서</button>
         <button class="btn btn-primary" id="pdfBtn" onclick="dlPDF()"><i data-lucide="file-down" class="icon"></i>PDF</button>
       </div>
@@ -4642,6 +4663,34 @@ function updateChips(){
 
 function openUB(){ document.getElementById('ub').classList.add('on'); }
 function closeUB(){ document.getElementById('ub').classList.remove('on'); }
+async function openDbManager(){ document.getElementById('dbm').classList.add('on'); lucide.createIcons(); await loadDbManagerList(); }
+function closeDbManager(){ document.getElementById('dbm').classList.remove('on'); }
+async function loadDbManagerList(){
+  const listEl=document.getElementById('dbmList'); const sumEl=document.getElementById('dbmSummary');
+  listEl.innerHTML='<div style="padding:24px;text-align:center;color:#9CA3AF">불러오는 중…</div>';
+  try{
+    const { data, error } = await sb.from('cx_reports').select('report_key, period, updated_at').order('report_key',{ascending:false}).range(0,999);
+    if(error) throw error;
+    const rows=data||[];
+    const asW=rows.filter(r=>!String(r.report_key).startsWith('visit-'));
+    const visitW=rows.filter(r=>String(r.report_key).startsWith('visit-'));
+    sumEl.textContent=`총 ${rows.length}개 항목 · AS 주차 ${asW.length}개 · 방문점검 ${visitW.length}개`;
+    const fmtDt=s=>{ try{ return new Date(s).toLocaleString('ko-KR',{year:'2-digit',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } };
+    const rowHtml=r=>{ const isV=String(r.report_key).startsWith('visit-');
+      return `<div class="dbm-row"><span style="font-weight:600;min-width:118px">${r.report_key}</span>`+
+        `<span style="color:#8B93A1;min-width:96px">${r.period||''}</span>`+
+        `<span style="color:#B4BBC7;font-size:11px;margin-left:4px">${fmtDt(r.updated_at)}</span>`+
+        (isV?'<span style="background:#EEF3FF;color:#3558B8;border-radius:4px;padding:1px 6px;font-size:11px;margin-left:6px">방문점검</span>':'')+
+        `<button class="dbm-del" onclick="deleteDbWeek('${r.report_key}')">삭제</button></div>`; };
+    listEl.innerHTML = rows.length ? rows.map(rowHtml).join('') : '<div style="padding:24px;text-align:center;color:#9CA3AF">저장된 데이터 없음</div>';
+  }catch(e){ listEl.innerHTML=`<div style="padding:24px;text-align:center;color:#C04040">조회 실패: ${e.message}</div>`; }
+}
+async function deleteDbWeek(key){
+  if(!confirm(`'${key}' 데이터를 DB에서 삭제할까요?\n이 작업은 되돌릴 수 없습니다.`)) return;
+  try{ const { error } = await sb.from('cx_reports').delete().eq('report_key', key); if(error) throw error;
+    showSaveToast(`✅ ${key} 삭제 완료`); await loadDbManagerList(); loadDbRangeLabel && loadDbRangeLabel();
+  }catch(e){ alert('삭제 실패: '+e.message+'\n(Supabase RLS에서 delete 권한이 막혀 있으면 콘솔에서 정책 확인이 필요합니다)'); }
+}
 function bgClose(e){ if(e.target.id==='ub') closeUB(); }
 function dzOv(e){ e.preventDefault(); document.getElementById('dz').classList.add('ov'); }
 function dzLv(){ document.getElementById('dz').classList.remove('ov'); }
