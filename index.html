@@ -4973,7 +4973,7 @@ function buildSlimASRows(rows) {
     const rec  = map.get(csNo);
     const push = (arr, v) => { v = String(v || '').trim(); if (v && !arr.includes(v)) arr.push(v); };
     push(rec.asTypes, pickCol(row, ['A/S유형','AS유형']));
-    push(rec.syms,    pickCol(row, ['증상기준','A/S증상','증상']));
+    push(rec.syms,    pickCol(row, ['증상기준','A/S증상','증상','A/S접수내용','AS접수내용','AS접수 내용']));
     { const _pv = String(pickCol(row, ['부품'])||'').trim(); if(_pv) rec.parts.push(_pv); }
     push(rec.causes,  pickCol(row, ['원인']));
     if (rec.cost == null) rec.cost = _asNum(pickCol(row, ['A/S비용']));
