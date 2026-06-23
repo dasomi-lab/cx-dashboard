@@ -4672,15 +4672,17 @@ async function loadDbManagerList(){
     const { data, error } = await sb.from('cx_reports').select('report_key, period, updated_at').order('report_key',{ascending:false}).range(0,999);
     if(error) throw error;
     const rows=data||[];
+    let hasRowsSet=new Set();
+    try{ const { data: hr } = await sb.from('cx_reports').select('report_key').not('data->asRows','is',null).range(0,999); (hr||[]).forEach(x=>hasRowsSet.add(x.report_key)); }catch(_){}
     const asW=rows.filter(r=>!String(r.report_key).startsWith('visit-'));
     const visitW=rows.filter(r=>String(r.report_key).startsWith('visit-'));
-    sumEl.textContent=`총 ${rows.length}개 항목 · AS 주차 ${asW.length}개 · 방문점검 ${visitW.length}개`;
+    sumEl.textContent=`총 ${rows.length}개 항목 · 재인입원본 ${hasRowsSet.size}개 · 보고서만 ${rows.filter(r=>!hasRowsSet.has(r.report_key)&&!String(r.report_key).startsWith('visit-')).length}개 · 방문점검 ${visitW.length}개`;
     const fmtDt=s=>{ try{ return new Date(s).toLocaleString('ko-KR',{year:'2-digit',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } };
     const rowHtml=r=>{ const isV=String(r.report_key).startsWith('visit-');
       return `<div class="dbm-row"><span style="font-weight:600;min-width:118px">${r.report_key}</span>`+
         `<span style="color:#8B93A1;min-width:96px">${r.period||''}</span>`+
         `<span style="color:#B4BBC7;font-size:11px;margin-left:4px">${fmtDt(r.updated_at)}</span>`+
-        (isV?'<span style="background:#EEF3FF;color:#3558B8;border-radius:4px;padding:1px 6px;font-size:11px;margin-left:6px">방문점검</span>':'')+
+        (isV?'<span style="background:#EEF3FF;color:#3558B8;border-radius:4px;padding:1px 6px;font-size:11px;margin-left:6px">방문점검</span>':(hasRowsSet.has(r.report_key)?'<span style="background:#E6F4EA;color:#1E7B45;border-radius:4px;padding:1px 6px;font-size:11px;margin-left:6px">재인입원본</span>':'<span style="background:#FBEAEA;color:#C04040;border-radius:4px;padding:1px 6px;font-size:11px;margin-left:6px">보고서만</span>'))+
         `<button class="dbm-del" onclick="deleteDbWeek('${r.report_key}')">삭제</button></div>`; };
     listEl.innerHTML = rows.length ? rows.map(rowHtml).join('') : '<div style="padding:24px;text-align:center;color:#9CA3AF">저장된 데이터 없음</div>';
   }catch(e){ listEl.innerHTML=`<div style="padding:24px;text-align:center;color:#C04040">조회 실패: ${e.message}</div>`; }
