@@ -1357,6 +1357,11 @@ async function saveReportToSupabase(){
       const persistPayload = getPersistPayload();
       persistPayload.weeklyAsset = weeklyAssetForSave;
 
+      try {
+        const _asSrc = (FILES.get('as')?.rows) || [];
+        if (_asSrc.length) persistPayload.asRows = buildSlimASRows(_asSrc);
+      } catch(e){ console.warn('[DB저장] asRows 생성 실패(무시):', e.message); }
+
       // 재인입 스냅샷 크기 제한
       if (persistPayload.reentrySnapshot) {
         const snap = persistPayload.reentrySnapshot;
