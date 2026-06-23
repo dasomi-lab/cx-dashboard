@@ -5297,7 +5297,7 @@ async function loadReentryFromDB(opts) {
     }
 
     REENTRY_RAW = new Map();
-    AS_SLIM_ROWS = weekRows.flatMap(r => r.data.asRows || []);
+    AS_SLIM_ROWS = (() => { const _seen=new Set(); const _out=[]; weekRows.forEach(r => (r.data.asRows||[]).forEach(s => { if(s && s.csNo && !_seen.has(s.csNo)){ _seen.add(s.csNo); _out.push(s); } })); return _out; })(); // CS번호 기준 중복 제거
     weekRows.forEach(r => rtBuildFromSlimRows(r.data.asRows));
     visitWeeks.forEach(r => rtBuildFromSlimRows(r.data.visitRows));
     REENTRY_FILE_CNT = weekRows.length + visitWeeks.length;
