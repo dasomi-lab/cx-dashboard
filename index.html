@@ -4694,9 +4694,10 @@ async function loadDbManagerList(){
 }
 async function deleteDbWeek(key){
   if(!confirm(`'${key}' 데이터를 DB에서 삭제할까요?\n이 작업은 되돌릴 수 없습니다.`)) return;
-  try{ const { error } = await sb.from('cx_reports').delete().eq('report_key', key); if(error) throw error;
+  try{ const { data, error } = await sb.from('cx_reports').delete().eq('report_key', key).select('report_key'); if(error) throw error;
+    if(!data || !data.length){ alert(`삭제되지 않았습니다 — Supabase 보안정책(RLS)에서 delete가 차단돼 있습니다.\n\n해결: Supabase 콘솔 → Table Editor → cx_reports → RLS Policies 에서 DELETE 허용 정책을 추가하거나, 해당 테이블 RLS를 끄면 됩니다.`); return; }
     showSaveToast(`✅ ${key} 삭제 완료`); await loadDbManagerList(); loadDbRangeLabel && loadDbRangeLabel();
-  }catch(e){ alert('삭제 실패: '+e.message+'\n(Supabase RLS에서 delete 권한이 막혀 있으면 콘솔에서 정책 확인이 필요합니다)'); }
+  }catch(e){ alert('삭제 실패: '+e.message); }
 }
 function bgClose(e){ if(e.target.id==='ub') closeUB(); }
 function dzOv(e){ e.preventDefault(); document.getElementById('dz').classList.add('ov'); }
