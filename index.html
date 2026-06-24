@@ -5279,6 +5279,7 @@ async function loadDbRangeLabel(){
 
 async function loadReentryFromDB(opts) {
   const switchTab = !opts || opts.switchTab !== false;
+  const silent = !!(opts && opts.silent);
   const btn = document.getElementById('reentryDbBtn');
   if (btn) { btn.disabled = true; btn.textContent = '불러오는 중...'; }
   document.getElementById('ldr').classList.add('on');
@@ -5312,7 +5313,7 @@ async function loadReentryFromDB(opts) {
       if (!ve && vd) visitWeeks = vd.filter(r => Array.isArray(r.data?.visitRows) && r.data.visitRows.length);
     } catch(e) { console.warn('[방문점검 로드]', e); }
     if (!weekRows.length) {
-      showSaveToast('⚠️ DB에 재인입용 원본 데이터 없음 — 히스토리 DB저장(엑셀)으로 먼저 업로드해 주세요');
+      if(!silent) showSaveToast('⚠️ DB에 재인입용 원본 데이터 없음 — 히스토리 DB저장(엑셀)으로 먼저 업로드해 주세요');
       return;
     }
 
@@ -5334,7 +5335,7 @@ async function loadReentryFromDB(opts) {
     if (switchTab) { if (curTab === 'reentry') renderReentry(); else goTab('reentry'); }
     else if (curTab === 'reentry') renderReentry();
 
-    showSaveToast(`✅ DB ${weekRows.length}개 주차${visitWeeks.length ? ` + 방문점검 ${visitWeeks.length}개 주차` : ''} 로드 — CS ${REENTRY_RAW.size.toLocaleString()}건 재인입 분석 완료`);
+    if(!silent) showSaveToast(`✅ DB ${weekRows.length}개 주차${visitWeeks.length ? ` + 방문점검 ${visitWeeks.length}개 주차` : ''} 로드 — CS ${REENTRY_RAW.size.toLocaleString()}건 재인입 분석 완료`);
   } catch(e) {
     console.error('[재인입 DB 로드]', e);
     showSaveToast('❌ DB 불러오기 실패: ' + e.message);
@@ -6007,6 +6008,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderWeekly();
   document.getElementById('sbSavedTime').textContent = hasLocal ? '로컬 데이터 표시 중' : '기본 데이터 표시 중';
   await loadReportFromUrl();
+  loadReentryFromDB({ switchTab:false, silent:true }).catch(()=>{}); // 공유 링크/일반 접속 모두 재인입·품질탭 자동 로드
   loadDbRangeLabel();
 
   // ── 상단 이동 버튼 ──
