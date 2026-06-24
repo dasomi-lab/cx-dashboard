@@ -1361,6 +1361,12 @@ async function saveReportToSupabase(){
         const _asSrc = (FILES.get('as')?.rows) || [];
         if (_asSrc.length) persistPayload.asRows = buildSlimASRows(_asSrc);
       } catch(e){ console.warn('[DB저장] asRows 생성 실패(무시):', e.message); }
+      try {
+        if (!persistPayload.asRows) {
+          const { data: _ex } = await sb.from('cx_reports').select('data').eq('report_key', reportKey).maybeSingle();
+          if (_ex && _ex.data) { if (_ex.data.asRows) persistPayload.asRows = _ex.data.asRows; if (_ex.data.asAnalysis && !persistPayload.asAnalysis) persistPayload.asAnalysis = _ex.data.asAnalysis; }
+        }
+      } catch(_){}
 
       // 재인입 스냅샷 크기 제한
       if (persistPayload.reentrySnapshot) {
@@ -1436,6 +1442,7 @@ async function loadReportFromUrl(){
 
     if(error) throw error;
     if(!data?.data) throw new Error('저장된 보고서를 찾지 못했습니다.');
+    if(!data.data.D){ console.warn('[공유보고서] 보고서 데이터 없음 — AS 히스토리 전용 키, 로드 건너뜀:', reportKey); return false; }
 
     ACTIVE_REPORT_KEY = data.report_key;
     applyPersistPayload(data.data);
@@ -5114,6 +5121,10 @@ async function importHistoricalAS(fileList) {
           payload.data = { visitRows: buildSlimASRows(bucket.rows), sourceFile: file.name };
         }
 
+        try {
+          const { data: _ex } = await sb.from('cx_reports').select('data').eq('report_key', payload.report_key).maybeSingle();
+          if (_ex && _ex.data) payload.data = { ..._ex.data, ...payload.data };
+        } catch(_){}
         const { error } = await sb
           .from('cx_reports')
           .upsert(payload, { onConflict: 'report_key' });
