@@ -4569,6 +4569,7 @@ async function handleFiles(fileList){
 
   document.getElementById('ldr').classList.add('on');
   let latestWeeklyFile = null;
+  let _asFilesForDB = [];
 
   for(const file of files){
     const n = file.name.toLowerCase();
@@ -4595,6 +4596,7 @@ async function handleFiles(fileList){
 
       if(type !== 'unknown') {
           FILES.set(type, {name:file.name, rows, headers});
+          if(type==='as') _asFilesForDB.push(file);
       } else {
         latestWeeklyFile = file;
       }
@@ -4616,6 +4618,12 @@ async function handleFiles(fileList){
   updateChips();
   rebuildUList();
   renderAll();
+
+  // AS관리 파일 업로드 시 자동으로 DB(주차별 asRows) 저장 + 재인입·품질탭 자동 갱신
+  if(_asFilesForDB.length){
+    showSaveToast('AS 파일 DB 자동 저장 중…');
+    importHistoricalAS(_asFilesForDB).catch(e=>{ console.error('[AS 자동 DB저장]', e); showSaveToast('⚠️ AS 자동 DB저장 실패: '+(e&&e.message||e)); });
+  }
 }
 
 function deleteFile(type){
