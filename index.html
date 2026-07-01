@@ -106,6 +106,7 @@ html,body{height:100%;font-family:var(--font-sans);background:var(--bg-page);col
 .mobile-menu-btn{display:none;border:none;background:none;cursor:pointer;padding:6px;border-radius:var(--r-xs);color:var(--text-secondary);}
 .mobile-menu-btn:hover{background:var(--bg-alt);}
 .main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;}
+.tb-mi{display:flex;align-items:center;gap:8px;width:100%;padding:8px 11px;font-size:13px;color:var(--text-secondary);background:transparent;border:none;border-radius:7px;cursor:pointer;text-align:left;white-space:nowrap;}.tb-mi:hover{background:var(--bg-alt);color:var(--text-primary);}.tb-mi .icon{width:15px;height:15px;flex-shrink:0;}
 .topbar{background:var(--bg-surface);border-bottom:1px solid var(--border-subtle);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;flex-wrap:wrap;}
 .topbar-l{display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .topbar-breadcrumb{font-size:22.5px;font-weight:600;color:var(--text-primary);letter-spacing:-.03em;white-space:nowrap;}
@@ -635,23 +636,19 @@ tr:hover td{background:var(--bg-alt);}
       <div class="topbar-r">
         <div class="chip-group" id="fileChips"></div>
         <button class="btn btn-outline" onclick="openUB()"><i data-lucide="upload" class="icon"></i>업로드</button>
-        <button class="btn btn-outline" onclick="exportJSON()"><i data-lucide="download" class="icon"></i>내보내기</button>
-        <label class="btn btn-outline" style="cursor:pointer;display:inline-flex;">
-          <i data-lucide="folder-input" class="icon"></i><span class="btn-label">가져오기</span>
-          <input type="file" accept=".json" style="display:none" onchange="importJSON(this)">
-        </label>
         <button class="btn btn-outline" id="saveDbBtn" onclick="saveReportToSupabase()"><i data-lucide="cloud-upload" class="icon"></i>DB 저장</button>
-        <label class="btn btn-outline" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px" title="as_history.json · 월별 AS 엑셀 · 방문점검관리 엑셀 선택 → Supabase 일괄 저장 (재인입 분석용 원본 포함)">
-          <i data-lucide="database" class="icon"></i><span id="historyJsonBtn">히스토리 DB저장</span>
-          <input type="file" multiple accept=".json,.xlsx,.xls,.csv" style="display:none" onchange="handleHistoryDB(this.files);this.value=''">
-        </label>
-        <label class="btn btn-outline" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px" title="월별 AS파일 여러 개 선택 → 주차별 자동 저장">
-          <i data-lucide="history" class="icon"></i><span id="historyImportBtn">히스토리 가져오기</span>
-          <input type="file" multiple accept=".xlsx,.xls,.csv" style="display:none" onchange="importHistoricalAS(this.files);this.value=''">
-        </label>
-        <button class="btn btn-outline" onclick="openDbManager()"><i data-lucide="database-zap" class="icon"></i>DB 관리</button>
         <button class="btn btn-outline" onclick="generateReportPDF()"><i data-lucide="file-text" class="icon"></i>보고서</button>
         <button class="btn btn-primary" id="pdfBtn" onclick="dlPDF()"><i data-lucide="file-down" class="icon"></i>PDF</button>
+        <div class="tb-more" style="position:relative;display:inline-block">
+          <button class="btn btn-outline" onclick="toggleTbMore(event)"><i data-lucide="more-horizontal" class="icon"></i>더보기</button>
+          <div id="tbMoreMenu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:10px;box-shadow:0 8px 28px rgba(23,24,28,.14);z-index:300;min-width:200px;padding:6px;flex-direction:column;gap:2px">
+            <button class="tb-mi" onclick="exportJSON();closeTbMore()"><i data-lucide="download" class="icon"></i>내보내기</button>
+            <label class="tb-mi" style="cursor:pointer"><i data-lucide="folder-input" class="icon"></i><span>가져오기</span><input type="file" accept=".json" style="display:none" onchange="importJSON(this);closeTbMore()"></label>
+            <label class="tb-mi" style="cursor:pointer" title="as_history.json · 월별 AS 엑셀 · 방문점검 → 일괄 저장"><i data-lucide="database" class="icon"></i><span id="historyJsonBtn">히스토리 DB저장</span><input type="file" multiple accept=".json,.xlsx,.xls,.csv" style="display:none" onchange="handleHistoryDB(this.files);this.value='';closeTbMore()"></label>
+            <label class="tb-mi" style="cursor:pointer" title="월별 AS파일 → 주차별 자동 저장"><i data-lucide="history" class="icon"></i><span id="historyImportBtn">히스토리 가져오기</span><input type="file" multiple accept=".xlsx,.xls,.csv" style="display:none" onchange="importHistoricalAS(this.files);this.value='';closeTbMore()"></label>
+            <button class="tb-mi" onclick="openDbManager();closeTbMore()"><i data-lucide="database-zap" class="icon"></i>DB 관리</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -4736,6 +4733,9 @@ function dzDp(e){ e.preventDefault(); document.getElementById('dz').classList.re
 function openMobileMenu(){ document.getElementById('sb').classList.add('mobile-open'); document.getElementById('sbOverlay').classList.add('on'); }
 function closeMobileMenu(){ document.getElementById('sb').classList.remove('mobile-open'); document.getElementById('sbOverlay').classList.remove('on'); }
 
+function toggleTbMore(e){ if(e) e.stopPropagation(); const m=document.getElementById('tbMoreMenu'); if(m) m.style.display=(m.style.display==='flex')?'none':'flex'; }
+function closeTbMore(){ const m=document.getElementById('tbMoreMenu'); if(m) m.style.display='none'; }
+document.addEventListener('click', function(e){ const m=document.getElementById('tbMoreMenu'); if(m && m.style.display==='flex' && !e.target.closest('.tb-more')) m.style.display='none'; });
 function goTab(tab){
   curTab = tab;
   document.querySelectorAll('.pane').forEach(el=>el.classList.remove('on'));
