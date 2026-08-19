@@ -872,7 +872,9 @@ const DEFAULT = {
   exTotal: 0, rfTotal: 0,
   rvTotal: 0, avgRating: 0, negReviews: 0,
   topModel: '-', topModelCnt: 0, topModelPct: 0,
-  channelTotal: 0, phoneTotal: 0,
+  channelTotal: 0, phoneTotal: 0, chatTotal: 0,
+  phoneConnected: 0, phoneConnRate: 0,
+  alfTriggered: 0, alfResolved: 0, alfRate: 0,
   topSym: '-', topSymCnt: 0,
   modelDist: [], symptomTop: [], symptomAll: [],
   asReinByModel: [], asTypeTable: [], statusDist: [],
@@ -906,6 +908,16 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 let ACTIVE_REPORT_KEY = null;
 
 function fmtN(v){ if(v===null||v===undefined||isNaN(v)) return '-'; return Number(v).toLocaleString('ko-KR'); }
+/* 저장분(로컬·Supabase·JSON) 복원 시 DEFAULT와 병합.
+   신규 지표 필드가 추가돼도 과거 저장분이 undefined로 깨지지 않도록 방어한다. */
+function hydrateD(src){
+  const out = Object.assign(JSON.parse(JSON.stringify(DEFAULT)), src || {});
+  // chatTotal 도입 이전 저장분 보정 — 총 인입에서 전화를 뺀 값으로 역산
+  if(!Number.isFinite(out.chatTotal) || (out.chatTotal === 0 && (out.channelTotal||0) > (out.phoneTotal||0))){
+    out.chatTotal = Math.max((out.channelTotal||0) - (out.phoneTotal||0), 0);
+  }
+  return out;
+}
 function topN(obj,n=5){ return Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([name,value])=>({name,value})); }
 
 function modelAlias(v) {
@@ -1275,7 +1287,7 @@ function getPersistPayload(){
 }
 function applyPersistPayload(payload){
   if(!payload || !payload.D) throw new Error('저장 데이터 형식이 올바르지 않습니다.');
-  D = payload.D;
+  D = hydrateD(payload.D);
   WEEKLY_TEXT = payload.weeklyText || '';
   WEEKLY_FILE = payload.weeklyFile || null;
   WEEKLY_ASSET = payload.weeklyAsset || null;
@@ -1477,7 +1489,7 @@ function loadFromLS(){
     const raw = localStorage.getItem('cx_dashboard_local');
     if(!raw) return false;
     const parsed = JSON.parse(raw);
-    if(parsed.D) D = parsed.D;
+    if(parsed.D) D = hydrateD(parsed.D);
     WEEKLY_TEXT = parsed.weeklyText || '';
     WEEKLY_FILE = parsed.weeklyFile || null;
     WEEKLY_ASSET = parsed.weeklyAsset || null;
@@ -1505,7 +1517,7 @@ function importJSON(input){
     try{
       const parsed = JSON.parse(e.target.result);
       if(parsed.D){
-        D = parsed.D;
+        D = hydrateD(parsed.D);
         WEEKLY_TEXT = parsed.weeklyText || '';
         WEEKLY_FILE = parsed.weeklyFile || null;
         WEEKLY_ASSET = parsed.weeklyAsset || null;
@@ -1549,13 +1561,15 @@ function bdg(s, type){
 }
 
 function renderDashboard(){
+  // ALF 지표가 없는 과거 저장분은 0건/0%가 아니라 '—'로 표시
+  const alfKnown = Number.isFinite(D.alfTriggered) && D.alfTriggered > 0;
   const kpis = [
-    {label:'총 채널톡 인입량', value:`${fmtN(D.channelTotal || 0)}건`, sub:'채널톡 기준', icon:'messages-square'},
-    {label:'전화량', value:`${fmtN(D.phoneTotal || 0)}건`, sub:'전화 인입', icon:'phone-call'},
-    {label:'AS 재인입', value:`${fmtN(D.asRein)}건`, sub:`전체 대비 ${D.asReinRate || 0}%`, icon:'rotate-ccw'},
+    {label:'총 인입', value:`${fmtN(D.channelTotal || 0)}건`, sub:`전화 ${fmtN(D.phoneTotal || 0)} · 채팅 ${fmtN(D.chatTotal || 0)}`, icon:'messages-square'},
+    {label:'전화', value:`${fmtN(D.phoneTotal || 0)}건`, sub:'전화 인입', icon:'phone-call'},
+    {label:'ALF 해결', value: alfKnown ? `${fmtN(D.alfResolved || 0)}건` : '—', sub: alfKnown ? `발동 ${fmtN(D.alfTriggered)} · 해결률 ${D.alfRate || 0}%` : 'ALF 데이터 없음', icon:'bot'},
+    {label:'AS 재인입 (1년 이내)', value:`${fmtN(D.asRein)}건`, sub:`전체 대비 ${D.asReinRate || 0}%`, icon:'rotate-ccw'},
     {label:'교환 / 환불', value:`${fmtN((D.exTotal||0)+(D.rfTotal||0))}건`, sub:`교환완료 ${fmtN(D.exTotal)} · 환불완료 ${fmtN(D.rfTotal)}${((D.exPending||0)+(D.rfPending||0))>0?' · 진행중 '+fmtN((D.exPending||0)+(D.rfPending||0)):''}`, icon:'repeat'},
-    {label:'리뷰 저평점', value:`${fmtN(D.negReviews)}건`, sub:`평균평점 ${D.avgRating || 0}`, icon:'message-square-warning'},
-    {label:'평균 평점', value:`${D.avgRating || 0}점`, sub:`전체 ${fmtN(D.rvTotal || 0)}개`, icon:'star'},
+    {label:'리뷰 저평점 / 평균', value:`${fmtN(D.negReviews)}건 · ${D.avgRating || 0}점`, sub:`전체 ${fmtN(D.rvTotal || 0)}개`, icon:'star'},
   ];
   document.getElementById('kpiGrid').innerHTML = kpis.map(k=>`
     <div class="kpi-card">
@@ -1593,22 +1607,52 @@ function renderDailyCombo(ds){
   if(!cv) return;
   if(dailyComboChart){ dailyComboChart.destroy(); dailyComboChart = null; }
   if(!ds || !ds.length) return;
+
+  /* ── 라벨 충돌 회피 ──
+     막대(y축)와 꺾은선(y1축)은 축이 달라 선 점이 막대 안쪽에 놓일 수 있다.
+     ① 막대 라벨은 막대 '아래쪽 안'에 고정 — 막대 상단(선이 지나가는 구간)을 비운다.
+     ② 선 라벨이 그래도 막대 몸통에 얹히면 막대 상단 위로 끌어올린다. */
+  const LBL_H = 18;   // 라벨 한 줄 높이(px)
+  const barPxH = (ch,i)=>{
+    const yS = ch.scales?.y;
+    if(!yS) return 999;
+    return yS.getPixelForValue(0) - yS.getPixelForValue(Number(ch.data.datasets[0]?.data[i]) || 0);
+  };
+
   dailyComboChart = new Chart(cv, {
     data:{
       labels: ds.map(d=>d.date),
       datasets:[
         { type:'bar', label:'CS 처리', data:ds.map(d=>d.cs), backgroundColor:'#5D86F7', borderRadius:6, maxBarThickness:38, yAxisID:'y',
-          datalabels:{ display:(c)=>c.dataset.data[c.dataIndex]>0, anchor:'end', align:'start', offset:4, clamp:true, color:'#fff', font:{weight:'bold',size:14}, formatter:v=>fmtN(v) } },
+          datalabels:{ display:(c)=>c.dataset.data[c.dataIndex]>0, anchor:'start', align:'end', clamp:true, color:'#fff',
+            // 막대가 낮으면 글자를 줄여 막대 안에 들어오게 한다 (밖으로 빼면 꺾은선과 충돌)
+            font:(c)=>({ weight:'bold', size: barPxH(c.chart, c.dataIndex) < 30 ? 11 : 14 }),
+            offset:(c)=> barPxH(c.chart, c.dataIndex) < 30 ? 3 : 4,
+            formatter:v=>fmtN(v) } },
         { type:'line', label:'채널톡 인입', data:ds.map(d=>d.ch), borderColor:'#826AF1', backgroundColor:'#826AF1', tension:.3, pointRadius:4, borderWidth:2.5, yAxisID:'y1',
-          datalabels:{ display:true, align:'top', offset:8, clip:false, color:'#6C5CE7', font:{weight:'bold',size:14}, formatter:v=>fmtN(v) } }
+          datalabels:{ display:true, align:'top', clip:false, color:'#6C5CE7', font:{weight:'bold',size:14},
+            offset:(c)=>{
+              const BASE = 10;
+              const ch=c.chart, i=c.dataIndex, yS=ch.scales?.y, y1S=ch.scales?.y1;
+              if(!yS || !y1S) return BASE;
+              const barVal = Number(ch.data.datasets[0]?.data[i]) || 0;
+              if(barVal <= 0) return BASE;
+              const lineY  = y1S.getPixelForValue(Number(c.dataset.data[i]) || 0);
+              const barTop = yS.getPixelForValue(barVal);
+              // 기본 위치에서 라벨 상단이 막대 안으로 들어가면 막대 위로 띄운다
+              return (lineY - BASE - LBL_H > barTop - 6) ? (lineY - barTop) + 8 : BASE;
+            },
+            formatter:v=>fmtN(v) } }
       ]
     },
     options:{ responsive:true, maintainAspectRatio:false,
-      layout:{padding:{top:18,right:8}},
+      // 꺾은선 최고점 라벨이 캔버스 위로 잘리지 않도록 상단 여백 확보
+      layout:{padding:{top:38,right:16,left:4}},
       plugins:{ legend:{display:false}, tooltip:{callbacks:{label:(ctx)=>`${ctx.dataset.label}: ${fmtN(ctx.raw)}건`}} },
       scales:{
-        y:{ beginAtZero:true, position:'left', title:{display:true,text:'CS',font:{size:13}}, ticks:{font:{size:13}}, grid:{color:'rgba(0,0,0,.05)'} },
-        y1:{ beginAtZero:true, position:'right', title:{display:true,text:'채널톡',font:{size:13}}, ticks:{font:{size:13}}, grid:{drawOnChartArea:false} },
+        // grace — 축 최댓값에 여유를 줘 최고점이 플롯 천장에 붙지 않게 함
+        y:{ beginAtZero:true, position:'left', grace:'18%', title:{display:true,text:'CS',font:{size:13}}, ticks:{font:{size:13}}, grid:{color:'rgba(0,0,0,.05)'} },
+        y1:{ beginAtZero:true, position:'right', grace:'5%', title:{display:true,text:'채널톡',font:{size:13}}, ticks:{font:{size:13}}, grid:{drawOnChartArea:false} },
         x:{ grid:{display:false}, ticks:{font:{size:14}} }
       }
     }
@@ -2194,24 +2238,23 @@ function renderReentry(){
     if (!filtCauseMap[b]) filtCauseMap[b] = {};
     if (!filtPartCauseByModel[b]) filtPartCauseByModel[b] = {};
     if (rec.원인Set) rec.원인Set.forEach(c => { if(c) filtCauseMap[b][c] = (filtCauseMap[b][c]||0)+1; });
-    if (rec.부품Set && rec.원인Set) {
-      rec.부품Set.forEach(p => {
-        if (!p) return;
-        if (!filtPartCauseByModel[b][p]) filtPartCauseByModel[b][p] = {};
-        rec.원인Set.forEach(c => { if(c) filtPartCauseByModel[b][p][c] = (filtPartCauseByModel[b][p][c]||0)+1; });
-      });
+    // 부품↔원인은 행 단위 쌍(rec.부품원인)만 사용 — Set 곱셈은 부품별 고유 원인을 지운다
+    const pc = rec.부품원인;
+    if (pc) for (const p in pc) {
+      if (!filtPartCauseByModel[b][p]) filtPartCauseByModel[b][p] = {};
+      for (const c in pc[p]) filtPartCauseByModel[b][p][c] = (filtPartCauseByModel[b][p][c]||0) + pc[p][c];
     }
   });
-  // 원인→부품 역방향 인덱스 (손상류 원인 표기용)
-  const causePartIndex = {};
-  symFiltCS.forEach(rec => {
-    if (!rec.부품Set || !rec.원인Set) return;
-    rec.원인Set.forEach(c => {
-      if (!c) return;
-      if (!causePartIndex[c]) causePartIndex[c] = {};
-      rec.부품Set.forEach(p => { if(p) causePartIndex[c][p] = (causePartIndex[c][p]||0)+1; });
-    });
-  });
+  // 원인→부품 역방향 인덱스 (모델별) — 행 단위 쌍 기준
+  const causePartIndexByModel = {};
+  for (const b in filtPartCauseByModel) {
+    causePartIndexByModel[b] = {};
+    const pm = filtPartCauseByModel[b];
+    for (const p in pm) for (const c in pm[p]) {
+      if (!causePartIndexByModel[b][c]) causePartIndexByModel[b][c] = {};
+      causePartIndexByModel[b][c][p] = (causePartIndexByModel[b][c][p]||0) + pm[p][c];
+    }
+  }
 
   const filtAnomalies = reentrySymFilter
     ? rtComputeAnomalies(symFiltCS)
@@ -2262,7 +2305,8 @@ function renderReentry(){
     {label:'1~3개월 재인입',   value:r3m.toLocaleString(),        sub:'31~90일 구간 (누적 아님)',   rate:r3Rate,   color:'var(--warning-text)', danger:r3Rate>=15},
     {label:'동일부품 반복',     value:partRepeat.toLocaleString(), sub:'부품 교집합 존재', rate:prRate,   color:'var(--warning-text)', danger:partRepeat>0},
     {label:'동일증상+동일부품', value:critical.toLocaleString(),   sub:'CRITICAL 즉시확인',rate:crRate,   color:'var(--danger-text)', danger:critical>0},
-    {label:'업그레이드 방문',   value:upgradeCS.toLocaleString(),  sub:'수리 아닌 SW업그레이드 방문 — 재인입 집계 제외', rate:null, color:'var(--special-text)', danger:false},
+    // 업그레이드는 방문 종류가 아니라 수리와 함께 기록되는 태그 → 재인입 분모에서 제외하지 않는다
+    {label:'업그레이드 동반 방문', value:upgradeCS.toLocaleString(), sub:'', rate:null, color:'var(--special-text)', danger:false},
   ];
   document.getElementById('reentryKpiGrid').innerHTML = kpiDefs.map(k=>`
     <div class="kpi-card${k.danger?' kpi-danger':''}${k.clickable?' kpi-clickable':''}"
@@ -2275,7 +2319,7 @@ function renderReentry(){
           <span class="kpi-rate-pct">${k.rate.toFixed(1)}%</span>
           <div class="kpi-rate-bar"><div class="kpi-rate-fill" style="width:${Math.min(k.rate*4,100).toFixed(1)}%"></div></div>
         </div>` : ''}
-      <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">${k.sub}</div>
+      ${k.sub ? `<div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">${k.sub}</div>` : ''}
     </div>`).join('');
 
   // ── CRITICAL + 1개월 요약 카드 ──
@@ -2525,7 +2569,7 @@ function renderReentry(){
         </div>
         ${items.map((it,i) => {
           const pct = total ? Math.round(it.value/total*100) : 0;
-          const relParts = topN(causePartIndex[it.name]||{}, 5);
+          const relParts = topN(causePartIndexByModel[b]?.[it.name] || {}, 5);
           return `<div style="padding:8px 0;border-bottom:1px solid var(--border-soft)">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
               <span style="min-width:18px;height:18px;border-radius:50%;background:var(--primary-500);color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">${i+1}</span>
@@ -2549,12 +2593,12 @@ function renderReentry(){
     : symFiltCS;                                          // 증상 필터 없으면 전체 CS
   const filtPartCause = {};
   partCauseBase.forEach(rec => {
-    if (!rec.부품Set || !rec.원인Set) return;
-    rec.부품Set.forEach(p => {
-      if (!p) return;
+    const pc = rec.부품원인;
+    if (!pc) return;
+    for (const p in pc) {
       if (!filtPartCause[p]) filtPartCause[p] = {};
-      rec.원인Set.forEach(c => { if(c) filtPartCause[p][c] = (filtPartCause[p][c]||0)+1; });
-    });
+      for (const c in pc[p]) filtPartCause[p][c] = (filtPartCause[p][c]||0) + pc[p][c];
+    }
   });
 
   const topParts = Object.entries(filtPartCause)
@@ -2581,7 +2625,7 @@ function renderReentry(){
             </span>`;
           }).join('')}
         </div>
-      </div>`).join('') : '<div class="empty-msg">원인 데이터 없음</div>'}`;
+      </div>`).join('') : '<div class="empty-msg">원인 데이터 없음 — 부품↔원인 쌍이 없는 과거 저장분입니다. AS 엑셀을 다시 업로드하면 표시됩니다.</div>'}`;
 
   // ── 핵심 부품 집중 분석 ──
   const kps = D2.keyPartStats || {};
@@ -3452,15 +3496,44 @@ function applyFiles(){
 
   if (chR.length) {
     const phoneSet = new Set(['phone', 'call', 'tel', 'telephone', 'voice']);
-    D.channelTotal = chR.length;
-    D.phoneTotal = chR.filter(r=>{
+    // 엑셀/CSV에 따라 boolean·문자열('TRUE'/'true'/'1')이 섞여 들어옴 → 통일 판정
+    const isTrue = (v) => {
+      if (v === true) return true;
+      const s = String(v === null || v === undefined ? '' : v).trim().toLowerCase();
+      return s === 'true' || s === '1' || s === 'y' || s === 'yes';
+    };
+    const isPhone = (r) => {
       const mediumType = String(pickCol(r,['mediumType','채널유형','상담유형']) || '').trim().toLowerCase();
       const mediumName = String(pickCol(r,['mediumName','채널명']) || '').trim().toLowerCase();
       return phoneSet.has(mediumType) || mediumName.includes('전화') || mediumName.includes('phone') || mediumName.includes('call');
-    }).length;
+    };
+    // everOpened: 상담원이 상담을 한 번이라도 열었는지 (false = 상담원 미개입)
+    const isOpened = (r) => isTrue(pickCol(r,['everOpened','상담원오픈']));
+
+    D.channelTotal = chR.length;
+
+    const phoneRows = chR.filter(isPhone);
+    D.phoneTotal     = phoneRows.length;
+    D.chatTotal      = D.channelTotal - D.phoneTotal;
+    D.phoneConnected = phoneRows.filter(isOpened).length;
+    D.phoneConnRate  = D.phoneTotal ? +((D.phoneConnected / D.phoneTotal) * 100).toFixed(1) : 0;
+
+    // ── ALF(AI 에이전트) 해결률 ──
+    // 모수: ALF가 발동한 상담(alfTriggered = true)
+    // 해결: 상담원이 한 번도 열지 않고 종료 (everOpened = false)
+    const alfRows = chR.filter(r=>isTrue(pickCol(r,['alfTriggered','ALF발동'])));
+    D.alfTriggered = alfRows.length;
+    D.alfResolved  = alfRows.filter(r=>!isOpened(r)).length;
+    D.alfRate      = D.alfTriggered ? +((D.alfResolved / D.alfTriggered) * 100).toFixed(1) : 0;
   } else {
     D.channelTotal = 0;
     D.phoneTotal = 0;
+    D.chatTotal = 0;
+    D.phoneConnected = 0;
+    D.phoneConnRate = 0;
+    D.alfTriggered = 0;
+    D.alfResolved = 0;
+    D.alfRate = 0;
   }
 
   if (rvR.length) {
@@ -3764,6 +3837,7 @@ function rtBuildCSRecords(allSheetRows) {
         증상Set   : new Set(),
         부품Set   : new Set(),
         원인Set   : new Set(),
+        부품원인  : {},   // { 부품: { 원인: 건수 } } — 행 단위 실제 쌍
       });
     }
 
@@ -3773,6 +3847,12 @@ function rtBuildCSRecords(allSheetRows) {
     if (partVal)   rec.부품Set.add(partVal);
     const causeVal = String(row[COL.cause] || '').trim();
     if (causeVal)  rec.원인Set.add(causeVal);
+    // 부품↔원인은 같은 '행'에 있는 값끼리만 짝지어야 한다.
+    // CS 단위 Set을 곱하면 부품마다 CS 전체의 원인 분포가 복사돼 분석이 무의미해진다.
+    if (partVal && causeVal) {
+      if (!rec.부품원인[partVal]) rec.부품원인[partVal] = {};
+      rec.부품원인[partVal][causeVal] = (rec.부품원인[partVal][causeVal] || 0) + 1;
+    }
     if (rec.수리비 == null) rec.수리비 = _asNum(row[COL.cost]);
     if (rec.수납액 == null) rec.수납액 = _asNum(row[COL.fee]);
   }
@@ -3907,14 +3987,15 @@ function rtAggregate() {
   }
 
   // ── 부품별 원인 매트릭스 (전체 CS 기준) ──
+  // 행 단위로 짝지은 부품↔원인만 집계 (CS Set 곱셈 금지 — 부품별 고유 원인이 사라짐)
   const partCauseMap = {}; // part → { cause → count }
   for (const rec of allCS) {
-    if (!rec.부품Set || !rec.원인Set) continue;
-    rec.부품Set.forEach(p => {
-      if (!p) return;
+    const pc = rec.부품원인;
+    if (!pc) continue;
+    for (const p in pc) {
       if (!partCauseMap[p]) partCauseMap[p] = {};
-      rec.원인Set.forEach(c => { if(c) partCauseMap[p][c] = (partCauseMap[p][c]||0)+1; });
-    });
+      for (const c in pc[p]) partCauseMap[p][c] = (partCauseMap[p][c]||0) + pc[p][c];
+    }
   }
 
   // ── 핵심 부품 집중 분석 (CRITICAL 케이스 기준) ──
@@ -4575,6 +4656,22 @@ async function handleReentryFiles(fileList){
     } catch(e) { console.error('AS재인입 파싱 오류:', file.name, e); }
   }
   REENTRY_DATA = rtAggregate();
+  // 품질개선 탭(경과월·부품별·증상별)은 AS_SLIM_ROWS를 사용한다.
+  // DB 불러오기 경로와 동일한 형태로 동기화 — 파일 업로드만으로도 품질 탭이 채워지도록.
+  AS_SLIM_ROWS = [...REENTRY_RAW.values()].map(r => {
+    const d = r.회수일자;
+    return {
+      csNo   : r.csNo,
+      recvDt : (d && !isNaN(d)) ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` : null,
+      model  : r.모델원본,
+      prodYM : r.생산년월,
+      syms   : [...r.증상Set],
+      parts  : [...r.부품Set],
+      causes : [...r.원인Set],
+      pc     : r.부품원인 || {},
+    };
+  });
+  try { if (typeof renderQMonth === 'function') renderQMonth(); } catch(e) { console.warn('[품질탭 갱신]', e); }
   document.getElementById('ldr').classList.remove('on');
   if (curTab === 'reentry') renderReentry();
   else goTab('reentry');
@@ -4997,15 +5094,22 @@ function buildSlimASRows(rows) {
         srNo   : String(pickCol(row, ['Sr.No','SR No']) || '').trim(),
         cost   : _asNum(pickCol(row, ['A/S비용'])),
         fee    : _asNum(pickCol(row, ['A/S비용 최종','A/S비용최종'])),
-        asTypes: [], syms: [], parts: [], causes: []
+        asTypes: [], syms: [], parts: [], causes: [], pc: {}
       });
     }
     const rec  = map.get(csNo);
     const push = (arr, v) => { v = String(v || '').trim(); if (v && !arr.includes(v)) arr.push(v); };
     push(rec.asTypes, pickCol(row, ['A/S유형','AS유형']));
     push(rec.syms,    pickCol(row, ['증상기준','A/S증상','증상','A/S접수내용','AS접수내용','AS접수 내용']));
-    { const _pv = String(pickCol(row, ['부품'])||'').trim(); if(_pv) rec.parts.push(_pv); }
-    push(rec.causes,  pickCol(row, ['원인']));
+    const _pv = String(pickCol(row, ['부품'])||'').trim();
+    const _cv = String(pickCol(row, ['원인'])||'').trim();
+    if(_pv) rec.parts.push(_pv);
+    push(rec.causes,  _cv);
+    // 부품↔원인 행 단위 쌍 — 부품별 원인 분석의 원천
+    if (_pv && _cv) {
+      if (!rec.pc[_pv]) rec.pc[_pv] = {};
+      rec.pc[_pv][_cv] = (rec.pc[_pv][_cv] || 0) + 1;
+    }
     if (rec.cost == null) rec.cost = _asNum(pickCol(row, ['A/S비용']));
     if (rec.fee  == null) rec.fee  = _asNum(pickCol(row, ['A/S비용 최종','A/S비용최종']));
   });
@@ -5190,6 +5294,7 @@ function rtBuildFromSlimRows(slimRows) {
         증상Set  : new Set(),
         부품Set  : new Set(),
         원인Set  : new Set(),
+        부품원인 : {},
       });
     }
     const rec = REENTRY_RAW.get(s.csNo);
@@ -5197,6 +5302,12 @@ function rtBuildFromSlimRows(slimRows) {
     (s.syms    || []).forEach(v => rec.증상Set.add(v));
     (s.parts   || []).forEach(v => rec.부품Set.add(v));
     (s.causes  || []).forEach(v => rec.원인Set.add(v));
+    // pc가 없는 과거 저장분은 부품↔원인 쌍을 복원할 수 없음 → 빈 상태 유지(추정 금지)
+    const pc = s.pc;
+    if (pc) for (const p in pc) {
+      if (!rec.부품원인[p]) rec.부품원인[p] = {};
+      for (const c in pc[p]) rec.부품원인[p][c] = (rec.부품원인[p][c]||0) + pc[p][c];
+    }
   });
 }
 
