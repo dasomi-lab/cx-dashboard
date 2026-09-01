@@ -1552,7 +1552,7 @@ function bars(data, id) {
 function bdg(s, type){
   const t=String(s||'');
   if(type==='st'){
-    if(t.includes('처리완료')||t.includes('교환완료')||t.includes('환불완료')) return `<span class="badge bg">${t}</span>`;
+    if(t.includes('처리완료')||t.includes('교환완료')||t.includes('환불완료')||t.includes('회수완료')) return `<span class="badge bg">${t}</span>`;
     if(t.includes('대기')) return `<span class="badge bo">${t}</span>`;
     if(t.includes('보류')) return `<span class="badge bv">${t}</span>`;
     return `<span class="badge bx">${t}</span>`;
@@ -1880,8 +1880,8 @@ function renderExchangeRefund(){
   const exList = D.exchangeList || [];
   const rfList = D.refundList || [];
 
-  const exDone = exList.filter(r=>String(r.status).includes('교환완료'));
-  const rfDone = rfList.filter(r=>String(r.status).includes('환불완료'));
+  const exDone = exList.filter(r=>{const s=String(r.status);return s.includes('교환완료')||s.includes('회수완료');});
+  const rfDone = rfList.filter(r=>{const s=String(r.status);return s.includes('환불완료')||s.includes('회수완료');});
 
   const ER_MODELS = ['RC-02','RT220','프라임','프라임S','그래비티','그래비티 W','이지'];
   const exByModel={}, rfByModel={};
@@ -3468,8 +3468,8 @@ function applyFiles(){
       part:String(pickCol(r,['부품']) || '—'),
       cost:String(pickCol(r,['고객부담비용','비용']) || '—'),
     }));
-    D.exTotal = D.exchangeList.filter(r=>String(r.status).includes('교환완료')).length;
-    D.exPending = D.exchangeList.filter(r=>!String(r.status).includes('교환완료')).length;
+    D.exTotal = D.exchangeList.filter(r=>{const s=String(r.status);return s.includes('교환완료')||s.includes('회수완료');}).length;
+    D.exPending = D.exchangeList.filter(r=>{const s=String(r.status);return !(s.includes('교환완료')||s.includes('회수완료'));}).length;
   } else {
     D.exchangeList = []; D.exTotal = 0; D.exPending = 0;
   }
@@ -3488,8 +3488,8 @@ function applyFiles(){
       part:String(pickCol(r,['부품']) || '—'),
       store:String(pickCol(r,['구매처']) || '—'),
     }));
-    D.rfTotal = D.refundList.filter(r=>String(r.status).includes('환불완료')).length;
-    D.rfPending = D.refundList.filter(r=>!String(r.status).includes('환불완료')).length;
+    D.rfTotal = D.refundList.filter(r=>{const s=String(r.status);return s.includes('환불완료')||s.includes('회수완료');}).length;
+    D.rfPending = D.refundList.filter(r=>{const s=String(r.status);return !(s.includes('환불완료')||s.includes('회수완료'));}).length;
   } else {
     D.refundList = []; D.rfTotal = 0; D.rfPending = 0;
   }
