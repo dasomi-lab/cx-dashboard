@@ -1568,7 +1568,7 @@ function renderDashboard(){
     {label:'전화', value:`${fmtN(D.phoneTotal || 0)}건`, sub:'전화 인입', icon:'phone-call'},
     {label:'ALF 해결', value: alfKnown ? `${fmtN(D.alfResolved || 0)}건` : '—', sub: alfKnown ? `발동 ${fmtN(D.alfTriggered)} · 해결률 ${D.alfRate || 0}%` : 'ALF 데이터 없음', icon:'bot'},
     {label:'AS 재인입 (1년 이내)', value:`${fmtN(D.asRein)}건`, sub:`전체 대비 ${D.asReinRate || 0}%`, icon:'rotate-ccw'},
-    {label:'교환 / 환불', value:`${fmtN((D.exTotal||0)+(D.rfTotal||0))}건`, sub:`교환완료 ${fmtN(D.exTotal)} · 환불완료 ${fmtN(D.rfTotal)}${((D.exPending||0)+(D.rfPending||0))>0?' · 진행중 '+fmtN((D.exPending||0)+(D.rfPending||0)):''}`, icon:'repeat'},
+    {label:'교환 / 환불', value:`${fmtN((D.exTotal||0)+(D.rfTotal||0))}건`, sub:`교환 ${fmtN(D.exTotal)} · 환불 ${fmtN(D.rfTotal)}${((D.exPending||0)+(D.rfPending||0))>0?' · 진행중 '+fmtN((D.exPending||0)+(D.rfPending||0)):''}`, icon:'repeat'},
     {label:'리뷰 저평점 / 평균', value:`${fmtN(D.negReviews)}건 · ${D.avgRating || 0}점`, sub:`전체 ${fmtN(D.rvTotal || 0)}개`, icon:'star'},
   ];
   document.getElementById('kpiGrid').innerHTML = kpis.map(k=>`
@@ -1913,8 +1913,8 @@ function renderExchangeRefund(){
   };
 
   document.getElementById('exrf-stats').innerHTML =
-    makePillRow('교환완료', exDone.length, exByModel, '#C47A0E', '#E8A838') +
-    makePillRow('환불완료', rfDone.length, rfByModel, '#C04040', '#D96060');
+    makePillRow('교환', exDone.length, exByModel, '#C47A0E', '#E8A838') +
+    makePillRow('환불', rfDone.length, rfByModel, '#C04040', '#D96060');
 
   if(!exList.length && !rfList.length){
     document.getElementById('exrf-detail').innerHTML = '<div class="empty-msg">교환/환불 파일을 업로드해 주세요</div>';
@@ -1961,7 +1961,7 @@ function renderExchangeRefund(){
       <div class="card-title">교환 상세 내역</div>
     </div>
     <div style="margin-bottom:10px;font-size:13.5px;color:#C47A0E;font-weight:600;">총 ${fmtN(exDone.length)}건</div>
-    ${buildTable(exDone,'교환완료 건 없음')}
+    ${buildTable(exDone,'교환 건 없음')}
   </div>`;
 
   const rfCard=`<div class="card">
@@ -1970,7 +1970,7 @@ function renderExchangeRefund(){
       <div class="card-title">환불 상세 내역</div>
     </div>
     <div style="margin-bottom:10px;font-size:13.5px;color:#C04040;font-weight:600;">총 ${fmtN(rfDone.length)}건</div>
-    ${buildTable(rfDone,'환불완료 건 없음')}
+    ${buildTable(rfDone,'환불 건 없음')}
   </div>`;
 
   document.getElementById('exrf-detail').innerHTML=
