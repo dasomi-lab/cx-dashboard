@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- built under a cloud -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
@@ -566,6 +567,100 @@ tr:hover td{background:var(--bg-alt);}
 .type-v2-track{flex:1;height:10px;background:var(--bg-alt);border-radius:999px;overflow:hidden;}
 .type-v2-fill{height:100%;border-radius:999px;}
 .type-v2-pct{font-size:13px;font-weight:700;width:40px;text-align:right;flex-shrink:0;}
+/* ===== AI 상담 Intelligence (aii-*) — 기존 토큰 재사용, 스코프 격리 ===== */
+#pane-aiintel{font-size:15px;}
+.aii-wrap{display:flex;flex-direction:column;gap:18px;padding-bottom:40px;}
+.aii-sec{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--r-md);padding:18px 20px;box-shadow:var(--sh-soft);}
+.aii-sec-hd{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+.aii-sec-tag{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--primary-600);background:var(--primary-50);border:1px solid var(--primary-100);border-radius:8px;padding:3px 9px;}
+.aii-sec-title{font-size:17px;font-weight:700;color:var(--text-primary);}
+.aii-sec-sub{font-size:13px;color:var(--text-tertiary);margin-left:auto;}
+.aii-cov{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+@media(max-width:900px){.aii-cov{grid-template-columns:repeat(2,1fr);}}
+.aii-cov-card{background:var(--bg-alt);border:1px solid var(--border-soft);border-radius:var(--r-sm);padding:12px 14px;cursor:pointer;transition:.15s;}
+.aii-cov-card:hover{border-color:var(--primary-200);}
+.aii-cov-l{font-size:12.5px;color:var(--text-secondary);margin-bottom:6px;display:flex;align-items:center;gap:5px;}
+.aii-cov-v{font-size:23px;font-weight:800;color:var(--text-primary);line-height:1;}
+.aii-cov-note{font-size:11.5px;color:var(--text-tertiary);margin-top:4px;}
+.aii-bar{height:6px;border-radius:4px;background:var(--border-subtle);margin-top:8px;overflow:hidden;}
+.aii-bar>i{display:block;height:100%;border-radius:4px;background:var(--primary-500);}
+.aii-bar.gray>i{background:var(--text-disabled);}
+.aii-brief{background:linear-gradient(180deg,var(--primary-50),var(--bg-surface));border:1px solid var(--primary-100);border-radius:var(--r-md);padding:18px 20px;}
+.aii-brief ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;}
+.aii-brief li{font-size:14.5px;line-height:1.6;color:var(--text-primary);}
+.aii-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+@media(max-width:900px){.aii-kpis{grid-template-columns:repeat(2,1fr);}}
+.aii-kpi{background:var(--bg-alt);border:1px solid var(--border-soft);border-radius:var(--r-sm);padding:14px;}
+.aii-kpi-v{font-size:27px;font-weight:800;line-height:1;color:var(--text-primary);}
+.aii-kpi-l{font-size:12.5px;color:var(--text-secondary);margin-top:6px;}
+.aii-funnel{display:flex;flex-direction:column;gap:7px;}
+.aii-fn-row{display:flex;align-items:center;gap:10px;}
+.aii-fn-lab{width:150px;font-size:13px;color:var(--text-secondary);flex-shrink:0;}
+.aii-fn-track{flex:1;background:var(--bg-alt);border-radius:6px;height:26px;position:relative;overflow:hidden;}
+.aii-fn-fill{height:100%;background:var(--primary-500);border-radius:6px;display:flex;align-items:center;padding:0 9px;color:#fff;font-size:12.5px;font-weight:700;min-width:34px;}
+.aii-fn-fill.soft{background:var(--primary-200);color:var(--primary-700);}
+.aii-fn-fill.gray{background:var(--text-disabled);}
+.aii-dist{display:flex;flex-direction:column;gap:9px;}
+.aii-dist-row{display:flex;align-items:center;gap:10px;cursor:pointer;padding:3px 4px;border-radius:8px;}
+.aii-dist-row:hover{background:var(--bg-alt);}
+.aii-dist-lab{width:210px;font-size:13px;color:var(--text-primary);flex-shrink:0;display:flex;align-items:center;gap:6px;}
+.aii-dist-track{flex:1;height:20px;background:var(--bg-alt);border-radius:5px;overflow:hidden;}
+.aii-dist-fill{height:100%;border-radius:5px;}
+.aii-dist-n{width:44px;text-align:right;font-size:13px;font-weight:700;color:var(--text-secondary);flex-shrink:0;}
+.aii-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:960px){.aii-grid2{grid-template-columns:1fr;}}
+.aii-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid;white-space:nowrap;}
+.aii-badge.observed{color:var(--primary-700);background:var(--primary-50);border-color:var(--primary-200);}
+.aii-badge.inferred{color:var(--special-text);background:var(--special-bg);border-color:var(--special-border);}
+.aii-badge.candidate{color:var(--warning-text);background:repeating-linear-gradient(45deg,var(--warning-bg),var(--warning-bg) 5px,#fff 5px,#fff 10px);border-color:var(--warning-border);}
+.aii-badge.unknown{color:var(--text-tertiary);background:var(--bg-alt);border-color:var(--border-subtle);}
+.aii-fill-observed{background:var(--primary-500);}
+.aii-fill-inferred{background:var(--lavender-500);}
+.aii-fill-candidate{background:repeating-linear-gradient(45deg,var(--warning-text),var(--warning-text) 5px,var(--warning-border) 5px,var(--warning-border) 10px);}
+.aii-fill-unknown{background:var(--text-disabled);}
+.aii-fill-neutral{background:var(--mint-500);}
+.aii-tabs{display:flex;gap:6px;margin-bottom:14px;}
+.aii-tab{font-size:13px;font-weight:600;padding:7px 14px;border-radius:999px;border:1px solid var(--border-subtle);background:var(--bg-surface);color:var(--text-secondary);cursor:pointer;}
+.aii-tab.on{background:var(--primary-500);color:#fff;border-color:var(--primary-500);}
+.aii-voc-note{font-size:12px;color:var(--text-tertiary);margin-top:6px;}
+.aii-heat{border-collapse:separate;border-spacing:3px;font-size:12px;}
+.aii-heat th{font-weight:600;color:var(--text-secondary);padding:4px 6px;text-align:center;font-size:11.5px;}
+.aii-heat td.rh{color:var(--text-primary);font-weight:600;text-align:left;padding-right:8px;white-space:nowrap;}
+.aii-heat td.cell{width:34px;height:30px;text-align:center;border-radius:6px;color:var(--text-primary);font-weight:700;cursor:pointer;}
+.aii-ins{display:flex;flex-direction:column;gap:10px;}
+.aii-ins-card{border:1px solid var(--border-soft);border-radius:var(--r-sm);padding:12px 14px;background:var(--bg-alt);}
+.aii-ins-t{font-size:14px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.aii-ins-d{font-size:13px;color:var(--text-secondary);line-height:1.55;}
+.aii-chip{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--special-bg);color:var(--special-text);border:1px solid var(--special-border);}
+.aii-chip.policy{background:var(--warning-bg);color:var(--warning-text);border-color:var(--warning-border);}
+.aii-chip.taxo{background:var(--primary-50);color:var(--primary-700);border-color:var(--primary-200);}
+.aii-chip.data{background:var(--bg-alt);color:var(--text-secondary);border-color:var(--border-subtle);}
+.aii-chip.flow{background:var(--success-bg);color:var(--success-text);border-color:var(--success-border);}
+.aii-dd{display:none;position:fixed;inset:0;z-index:620;}
+.aii-dd.on{display:block;}
+.aii-dd-mask{position:absolute;inset:0;background:rgba(23,24,28,.34);}
+.aii-dd-panel{position:absolute;top:0;right:0;height:100%;width:min(720px,96vw);background:var(--bg-surface);box-shadow:-18px 0 40px rgba(23,24,28,.14);display:flex;flex-direction:column;animation:aiiSlide .22s ease;}
+@keyframes aiiSlide{from{transform:translateX(30px);opacity:.6}to{transform:none;opacity:1}}
+.aii-dd-hd{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border-subtle);}
+.aii-dd-hd .t{font-size:16px;font-weight:700;}
+.aii-dd-x{margin-left:auto;border:none;background:none;font-size:22px;cursor:pointer;color:var(--text-tertiary);}
+.aii-dd-body{overflow-y:auto;padding:14px 20px;}
+.aii-crumbs{display:flex;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--text-tertiary);margin-bottom:12px;align-items:center;}
+.aii-crumbs span.on{color:var(--primary-600);font-weight:700;}
+.aii-case-row{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:1px solid var(--border-soft);border-radius:var(--r-sm);margin-bottom:8px;cursor:pointer;background:var(--bg-surface);}
+.aii-case-row:hover{border-color:var(--primary-200);background:var(--bg-alt);}
+.aii-case-id{font-size:11px;color:var(--text-tertiary);font-family:monospace;}
+.aii-case-sum{font-size:13px;color:var(--text-primary);line-height:1.5;margin-top:3px;}
+.aii-case-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.aii-evi{background:var(--bg-alt);border:1px solid var(--border-soft);border-radius:8px;padding:10px 12px;font-size:12.5px;line-height:1.6;color:var(--text-secondary);white-space:pre-wrap;word-break:break-word;margin-top:8px;}
+.aii-evi b{color:var(--text-primary);}
+.aii-trace{display:flex;flex-direction:column;gap:0;}
+.aii-tr{display:flex;gap:12px;padding:11px 0;border-bottom:1px dashed var(--border-subtle);}
+.aii-tr-step{width:26px;height:26px;border-radius:50%;background:var(--primary-50);color:var(--primary-700);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.aii-tr-k{font-size:12px;color:var(--text-tertiary);}
+.aii-tr-v{font-size:13.5px;color:var(--text-primary);font-weight:600;margin-top:2px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.aii-legend{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 14px;}
+.aii-empty{font-size:13px;color:var(--text-tertiary);padding:14px;text-align:center;}
 </style>
 </head>
 <body>
@@ -613,6 +708,7 @@ tr:hover td{background:var(--bg-alt);}
       <button class="nv" id="nv-reentry" onclick="goTab('reentry')"><i data-lucide="shield-alert" class="icon"></i><span class="nv-label">A/S 재인입</span></button>
       <button class="nv" id="nv-qmonth" onclick="goTab('qmonth')"><i data-lucide="grid-3x3" class="icon"></i><span class="nv-label">품질개선 경과월</span></button>
       <button class="nv" id="nv-symparts" onclick="goTab('symparts')"><i data-lucide="wrench" class="icon"></i><span class="nv-label">증상별 부품</span></button>
+      <button class="nv" id="nv-aiintel" onclick="goTab('aiintel')"><i data-lucide="bot" class="icon"></i><span class="nv-label">AI 상담 Intelligence</span></button>
     </nav>
     <div class="sb-bottom">
       <div class="period-badge" id="sbPeriodBadge" onclick="togglePeriodEdit()" title="클릭하여 주차 변경">—</div>
@@ -854,6 +950,10 @@ tr:hover td{background:var(--bg-alt);}
         </div>
         <div id="spControls" style="margin-bottom:6px"></div>
         <div id="spBody"></div>
+      </div>
+
+      <div id="pane-aiintel" class="pane">
+        <div id="aii-root"></div>
       </div>
     </div>
   </div>
@@ -1886,11 +1986,11 @@ function renderExchangeRefund(){
   const ER_MODELS = ['RC-02','RT220','프라임','프라임S','그래비티','그래비티 W','이지'];
   const exByModel={}, rfByModel={};
   ER_MODELS.forEach(m=>{exByModel[m]=0; rfByModel[m]=0;});
-  exDone.forEach(r=>{
+  exList.forEach(r=>{
     const b=normalizeModelBucket(r.product);
     if(b in exByModel) exByModel[b]++;
   });
-  rfDone.forEach(r=>{
+  rfList.forEach(r=>{
     const b=normalizeModelBucket(r.product);
     if(b in rfByModel) rfByModel[b]++;
   });
@@ -1913,8 +2013,8 @@ function renderExchangeRefund(){
   };
 
   document.getElementById('exrf-stats').innerHTML =
-    makePillRow('교환', exDone.length, exByModel, '#C47A0E', '#E8A838') +
-    makePillRow('환불', rfDone.length, rfByModel, '#C04040', '#D96060');
+    makePillRow('교환', exList.length, exByModel, '#C47A0E', '#E8A838') +
+    makePillRow('환불', rfList.length, rfByModel, '#C04040', '#D96060');
 
   if(!exList.length && !rfList.length){
     document.getElementById('exrf-detail').innerHTML = '<div class="empty-msg">교환/환불 파일을 업로드해 주세요</div>';
@@ -1960,8 +2060,8 @@ function renderExchangeRefund(){
       <i data-lucide="repeat-2" class="icon card-hdr-icon-lc"></i>
       <div class="card-title">교환 상세 내역</div>
     </div>
-    <div style="margin-bottom:10px;font-size:13.5px;color:#C47A0E;font-weight:600;">총 ${fmtN(exDone.length)}건</div>
-    ${buildTable(exDone,'교환 건 없음')}
+    <div style="margin-bottom:10px;font-size:13.5px;color:#C47A0E;font-weight:600;">총 ${fmtN(exList.length)}건 <span style="color:var(--text-tertiary);font-weight:400;">(완료 ${fmtN(exDone.length)}건)</span></div>
+    ${buildTable(exList,'교환 건 없음')}
   </div>`;
 
   const rfCard=`<div class="card">
@@ -1969,8 +2069,8 @@ function renderExchangeRefund(){
       <i data-lucide="rotate-ccw" class="icon card-hdr-icon-lc"></i>
       <div class="card-title">환불 상세 내역</div>
     </div>
-    <div style="margin-bottom:10px;font-size:13.5px;color:#C04040;font-weight:600;">총 ${fmtN(rfDone.length)}건</div>
-    ${buildTable(rfDone,'환불 건 없음')}
+    <div style="margin-bottom:10px;font-size:13.5px;color:#C04040;font-weight:600;">총 ${fmtN(rfList.length)}건 <span style="color:var(--text-tertiary);font-weight:400;">(완료 ${fmtN(rfDone.length)}건)</span></div>
+    ${buildTable(rfList,'환불 건 없음')}
   </div>`;
 
   document.getElementById('exrf-detail').innerHTML=
@@ -4841,7 +4941,7 @@ function goTab(tab){
   document.getElementById(`nv-${tab}`).classList.add('on');
   window.scrollTo({ top: 0, behavior: 'instant' });
   document.getElementById('topTitle').textContent = ({
-    dashboard:'Dashboard', reviews:'Reviews', bymodel:'By Model', exchange_refund:'교환 / 환불', weekly:'Weekly 이슈', reentry:'A/S 재인입 분석', qmonth:'품질개선 경과월', symparts:'증상별 부품'
+    dashboard:'Dashboard', reviews:'Reviews', bymodel:'By Model', exchange_refund:'교환 / 환불', weekly:'Weekly 이슈', reentry:'A/S 재인입 분석', qmonth:'품질개선 경과월', symparts:'증상별 부품', aiintel:'AI 상담 Intelligence'
   })[tab];
 
   if(tab==='reviews') renderReviews();
@@ -4850,6 +4950,7 @@ function goTab(tab){
   if(tab==='reentry') renderReentry();
   if(tab==='qmonth') renderQMonth();
   if(tab==='symparts') renderSymParts();
+  if(tab==='aiintel') renderAIIntel();
   if(tab==='weekly'){
     const weeklyEl = document.getElementById('weeklyReport');
     if(weeklyEl) weeklyEl.innerHTML = '';
@@ -6243,6 +6344,423 @@ document.addEventListener('DOMContentLoaded', async () => {
     topBtn.style.transform = show ? 'translateY(0)' : 'translateY(10px)';
   }, { passive: true });
 });
+</script>
+
+<!-- ===== AI 상담 Intelligence (추가) ===== -->
+<script>
+window.AII_FEED = {"period":"2026-W38","generated":"2026-09-17","n":50,"cases":[{"id":"6aaa80aed1fb2d32abac","userId":"6aaa80ab3fee9917ee7e","channel":"chat","createdAt":"2026-09-16T11:42:38.865Z","managedAt":"2026-09-16T11:42:52.965Z","name_present":true,"tags":["AS접수","AS접수완료"],"summary":"AS 접수 완료 — 6항목 수집됨, 매니저 확인 필요 (상세는 대화의 [AS 접수 - 수집 완료] 블록 참조)","primary_intent":"AS_INTAKE","secondary":["PRODUCT_ISSUE","PURCHASE"],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":"CONSUMABLE","cost_context":null,"as_subtopic":"SHIPPING","requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":true,"cust_image":true,"sms":false,"media_req":true,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":"그래비티w 제로실버","canonical":"GRAVITY_W","source":"USER_PROFILE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"고장접수 | 1. 성함 [NAME] 2. 연락처 [PHONE] 3. 주소 [ADDRESS] 4. 구매 린클 공식스토어(네이버) 2025.10.19 7. 필터교체 여부: 미교체 | 수거박스도 보내주세요","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 고객님 영상 공유주셔서 감사합니다. | as접수 도와드리겠습니다. | 린클 그래비티 모델 AS 절차 안내: 포장박스 발송→문앞 회수(로젠)→본사 입고·수리→출고. 미생물 비우기. | 무상보증 기간 제품 구입일로부터 1년. 1년 경과·사용부주의(이물질/침수/외부충격)는 유상. | 포장용 박스와 AS 접수 모두 완료해 드렸습니다."}},{"id":"6aaa6f2aef28b70a2df8","userId":"6a4cafa9bbd537b951bc","channel":"chat","createdAt":"2026-09-16T10:27:54.984Z","managedAt":"2026-09-16T10:27:55.277Z","name_present":true,"tags":[],"summary":"","primary_intent":"PRODUCT_ISSUE","secondary":[],"symptom":"열림불량","symptom_code":"LID_DOOR.OPEN_FAILURE","symptom_c":"CONSISTENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":true,"cust_image":false,"sms":false,"media_req":true,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"GRAVITY","source":"CUSTOMER_UTTERANCE","flags":[]},"recontact":"SAME_SYMPTOM_CANDIDATE","recontact_reasons":["continuity_evidence","current_symptom_present"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":true,"evidence":{"customer":"또다시 문제가 생겼네요 | 문이 안 열려요 | 모델 그래비티 | 며칠전 신고했다가 다시 제대로 작동. 오늘 다시 안열림 | 추석이 다가오니 내일 반송박스 보내주세요 | 고객 정보: [NAME] [PHONE] [ADDRESS]","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 영상 감사합니다. 열림버튼 빨간불, 전원 껐다켜도 동일, 3초 3회 터치해도 초록불 안되고 빨간불 점멸만 되나요? | 이전에 문의주신 내용 확인되어 우선 접수 먼저 도와드리겠습니다. | 린클 그래비티 AS 절차 안내: 포장박스→문앞 회수→입고·수리→출고. | 포장용 박스와 AS 접수 모두 완료해 드렸습니다."}},{"id":"6aaa9fd5da055689616d","userId":"68ed9e5e021e9c3c230c","channel":"chat","createdAt":"2026-09-16T13:55:33.899Z","managedAt":"2026-09-16T13:55:34.221Z","name_present":true,"tags":["린클케어가능지역확인부탁드려요"],"summary":"","primary_intent":"PRODUCT_ISSUE","secondary":["PURCHASE"],"symptom":"열림불량","symptom_code":"LID_DOOR.OPEN_FAILURE","symptom_c":"CONSISTENT","attrs":{"purchase_object":"UNKNOWN","cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":false,"cust_image":true,"sms":false,"media_req":false,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"EASY","source":"CUSTOMER_UTTERANCE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"모델명: 이지 / 성함 [NAME] / 구매 2025.09.29 린클 공식스토어 네이버 / 주소 [ADDRESS] / 연락처 [PHONE] / 증상 상세: 문이 안열려요 / 포장박스 아니오 / 필터 미교체","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 내부 점검 및 A/S 필요 상태로 판단. 택배 회수→본사 점검·수리. 회수부터 수령까지 평일 약 7~10일. | A/S 방법: 기본 택배 회수. 다만 서울·경기·인천·대구·울산 일부 방문점검(린클케어) 시범운영, 고객님 지역 가능. 택배/방문 중 선택 가능. 방문 09~18시, 수리만."}},{"id":"6aaa9bbe7211544f0908","userId":"6aaa9bafa6420045b187","channel":"chat","createdAt":"2026-09-16T13:38:06.472Z","managedAt":"2026-09-16T13:42:21.942Z","name_present":true,"tags":["냄새문의","사진수신","상담사필요"],"summary":"냄새 문의 — 사진 첨부 완료","primary_intent":"PRODUCT_ISSUE","secondary":["SIMPLE_INQUIRY"],"symptom":"냄새/악취","symptom_code":"MICROBE.ODOR","symptom_c":"CONSISTENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":false,"cust_image":true,"sms":false,"media_req":true,"process":"MANAGER_ASSIGNED","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"PRIME","source":"CUSTOMER_UTTERANCE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":false,"evidence":{"customer":"린클 프라임s 잘 사용했는데 며칠 전부터 찌린내가 나서 문의합니다. 거실 전체에 냄새가 나서 불편합니다. 식빵 3일 줬는데 지속됩니다. 어떻게 해야할까요? | 네 구매한지 한달이 좀 안됐어요","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 배기필터망 막힘 확인. 막히면 공기순환 저하로 냄새·수분 발생. 배기필터망 분리·세척·완전건조·장착 안내. 내부 분진 물티슈, 뒷면 린클필터 분진 제거. 영상링크 첨부."}},{"id":"6aaa9d40d5809e9b5692","userId":"6a97886f7e44869521c5","channel":"chat","createdAt":"2026-09-16T13:44:32.879Z","managedAt":"2026-09-16T13:45:25.496Z","name_present":true,"tags":[],"summary":"","primary_intent":"PRODUCT_ISSUE","secondary":["SIMPLE_INQUIRY"],"symptom":"열림불량","symptom_code":"LID_DOOR.OPEN_FAILURE","symptom_c":"CONSISTENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":true,"process":"MANAGER_ASSIGNED","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":"W제로베이지","canonical":"UNKNOWN_MODEL","source":"USER_PROFILE","flags":["PRODUCT_TAXONOMY_GAP"]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"문이 안열려서 문의드렸었는데 동영상 보내달라고 하셔서 보내드립니다","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 문의 감사합니다. 현재 해당 채팅창으로는 영상이 전달되지 않았으며, 혹시 다른 채팅창으로 보내주신 부분일까요?"}},{"id":"6aaa7f62a056c0789041","userId":"6aa7ad488f8b517978ed","channel":"chat","createdAt":"2026-09-16T11:37:06.662Z","managedAt":"2026-09-16T11:37:07.012Z","name_present":true,"tags":[],"summary":"","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":"RC-02","canonical":"RC02","source":"USER_PROFILE","flags":[]},"recontact":"AS_FOLLOWUP","recontact_reasons":["as_followup_evidence"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"제품 포장해서 밖에 두었으니 신속하게 수거 부탁합니다 | 네","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 포장박스 도착 흐름 확인되어 금일 오전 회수접수 도와드린 것으로 확인됩니다. | 보통 회수 접수일로부터 영업일 3일 이내(주말 제외) 기사님 방문 예정입니다."}},{"id":"6aab0eb5aa79ca8c193e","userId":"6aab0eb3089b063a6f33","channel":"chat","createdAt":"2026-09-16T21:48:37.703Z","managedAt":"2026-09-16T21:50:44.969Z","name_present":true,"tags":["미생물문의","교반봉_AS필요"],"summary":"교반봉 자석테스트 후에도 미작동 — AS 접수 필요","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"UNKNOWN_MODEL","source":"NONE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":true,"evidence":{"customer":"린클 미생물도 새로 사서 바꿔봤는데 교반기가 동작하지 않고 미생물 분해가 되지 않습니다 | 여전히 멈춰있습니다 As가 필요합니다","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 내부 점검 및 A/S 필요 판단. 택배 회수→본사 점검·수리. 회수부터 수령까지 평일 약 7~10일. | A/S 접수 양식: 모델명/성함/구매일시/구매처/주소/연락처/증상/영수증/KC라벨/포장박스/필터교체여부. | 필터 교체 비용: 프라임/그래비티/이지 19,800원 RC02 17,000원. [필터교체] 남겨주세요. 수리비·필터비 별도 합산."}},{"id":"6aab2e1f666a797794a8","userId":"6a9e1b3edd37a7e91402","channel":"voice","createdAt":"2026-09-17T00:02:39.426Z","managedAt":"2026-09-17T00:02:41.211Z","name_present":true,"tags":[],"summary":"","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"UNKNOWN","next_q":"UNKNOWN","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":true,"media_req":false,"process":"MANAGER_ASSIGNED","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"UNKNOWN_MODEL","source":"NONE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":false,"evidence":{"customer":"경영, 마케팅팀 연결","manager":""}},{"id":"6aaa94193bc1d7d7eac4","userId":"6aaa94144e86261509b3","channel":"chat","createdAt":"2026-09-16T13:05:29.25Z","managedAt":"2026-09-16T13:05:50.199Z","name_present":true,"tags":["AS접수","AS접수완료","전산접수완료"],"summary":"AS 접수 완료 — 6항목 수집됨, 매니저 확인 필요 (상세는 대화의 [AS 접수 - 수집 완료] 블록 참조)","primary_intent":"AS_INTAKE","secondary":["PURCHASE","AS_STATUS","PRODUCT_ISSUE"],"symptom":"소음(미상)","symptom_code":"NOISE.UNKNOWN_NOISE","symptom_c":"CONSISTENT","attrs":{"purchase_object":"CONSUMABLE","cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":true,"cust_image":true,"sms":false,"media_req":true,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":"프라임실버(22)","canonical":"PRIME","source":"USER_PROFILE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"소음이 심해서 as 원합니다 | AS 접수를 위해 아래 정보를 알려주시기 바랍니다.\n\n1. 성함 박민희\n2. 연락처 (전화번호)[PHONE]\n3. 주소 (수거 주소)분당구 산운로 97 504동1802호\n4. 구매 정보 (구매처, 구매일)11번가\n5. KC 인증 라벨 사진 (제품 뒷면 또는 오른쪽 하단)\n6. 증상 영상\n극심한 소음\n7. 수리 시 필터 \n교체 희망 | 동영상 첨부함 | 구매일 2005.6.30. | 2025 년으로 수정 | as 접수확인바람","manager":"반갑습니다, 고객님! 언제나 고객님의 쾌적한 일상을 응원하는 린클입니다. 💚\n\n빠른 해결이 필요하셔서 연락 주셨을 텐데, 기다려 주셔서 감사합니다. 기다려 주신 만큼 신속하고 정확하게 안내해 드리겠습니다.\n\n📌 고객 응대 근로자 보호 안내\n산업안전보건법에 따라 상담사의 안전과 보호를 위한 조치를 시행하고 있습니다.\n상담 과정에서 폭언, 비하, 위협 등의 표현이 발생할 경우 상담이 제한되거나 중단될 수 있습니다.\n원활한 상담 진행을 위해 상호 존중을 기반으로 한 대화를 부탁드립니다.\n\n상담사 연결이 완료되었습니다. 지금부터 문의하신 사항에 대해 자세히 안내해 드릴게요!  | 고객님, 사용 중이신 제품의 소음으로 인해 큰 불편을 겪게 해드려 진심으로 죄송합니다. \n\n정성껏 관리하며 사용해 주셨을텐데, 소음 문제로 신경 쓰이게 해드려 저희도 마음이 무겁습니다. 해당 현상은 내부 부품 등에 대한 정확한 점검과 A/S 처리가 필요한 상황으로 판단됩니다.\n\n[A/S 진행 안내]\n- 진행 방식: 고객님의 제품을 택배로 회수하여 엔지니어가 직접 점검 및 수리를 진행합니다.\n- 처리 과정: 제품이 입고 되면 꼼꼼하게 수리하여 다시 안전하게 고객님 댁으로 배송해 드릴 예정입니다. | 린클 프라임 모델의 AS 절차를 알기 쉽게 안내해 드립니다. \n소중한 제품을 안전하고 신속하게 점검해 드릴 수 있도록 아래 내용을 확인해 주세요! \n\n📦 1. 전용 …"}},{"id":"6aaa5d9e0df535325182","userId":"6a8e263fa058c8e9525f","channel":"chat","createdAt":"2026-09-16T09:13:02.065Z","managedAt":"2026-09-16T09:13:02.543Z","name_present":true,"tags":[],"summary":"","primary_intent":"PRODUCT_ISSUE","secondary":["SIMPLE_INQUIRY"],"symptom":"수분/습기","symptom_code":"MICROBE.MOISTURE","symptom_c":"CONSISTENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":"SHIPPING","requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":false,"cust_image":true,"sms":false,"media_req":true,"process":"MANAGER_ASSIGNED","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"UNKNOWN_MODEL","source":"NONE","flags":[]},"recontact":"SAME_SYMPTOM_CANDIDATE","recontact_reasons":["continuity_evidence","current_symptom_present"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":false,"evidence":{"customer":"내부에 필터에 곰팡이가 가득했고 제거해서 씻은후 말리고있어요 | 내부에 물기가 많고 벽에도 곰팡이가 있어요 | 오전에 문의드렸더니 사진 찍어서 보내라고 하셨잖아요 | [NAME] [PHONE] | 지난번 as할때 필터교체 하지않았나요? | 내부는 따뜻합니다 | 네 | 네 | 감사합니다 | 네 없어요","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 사진 감사합니다. 뒷쪽 린클필터 마지막 교체 시기는? 앞전 점검이력 확인 위해 성함·연락처 부탁드립니다. | 점검이력 확인결과 필터교체 이력 확인됩니다. 내부 바닥온도 55~60도 유지. 온도체크포인트 만져 확인 부탁드립니다. | 온기·교반봉 회전되면 정상. 미생물 급속건조로 필터 급오염 추정. 미생물·필터 재발송, 교체후 증상 지속 확인 부탁. | 금일 발송. 기존 미생물 비우고 내부통 물티슈로 닦고 교체. 주소 앞전과 동일 맞으실까요? | 금일 발송드리겠습니다. 미생물·필터 발송부서 달라 따로 배송될 수 있음. | 상담창 종료. 좋은 하루 보내세요!"}},{"id":"6aab2e0b4cbbd4b83712","userId":"6aa742003b9d17e1e0ab","channel":"voice","createdAt":"2026-09-17T00:02:19.322Z","managedAt":"2026-09-17T00:02:21.925Z","name_present":true,"tags":[],"summary":"","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"UNKNOWN","next_q":"UNKNOWN","ai_understanding":"UNKNOWN","safety":"UNKNOWN","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"MANAGER_ASSIGNED","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"UNKNOWN_MODEL","source":"NONE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":false,"evidence":{"customer":"","manager":""}},{"id":"6aab1118e7acfa6e55f3","userId":"6aa61860d5adb965e7f1","channel":"chat","createdAt":"2026-09-16T21:58:48.954Z","managedAt":"2026-09-16T22:02:15.448Z","name_present":true,"tags":[],"summary":"","primary_intent":"AS_INTAKE","secondary":["PURCHASE","PRODUCT_ISSUE"],"symptom":"소음(미상)","symptom_code":"NOISE.UNKNOWN_NOISE","symptom_c":"CONSISTENT","attrs":{"purchase_object":"CONSUMABLE","cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":true,"cust_image":true,"sms":false,"media_req":true,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"PRIME","source":"CUSTOMER_UTTERANCE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"[Web발신] AS 접수 양식 회신 - 모델명 RC-prime300 / 성함 [NAME] / 구매 25년8월 네이버스토어 / 주소 [ADDRESS] / 연락처 [PHONE] / 증상 영상첨부(소음) / 영수증·KC 이미지첨부 / 필터교체 필수인지? | 감사합니다! 박스 수령 후 포장해두겠습니다","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 소음으로 불편드려 죄송합니다. 내부 부품 점검·A/S 필요 판단. 택배 회수→엔지니어 점검·수리→배송. | 원래 구입 1년 경과시 유상이나 보증기간 약 1개월 초과. 이번은 예외적으로 무상 수리 전환. | 린클 프라임 AS 절차: 박스 발송→미생물 비우고 포장·문앞→로젠 회수→본사 입고·수리(명절 3~4영업일)→미생물 동봉 출고. | 명절 연휴 택배 휴무로 박스 발송·회수·수리·출고 지연 가능 양해 부탁. 한가위 잘 보내세요. | 늘 린클을 믿고 이용해 주셔서 감사합니다. 좋은 하루 보내세요!"}},{"id":"6aaa8b75edd53209667b","userId":"6aaa0b9e1d1fb0c47b20","channel":"chat","createdAt":"2026-09-16T12:28:37.979Z","managedAt":"2026-09-16T12:28:44.861Z","name_present":true,"tags":[],"summary":"","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":true,"sms":false,"media_req":true,"process":"MANAGER_ASSIGNED","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"UNKNOWN_MODEL","source":"NONE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":false,"evidence":{"customer":"내부 사진 보내달라고 하셔서 보내드려요~! | 네 알겠습니다!","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 해당 소리는 내부통 내용물이 바닥·벽면과 부딪히는 마찰음. 1)미생물 건조시 물 수시 투입 2)미분해 잔여물 골라내기 안내. | 현재 많이 건조한 상태. 물 700~900ml 투입 후 삽으로 섞고 촉촉한 상태에서도 소음 발생하는지 확인 부탁. | 늘 린클을 믿고 이용해 주셔서 감사합니다. 좋은 하루 보내세요!"}},{"id":"6aab156e3dc5f996c851","userId":"6a9cfd35a06ca0ae0e4c","channel":"chat","createdAt":"2026-09-16T22:17:18.259Z","managedAt":"2026-09-16T22:17:18.524Z","name_present":true,"tags":[],"summary":"","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":"SHIPPING","requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":"그래비티W","canonical":"GRAVITY_W","source":"USER_PROFILE","flags":[]},"recontact":"AS_FOLLOWUP","recontact_reasons":["as_followup_evidence"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"안녕하세요 포장완료한 as물품은 언제 택배보내나요???? | 네 없습니다. 감사합니다 !!","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 고객님 당사에서 금일 회수접수 진행하였습니다. | 보통 회수 접수일로부터 영업일 3일 이내(주말 제외) 기사님 방문 예정. 지역 사정 따라 차이 양해. | 명절 연휴로 택배 회수 지연 가능 양해 부탁드립니다."}},{"id":"6aaa629af39840058af2","userId":"6aa94e7ed96fb39afe23","channel":"chat","createdAt":"2026-09-16T09:34:19.004Z","managedAt":"2026-09-16T09:34:34.368Z","name_present":true,"tags":["AS접수","AS접수완료"],"summary":"AS 접수 완료 — 6항목 수집됨, 매니저 확인 필요 (상세는 대화의 [AS 접수 - 수집 완료] 블록 참조)","primary_intent":"AS_INTAKE","secondary":["PRODUCT_ISSUE"],"symptom":"교반 파손","symptom_code":"STIRRING.BROKEN","symptom_c":"CONSISTENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":false,"cust_image":true,"sms":false,"media_req":true,"process":"MANAGER_ASSIGNED","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":"제로베이지","canonical":"UNKNOWN_MODEL","source":"USER_PROFILE","flags":["PRODUCT_TAXONOMY_GAP"]},"recontact":"SAME_SYMPTOM_CANDIDATE","recontact_reasons":["continuity_evidence","current_symptom_present"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"교반봉 파손 as 신청합니다 | 성함 [NAME] / 연락처 [PHONE] / 주소 [ADDRESS] / 네이버스마트스토어 2024년 5월 / 필터교체 교체 | 연락처 확인했습니다","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 고객님 이중 문의 남겨주셔서 다른 채팅창으로 방문점검 접수 도와드린 것으로 확인됩니다. | 추가 궁금한 점 있으시면 말씀해 주세요. 감사합니다."}},{"id":"6aaab035601cdd3d7e09","userId":"6aaab01d98c4793202fc","channel":"chat","createdAt":"2026-09-16T15:05:25.401Z","managedAt":"2026-09-16T15:05:32.535Z","name_present":true,"tags":[],"summary":"","primary_intent":"PRODUCT_ISSUE","secondary":[],"symptom":"교반 파손","symptom_code":"STIRRING.BROKEN","symptom_c":"CONSISTENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":"그래비티","canonical":"GRAVITY","source":"USER_PROFILE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"교반봉 부러짐","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 내부 점검 및 A/S 필요 판단. 택배 회수→본사 점검·수리. 회수부터 수령까지 평일 약 7~10일. | A/S 접수 양식: 모델명/성함/구매일시/구매처/주소/연락처/증상/영수증/KC라벨/포장박스/필터교체여부. | 필터 교체 비용: 프라임/그래비티/이지 19,800 RC02 17,000. [필터교체] 남겨주세요."}},{"id":"6aaaa060e5b3eef92461","userId":"67e298749241162a28dc","channel":"chat","createdAt":"2026-09-16T13:57:52.947Z","managedAt":"2026-09-16T13:57:53.23Z","name_present":true,"tags":[],"summary":"","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":"SHIPPING","requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":"제로실버","canonical":"UNKNOWN_MODEL","source":"USER_PROFILE","flags":["PRODUCT_TAXONOMY_GAP"]},"recontact":"AS_FOLLOWUP","recontact_reasons":["as_followup_evidence"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"혹시 이거 as 수거를 추석 지나고 해주실 수 있을까요? 오늘 박스 왔는데, 저번 as 내역을 보니 목요일 신청 금요일 수거면 추석연휴 전에 못 받을 것 같아서요. 추석 내내 린클 없이 보내면 불편할 것 같아요.","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 고객님의 편안한 연휴를 위해 해당 건은 말씀대로 추석 연휴 지난 9/28 월요일 오전에 회수 접수 진행하겠습니다. 잘 보관해 두셨다가 연휴 후 수거해 주세요."}},{"id":"6aaa7fc8b3970d1492dd","userId":"6aaa7fc8a082da059977","channel":"chat","createdAt":"2026-09-16T11:38:48.742Z","managedAt":"2026-09-16T11:38:49.058Z","name_present":true,"tags":["AS접수","AS접수완료"],"summary":"AS 접수 완료 — 6항목 수집됨, 매니저 확인 필요 (상세는 대화의 [AS 접수 - 수집 완료] 블록 참조)","primary_intent":"AS_INTAKE","secondary":["PURCHASE"],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":"CONSUMABLE","cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":true,"cust_image":true,"sms":false,"media_req":false,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"PRIME","source":"CUSTOMER_UTTERANCE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"모델명 린클프라임 스타 화이트 / 성함 [NAME] / 구매 2023.6.11 카카오톡딜 / 주소 [ADDRESS] / 연락처 [PHONE] / 증상 3~4일 전부터 딱딱딱딱 소리, 흙 다 비우고 걸리는 것 제거해도 소리나서 AS 신청 / 포장박스 아니오 | 수리 시 필터는 교체하지 않겠습니다 | 증상 영상 올렸습니다. 필터 미교체. 빠른 as접수 부탁드립니다","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 소음으로 불편드려 죄송합니다. 내부 부품 점검·A/S 필요 판단. 택배 회수→엔지니어 점검·수리→배송. | 린클 프라임 AS 절차: 박스 발송→미생물 비우고 포장·문앞→로젠 회수→본사 입고·수리(명절 3~4영업일)→미생물 동봉 출고. | 무상보증 구입 1년(구매일 미확인시 제조일 기준). 유상 수리비 택배+공임 대략 8~15만원 내외. 미수리 반환시에도 기본점검비·택배·공임 45,000원 발생. 수리비 문자 안내(전화 원하면 요청). | 포장용 박스와 AS 접수 모두 완료해 드렸습니다. | 명절 연휴 택배 지연 가능 양해 부탁. 한가위 잘 보내세요."}},{"id":"6aaa60661401669550dc","userId":"6a9cde417dda081cb2b5","channel":"chat","createdAt":"2026-09-16T09:24:54.088Z","managedAt":"2026-09-16T09:25:08.257Z","name_present":true,"tags":["뚜껑개폐문의","영상수신","상담사필요"],"summary":"뚜껑 개폐 불량 / 락 문의 — 영상 첨부 완료","primary_intent":"PRODUCT_ISSUE","secondary":[],"symptom":"닫힘불량","symptom_code":"LID_DOOR.CLOSE_FAILURE","symptom_c":"CONSISTENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":true,"cust_image":true,"sms":false,"media_req":true,"process":"MANAGER_ASSIGNED","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"GRAVITY","source":"CUSTOMER_UTTERANCE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"뚜껑이 살딱 오픈되어 있러 | 그래비티 | 뚜껑이 제대로 꽉 안 닫힘","manager":"영상 공유 감사합니다. 해당 증상이 지속 반복된다면 AS가 필요해 보입니다. | 접수를 위해 주소지 기재와 사용 중인 제품 모델명·제조일자 촬영해 공유주시면 확인 후 안내드리겠습니다."}},{"id":"6aaa9841b120acefc242","userId":"6aaa983f103fada0e9e9","channel":"chat","createdAt":"2026-09-16T13:23:13.731Z","managedAt":"2026-09-16T13:23:41.306Z","name_present":true,"tags":[],"summary":"","primary_intent":"PRODUCT_ISSUE","secondary":["SIMPLE_INQUIRY"],"symptom":"소음(미상)","symptom_code":"NOISE.UNKNOWN_NOISE","symptom_c":"CONSISTENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":true,"cust_image":false,"sms":false,"media_req":true,"process":"MANAGER_ASSIGNED","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"UNKNOWN_MODEL","source":"NONE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":false,"evidence":{"customer":"이소리가 계속 되는데 이상유무 궁금해요","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 현재 해당 소음은 마찰음으로 확인됩니다. 내부 전체가 보이게 사진 공유 가능하실까요?"}},{"id":"6aaa47dfba7d002f3d36","userId":"6aa8a2e87b71bafa156d","channel":"chat","createdAt":"2026-09-16T07:40:15.77Z","managedAt":"2026-09-16T07:40:38.187Z","name_present":true,"tags":["미생물문의","교반봉_AS필요"],"summary":"교반봉 자석테스트 후에도 미작동 — AS 접수 필요","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"UNKNOWN_MODEL","source":"NONE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":true,"evidence":{"customer":"린클 모터가 돌아가지않아요 | 멈춰있어요 | 선물을 받은 경우에는 구매자이름, 구매영수증, 구매처, 구매일시 등 알기 어려운데 해당내용은 제외하고 작성하면될까요?","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 내부 점검 및 A/S 필요 판단. 택배 회수→본사 점검·수리. 회수부터 수령까지 평일 약 7~10일. | A/S 접수 양식: 모델명/성함/구매일시/구매처/주소/연락처/증상/영수증/KC라벨/포장박스/필터교체여부. | 필터 교체 비용: 프라임/그래비티/이지 19,800 RC02 17,000. | 네 해당 부분은 제외 후 작성 부탁드립니다."}},{"id":"6aaa9566c8acc51154ae","userId":"6a9e029853d21bfdb786","channel":"chat","createdAt":"2026-09-16T13:11:02.828Z","managedAt":"2026-09-16T13:11:32.331Z","name_present":true,"tags":[],"summary":"","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":"RC-02","canonical":"RC02","source":"USER_PROFILE","flags":[]},"recontact":"AS_FOLLOWUP","recontact_reasons":["as_followup_evidence"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"As진행 과정","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 현재 9/14 회수되어 점검 진행 중입니다. 빠르면 금일 늦어도 내일까지 수리비용 안내 문자 발송 도와드리겠습니다."}},{"id":"6aaa5b9edc19d4d2d452","userId":"6aaa5a798816d2438e4a","channel":"chat","createdAt":"2026-09-16T09:04:30.907Z","managedAt":"2026-09-16T09:04:31.222Z","name_present":true,"tags":["뚜껑개폐문의","영상수신","상담사필요"],"summary":"뚜껑 개폐 불량 / 락 문의 — 영상 첨부 완료","primary_intent":"PRODUCT_ISSUE","secondary":[],"symptom":"뚜껑/도어","symptom_code":"LID_DOOR.LLM_REVIEW_REQUIRED","symptom_c":"PARTIAL_CONFLICT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"PARTIAL","safety":"NONE","human_review":false,"cust_video":true,"cust_image":true,"sms":false,"media_req":true,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"PRIME","source":"CUSTOMER_UTTERANCE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"안녕하세여 | 열림버튼이 동작하지 않아요 | 자동으로 열림이 안되요 | 프라임 300 | 여전히 문제 있음. 열리지 않음 | 보냈음","manager":"반갑습니다, 고객님! 언제나 고객님의 쾌적한 일상을 응원하는 린클입니다. 💚\n\n문의하신 내용을 소중히 확인하고 있습니다. 잠시만 기다려 주시면 곧 친절한 상담 도와드리겠습니다.\n\n📌 고객 응대 근로자 보호 안내\n산업안전보건법에 따라 상담사의 안전과 보호를 위한 조치를 시행하고 있습니다.\n상담 과정에서 폭언, 비하, 위협 등의 표현이 발생할 경우 상담이 제한되거나 중단될 수 있습니다.\n원활한 상담 진행을 위해 상호 존중을 기반으로 한 대화를 부탁드립니다.\n\n상담사 연결이 완료되었습니다. 지금부터 문의하신 사항에 대해 자세히 안내해 드릴게요! | 영상 공유주셔서 감사합니다. 영상처럼 발센서 하단에 초록불이 들어오고 , 열림버튼 터치 시 초록불 들어온 상태에서 작동되지 않을 경우 as가 필요해보입니다. | 고객님, 정확한 내용 확인을 위해 아래 정보를 작성하여 전달해 주시면 신속하게 안내 도와드리겠습니다. \n\nA/S 접수를 원하신다면 아래 양식에 맞춰 작성 부탁드립니다.\n\n- 모델명: (예: 린클 RC-02 / 프라임 / 그래비티 / 이지 /프라임 S 등):\n- 구매자/접수자 성함:\n- 구매 일시:\n- 구매처:\n- 주소 (A/S 접수자 기준):\n- 연락처 (A/S 접수자 기준):\n- 증상 상세 내용:\n- 구매 영수증 (이미지 첨부):\n- 제품 뒷면 KC 라벨 (이미지 필수 첨부):\n- 제품 포장박스(완충재 포함) 보유 여부 (예/아니오…"}},{"id":"6aaa92014e2e8d52428d","userId":"6aa7cbefdaa87cf62dbf","channel":"chat","createdAt":"2026-09-16T12:56:33.327Z","managedAt":"2026-09-16T12:57:33.514Z","name_present":true,"tags":[],"summary":"","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":"프라임실버(22)","canonical":"PRIME","source":"USER_PROFILE","flags":[]},"recontact":"AS_FOLLOWUP","recontact_reasons":["as_followup_evidence"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"박스 도착해서 포장했는데 어찌하면될까요 | AS박스 포장다됐어요","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 고객님 당사에서 금일 회수접수 진행하였습니다. | 보통 회수 접수일로부터 영업일 3일 이내(주말 제외) 기사님 방문 예정. 지역 사정 따라 차이 양해."}},{"id":"6aaa663400fd72c4598e","userId":"69f557cd811b73e05d94","channel":"chat","createdAt":"2026-09-16T09:49:40.008Z","managedAt":"2026-09-16T09:49:40.429Z","name_present":true,"tags":["AS접수","AS접수완료"],"summary":"AS 접수 완료 — 6항목 수집됨, 매니저 확인 필요 (상세는 대화의 [AS 접수 - 수집 완료] 블록 참조)","primary_intent":"AS_INTAKE","secondary":["PURCHASE","PRODUCT_ISSUE"],"symptom":"전원","symptom_code":"POWER.-","symptom_c":"CONSISTENT","attrs":{"purchase_object":"CONSUMABLE","cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":false,"cust_image":true,"sms":false,"media_req":true,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"GRAVITY","source":"CUSTOMER_UTTERANCE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"as신청. 린클 그래비티 25년 7월3일 구매 네이버 린클스토어. 주소 [ADDRESS]. 증상: 며칠 전부터 기기가 계속 꺼짐, 꺼지면서 부팅음 들림 | as신청 린클 그래비티 구매자 [NAME] 연락처 [PHONE] 25.7.3 네이버 린클스토어 [ADDRESS] 증상 계속 꺼짐+부팅음. 필터교체 안 함 | 첨부 불가능","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 내부 점검 및 A/S 필요 판단. 택배 회수→본사 점검·수리. 회수부터 수령까지 평일 약 7~10일. | 린클 그래비티 AS 절차 안내: 박스 발송→미생물 비우고 포장·문앞→로젠 회수→입고·수리(명절 3~4영업일)→미생물 동봉 출고. 어댑터 연결선 포함. | 포장용 박스와 AS 접수 모두 완료해 드렸습니다. | 명절 연휴 택배 지연 가능 양해 부탁. 한가위 잘 보내세요. | 접수 완료, 금일 포장박스 발송. 공유 가능하실 때 제품 옆면/뒷면 하단 KC마크 꼭 공유 부탁드립니다."}},{"id":"6aaa8f4a50c2bff49e7b","userId":"6aaa8f3a09956cad6508","channel":"chat","createdAt":"2026-09-16T12:44:58.336Z","managedAt":"2026-09-16T12:47:28.587Z","name_present":true,"tags":[],"summary":"","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":true,"handoff_q":"UNKNOWN","next_q":"UNKNOWN","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"MANAGER_ASSIGNED","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"UNKNOWN_MODEL","source":"NONE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":false,"evidence":{"customer":"모르고 린클삽을 미생물처리기 안에 넣었어요. 며칠 후 보니 3-5cm 크기로 분해돼있더라고요. 딱딱한 삽을 미생물이 분해하는게 가능한가요? 며칠 전 에어컨 수리기사님이 린클 앞에서 작업하셨는데 모르고 밟아 부숴져 통 안에 넣으셨을 가능성도 있을까요? | 상담원 연결","manager":"많이 당황하셨을 것 같습니다. 린클 삽은 플라스틱이라 미생물로 분해 안 됨. 외부 파손 후 투입 또는 교반봉 회전 중 부딪혀 파손 가능성. 전원 차단 후 조각 최대한 골라내 제거 부탁드립니다."}},{"id":"6aaa8b8c148404d2e7d6","userId":"6aaa8b80baa62ec12c20","channel":"chat","createdAt":"2026-09-16T12:29:00.089Z","managedAt":"2026-09-16T12:29:44.178Z","name_present":true,"tags":["미생물문의","교반봉_AS필요"],"summary":"교반봉 자석테스트 후에도 미작동 — AS 접수 필요","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"UNKNOWN_MODEL","source":"NONE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":true,"evidence":{"customer":"교반봉이 작동하지 않아요 | 여전히 멈춘상태입니다","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 내부 점검 및 A/S 필요 판단. 택배 회수→본사 점검·수리. 회수부터 수령까지 평일 약 7~10일. | A/S 접수 양식: 모델명/성함/구매일시/구매처/주소/연락처/증상/영수증/KC라벨/포장박스/필터교체여부. | 필터 교체 비용: 프라임/그래비티/이지 19,800 RC02 17,000."}},{"id":"6aaa882944f4143cfd07","userId":"6aaa87ec6ad61815c372","channel":"chat","createdAt":"2026-09-16T12:14:33.287Z","managedAt":"2026-09-16T12:14:33.552Z","name_present":true,"tags":["AS접수","AS접수완료","전산접수완료"],"summary":"AS 접수 완료 — 6항목 수집됨, 매니저 확인 필요 (상세는 대화의 [AS 접수 - 수집 완료] 블록 참조)","primary_intent":"AS_INTAKE","secondary":["SIMPLE_INQUIRY","PRODUCT_ISSUE"],"symptom":"소음(미상)","symptom_code":"NOISE.UNKNOWN_NOISE","symptom_c":"CONSISTENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":true,"cust_image":true,"sms":false,"media_req":false,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":"프라임실버(22)","canonical":"PRIME","source":"USER_PROFILE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"안녕하세요. as건으로 문의드립니다. | [NAME] / [PHONE] / [ADDRESS] / 쿠팡 21년11월25일 / 5.별도유첨 6.별도유첨(동작 소음 발생) / 필터 미교체","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 소음으로 불편드려 죄송합니다. 내부 부품 점검·A/S 필요 판단. 택배 회수→엔지니어 점검·수리→배송. | 린클 프라임 AS 절차: 박스 발송→포장·문앞→로젠 회수(3영업일 내)→본사 입고·수리(2~3일)→미생물 동봉 출고. 미생물 비우기·삽 제외. | 무상보증 구입 1년(미확인시 제조일). 유상 8~15만원 내외. 미수리 반환시 45,000원. 수리비 문자 안내(전화 원하면 요청). | 명절 연휴 택배 지연 가능 양해 부탁. 한가위 잘 보내세요."}},{"id":"6aaa591964c01b9df3c2","userId":"6aa913d07967a3b49715","channel":"chat","createdAt":"2026-09-16T08:53:45.419Z","managedAt":"2026-09-16T08:53:51.042Z","name_present":true,"tags":["AS접수","AS접수완료"],"summary":"AS 접수 완료 — 6항목 수집됨, 매니저 확인 필요 (상세는 대화의 [AS 접수 - 수집 완료] 블록 참조)","primary_intent":"AS_INTAKE","secondary":["PURCHASE","PRODUCT_ISSUE"],"symptom":"열림불량","symptom_code":"LID_DOOR.OPEN_FAILURE","symptom_c":"CONSISTENT","attrs":{"purchase_object":"UNKNOWN","cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":false,"cust_image":true,"sms":false,"media_req":false,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"GRAVITY_W","source":"CUSTOMER_UTTERANCE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"모델명 그래비티W / 성함 [NAME] / 구매 2025.06.15 네이버스토어 / 주소 [ADDRESS] / 연락처 [PHONE] / 증상 뚜껑 안열림·오작동 / 포장박스 아니오 / 필터 미교체","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 소중한 정보 공유 감사합니다. | A/S 진행: 기본 본사 택배 회수. 다만 서울·경기·인천·대구·울산 일부 방문점검(린클케어) 시범운영, 고객님 거주지 가능. 택배/방문 선택 가능. 방문 평일 09~18시, 수리만. 방문 동의시 기사님이 일정 연락. | 방문점검과 택배회수 본사AS 중 편하신 방법 알려주시면 접수 도와드리겠습니다."}},{"id":"6aaa47f75e74e9d28e4f","userId":"6aaa47f5ce8a02fa3251","channel":"chat","createdAt":"2026-09-16T07:40:39.391Z","managedAt":"2026-09-16T07:41:31.649Z","name_present":true,"tags":["뚜껑개폐문의","영상수신","상담사필요"],"summary":"뚜껑 개폐 불량 / 락 문의 — 영상 첨부 완료","primary_intent":"PRODUCT_ISSUE","secondary":[],"symptom":"자동열림불량","symptom_code":"LID_DOOR.AUTO_OPEN_FAILURE","symptom_c":"CONSISTENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":true,"cust_image":false,"sms":false,"media_req":true,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"GRAVITY","source":"CUSTOMER_UTTERANCE","flags":[]},"recontact":"SAME_SYMPTOM_CANDIDATE","recontact_reasons":["continuity_evidence","current_symptom_present"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"안녕하세요. 2달전 AS받고 제품을 받았는데 2주정도 전부터 열림버튼이 잘 안눌리고 전원을끈후 재부팅도 잘안되는 현상이 발생합니다 | RC-GT500입니다 | 여전히 문제가 있습니다 | 건드리지않았는데 열렸다닫혔다하는 증상도 같이있습니다 | 네 동일합니다","manager":"반갑습니다, 고객님! 언제나 고객님의 쾌적한 일상을 응원하는 린클입니다. 💚\n\n문의하신 내용을 소중히 확인하고 있습니다. 잠시만 기다려 주시면 곧 친절한 상담 도와드리겠습니다.\n\n📌 고객 응대 근로자 보호 안내\n산업안전보건법에 따라 상담사의 안전과 보호를 위한 조치를 시행하고 있습니다.\n상담 과정에서 폭언, 비하, 위협 등의 표현이 발생할 경우 상담이 제한되거나 중단될 수 있습니다.\n원활한 상담 진행을 위해 상호 존중을 기반으로 한 대화를 부탁드립니다.\n\n상담사 연결이 완료되었습니다. 지금부터 문의하신 사항에 대해 자세히 안내해 드릴게요! | 고객님 이전 as이력 확인되십니다. | 주소가 이전과 동일하실까요? \"충청남도 천안시 서북구 한들3로 35-23 206-602\" | 주소 확인해주시면 회수해서 점검 및 as접수 도와드리도록 하겠습니다. | 확인해주셔서 감사합니다. | 린클 그래비티 모델 AS 절차 안내\n📦 포장 박스 발송 \n- 당사에서 완충제가 포함된 박스를 고객님께 발송합니다. \n\n📦제품 포장 및 회수 접수 \n- 제품을 박스에 넣고 포장하여 문 앞에 두시면 당사에서 회수 접수를 진행합니다.\n- 회수는 로젠택배에서 진행합니다. \n\n⚠️ 포장 시 주의사항\n1. 박스를 받으시면 미생물을 비우고 포장해 주세요. \n기존 미생물은 지퍼팩에 담아서 보관해 주셨다가 당사에서 수리 후 출고되는 미생물과 섞어서 사용 해 주시면 됩니다.\n…"}},{"id":"6aaa87db75b50525c03a","userId":"6a83e6d4b957199f81d6","channel":"chat","createdAt":"2026-09-16T12:13:15.488Z","managedAt":"2026-09-16T12:13:15.815Z","name_present":true,"tags":["AS접수","AS접수완료","전산접수완료"],"summary":"AS 접수 완료 — 6항목 수집됨, 매니저 확인 필요 (상세는 대화의 [AS 접수 - 수집 완료] 블록 참조)","primary_intent":"AS_INTAKE","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":true,"cust_image":true,"sms":false,"media_req":false,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":"제로베이지","canonical":"UNKNOWN_MODEL","source":"USER_PROFILE","flags":["PRODUCT_TAXONOMY_GAP"]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":false,"evidence":{"customer":"as접수 | 성함 [NAME] / 연락처 [PHONE] / 주소 [ADDRESS] / 삼성병원복지포탈 2025.3.25 / 필터 미교체 | 네 빠른진행 부탁드립니다!","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 내부 점검 및 A/S 필요 판단. 택배 회수→본사 점검·수리. 회수부터 수령까지 평일 약 7~10일. | 린클 그래비티 AS 절차: 박스 발송→포장·문앞→로젠 회수(3영업일)→본사 입고·수리(2~3일)→미생물 동봉 출고. 어댑터 연결선 동봉·덮개 커버 사용. | 무상보증 구입 1년(미확인시 제조일). 유상 8~15만원 내외. 미수리 반환시 45,000원. 수리비 문자 안내(전화 원하면 요청). | 명절 연휴 택배 지연 가능 양해 부탁. 한가위 잘 보내세요. | 늘 린클을 믿고 이용해 주셔서 감사합니다. 좋은 하루 보내세요!"}},{"id":"6aaa94965229be7513a2","userId":"6aa1fc4f6c164e96b25f","channel":"chat","createdAt":"2026-09-16T13:07:34.343Z","managedAt":"2026-09-16T13:07:35.394Z","name_present":true,"tags":[],"summary":"","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"UNKNOWN","next_q":"UNKNOWN","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":true,"sms":false,"media_req":false,"process":"MANAGER_ASSIGNED","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"UNKNOWN_MODEL","source":"NONE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":false,"evidence":{"customer":"이런 플라스틱 부스러기가 두번째로 발견되었는데 린클 구성품이 부서진건가요? | 미생물 안에서 발견되었어요 | 빠르게 확인해주셔서 감사합니다!","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 빨간 플라스틱 조각 확인. 린클 제품 내부·구성품엔 빨간색 부품이 전혀 사용되지 않습니다. 제품 파손이 아니라 음식물 투입 과정에서 외부 이물질이 함께 들어갔을 가능성이 높습니다. 남은 이물질 확인 후 건져내 주세요. | 늘 린클을 믿고 이용해 주셔서 감사합니다. 좋은 하루 보내세요!"}},{"id":"6aa38abb3026bf2ce08d","userId":"6aa1fb0a2faf60e78422","channel":"chat","createdAt":"2026-09-11T04:59:39.203Z","managedAt":"2026-09-11T04:59:39.538Z","name_present":true,"tags":[],"summary":"","primary_intent":"AS_STATUS","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":"AS","as_subtopic":"SHIPPING","requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"MANAGER_ASSIGNED","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"UNKNOWN_MODEL","source":"NONE","flags":[]},"recontact":"AS_FOLLOWUP","recontact_reasons":["as_followup_evidence"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":true,"evidence":{"customer":"아~포장박스는 대충 언제 발송되나요?? | 알겠습니다 | 린클 박스받아서 포장했는데~ 이거 그냥 문앞에 나두면 되는건가요?? | 지금 내놓겠습니다~ | 저의 수리비는 무상인건가요?? | 연결해주세요? | 그럼 저의는 무상인건가요??","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 제품 AS접수건 확인되며 구매일로부터 1년 이내로 이번 수리는 비용 발생 없이 무상수리로 진행됩니다. | 수리 완료하고 어제 일자로 출고 도와드린 흐름 확인됩니다. 출고일로부터 택배사 영업일 기준 1~4일 소요 참고 부탁드립니다."}},{"id":"6aaa5b5980442da0d690","userId":"6aa9c7222458a9f5732d","channel":"chat","createdAt":"2026-09-16T09:03:21.534Z","managedAt":"2026-09-16T09:03:21.874Z","name_present":true,"tags":["AS접수","AS접수완료"],"summary":"AS 접수 완료 — 6항목 수집됨, 매니저 확인 필요 (상세는 대화의 [AS 접수 - 수집 완료] 블록 참조)","primary_intent":"AS_INTAKE","secondary":["PRODUCT_ISSUE"],"symptom":"교반 멈춤/미작동","symptom_code":"STIRRING.NOT_MOVING","symptom_c":"CONSISTENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":false,"cust_image":true,"sms":false,"media_req":false,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"RC02","source":"CUSTOMER_UTTERANCE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"AS 접수 양식 - 성함 [NAME] / 구매일시 알수없음 / 구매처 알수없음 / 주소 [ADDRESS] / 연락처 [PHONE] / 증상 교반봉 미작동 / 영수증 없음 / 포장박스 아니오 / 필터 교체 | 모델명 RC-02 | 뚜껑열면 어차피 안돌아가니 영상대신 사진올립니다 | 진행부탁드립니다","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 내부 점검 및 A/S 필요 판단. 택배 회수→본사 점검·수리. 회수부터 수령까지 평일 약 7~10일. | 린클 RC02 AS 절차: 박스 발송→미생물 비우고 포장·문앞→로젠 회수→본사 입고·수리(명절 3~4영업일)→미생물 동봉 출고. | 무상보증 구입 1년. 유상 8~15만원 내외. 미수리 반환시 45,000원. 수리비 문자 안내. | 포장용 박스와 AS 접수 모두 완료해 드렸습니다. | 명절 연휴 택배 지연 가능 양해 부탁. 한가위 잘 보내세요."}},{"id":"6a90fbbf80a6dcf22f53","userId":"6a7a7ccbec85e73cd726","channel":"chat","createdAt":"2026-08-28T03:08:47.533Z","managedAt":"2026-08-28T03:08:48.028Z","name_present":true,"tags":[],"summary":"","primary_intent":"PRODUCT_ISSUE","secondary":["SIMPLE_INQUIRY"],"symptom":"미생물 색상","symptom_code":"MICROBE.COLOR","symptom_c":"CONSISTENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"MANAGER_ASSIGNED","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"EASY","source":"CUSTOMER_UTTERANCE","flags":[]},"recontact":"AS_FOLLOWUP","recontact_reasons":["as_followup_evidence"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":false,"evidence":{"customer":"분해물 폐기 관련 문의. 최초 받은 미생물 가루에 검정색 입자들이 들어있던데 이게 뭘까요? 분해물 버릴때 같이 버려도 되나요? 계속 퍼내다보면 나중엔 거의 없어질 것 같은데 사용에 문제없나요? | 라이브 사은품 문의. 8월에 린클 이지 구매 후 사은품 작성했는데 이지 필터를 아직 못 받아서요. 혹시 누락된걸까요?","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 검정색 알갱이는 활성탄입니다. 초기 배양시 산소투여 효과로 섞여있음. 부산물 차올라 미생물 버릴 시점엔 같이 버려도 무방, 별도 보충 불필요. | 확인 결과 사은품 어제 날짜로 출고 확인됩니다. 보통 출고 다음날 도착 예정이나 택배사 사정 따라 1~2일 더 소요 가능 양해 부탁."}},{"id":"6a6bf6e4f24601c0bad2","userId":"69fc324c95c21287f91f","channel":"chat","createdAt":"2026-07-31T01:14:12.998Z","managedAt":"2026-07-31T01:14:13.209Z","name_present":true,"tags":[],"summary":"","primary_intent":"PRODUCT_ISSUE","secondary":["PURCHASE","PRODUCT_USAGE"],"symptom":"소음(미상)","symptom_code":"NOISE.UNKNOWN_NOISE","symptom_c":"CONSISTENT","attrs":{"purchase_object":"PART","cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":false,"cust_image":true,"sms":false,"media_req":true,"process":"MANAGER_ASSIGNED","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"UNKNOWN_MODEL","source":"NONE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":false,"evidence":{"customer":"한잎 크기로 잘라 넣으라는 말씀이신가요 | ? | 안녕하세요 미생물이 MAX 선에 거의 다다라서 퍼내려고 하는데 안에 활성탄은 다 골라서 다시 넣어줘야 하나요? 그리고 혹시 보관했다 나중에 미생물문제 생기면 다시 쓸 수도 있나요? 방법 있다면 확인 부탁드립니다. 그리고 이사 예정인데 어떻게 준비해야 하는지도 확인 부탁드려요. | 이사에 시간이 그리 많이 소요되지는 않을 것 같은데 음식물 투입 해도 상관 없나요? 전원 꺼져 있는 시간 얼마까지 가능할까요? | 퍼낸 미생물 지퍼팩 보관하라고 하셨는데 수분기가 있는데 건조해서 밀봉해야 하나요? | 그렇다면 화분에 비료처럼 넣을 경우 어떤 비율로 어떻게 사용해야 하나요? | 위는 현 미생물 상태이고 아래는 좌측 벽쪽에 붙어서 굳어있던걸 떼어냈습니다. 왜 이런걸까요? | 어떻게 관리해야 하는지 확인 부탁드립니다. | 그리고 교반봉 돌아갈 때 가끔 끼이익 하는 소리가 들리는데 왜 그런걸까요","manager":"반갑습니다, 고객님! 언제나 고객님의 쾌적한 일상을 응원하는 린클입니다. 💚\n\n빠른 해결이 필요하셔서 연락 주셨을 텐데, 기다려 주셔서 감사합니다. 기다려 주신 만큼 신속하고 정확하게 안내해 드리겠습니다.\n\n📌 고객 응대 근로자 보호 안내\n산업안전보건법에 따라 상담사의 안전과 보호를 위한 조치를 시행하고 있습니다.\n상담 과정에서 폭언, 비하, 위협 등의 표현이 발생할 경우 상담이 제한되거나 중단될 수 있습니다.\n원활한 상담 진행을 위해 상호 존중을 기반으로 한 대화를 부탁드립니다.\n\n상담사 연결이 완료되었습니다. 지금부터 문의하신 사항에 대해 자세히 안내해 드릴게요!  | 고객님 문의 감사드립니다.\n 내부통의 경우 보온재로 감싸져 있어 55-60도로 유지가 되고 있으며, 음식물 투입양이 없을 경우 내부온도로 인해 건조되거나 굳을수 있으며,\n교반봉이 닫지 않는 바닥면또는 벽면의 미생물은 움직임이 없어 굳을수 있습니다. | 따라서 음식물 투입이 없을 경우 물이라도 투여하셔서 촉촉하게 유지 관리 부탁드리며,\n 1~2주일에 한번씩 삽으로 전체적으로 섞어주시면서 관리부탁드립니다. | 또한 내부 미생물이 건조할 경우 말씀해주신대로 간헐적으로 마찰음이 발생될수 있으며,\n 촉촉한 상태에서도 동일 소음이 발생되는지 확인부탁드립니다. | 현재 배기필터망도 막혀있는 부분으로 확인되며,\n배기필터망이 막히면 공기 순환이 원활하지 않아 미생물에서 냄새가 …"}},{"id":"6aaa4d4d60fbf9d9f320","userId":"6aa4fe79a33095cbf3f1","channel":"chat","createdAt":"2026-09-16T08:03:25.402Z","managedAt":"2026-09-16T08:08:02.553Z","name_present":true,"tags":[],"summary":"","primary_intent":"AS_INTAKE","secondary":["SIMPLE_INQUIRY"],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":"SHIPPING","requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":true,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":"프라임실버(22)","canonical":"PRIME","source":"USER_PROFILE","flags":[]},"recontact":"AS_FOLLOWUP","recontact_reasons":["as_followup_evidence"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"월요일 AS 접수했는데 로젠택배 회수가 월요일 바로 오셔서 포장을 못했습니다. 다음날 와달라 부탁드렸는데 아직 회수 안해주셔서 전화드렸더니 연휴라 물량 많아 내일 회수 가능하다네요. 내일 회수되면 연휴 끼어 연휴 전에 못받을 것 같은데 맞나요? 연휴때 못쓰면 곤란해서 그냥 연휴 끝나고 AS 해도 될까요? | 상담원 연결 | (동일 문의 재게시) 연휴 끝나고 AS 해도 될까요?","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 연휴 물량 급증으로 회수 지연 확인됩니다. 내일 회수 시 연휴 겹쳐 수리·재배송 지연 가능. 연휴 이후 회수 원하시면 9월 28일자로 회수 접수 도와드릴 수 있습니다. 원하시면 말씀 부탁드립니다."}},{"id":"6aaa507b4cdf26df2034","userId":"6aaa4b5d8761f14df91e","channel":"chat","createdAt":"2026-09-16T08:16:59.321Z","managedAt":"2026-09-16T08:17:00.504Z","name_present":true,"tags":[],"summary":"","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":true,"cust_image":false,"sms":false,"media_req":true,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":"프라임실버22","canonical":"PRIME","source":"USER_PROFILE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"소음이 너무 심해서 as신청하려고 합니다. 3월에 구매하였습니다. 교반봉 연결된 부분에서 소리가 나는것 같은데 as신청 어떻게 하면되는지 확인바랍니다","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 소음으로 불편드려 죄송합니다. 내부 부품 점검·A/S 필요 판단. 택배 회수→엔지니어 점검·수리→배송. | A/S 접수 양식: 모델명/성함/구매일시/구매처/주소/연락처/증상/영수증/KC라벨/포장박스/필터교체여부."}},{"id":"6aaa4b137bdc9412e7b6","userId":"6aaa4b09b1097f028114","channel":"chat","createdAt":"2026-09-16T07:53:55.515Z","managedAt":"2026-09-16T07:53:55.8Z","name_present":true,"tags":[],"summary":"","primary_intent":"PRODUCT_ISSUE","secondary":[],"symptom":"수분/습기","symptom_code":"MICROBE.MOISTURE","symptom_c":"CONSISTENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":false,"cust_image":true,"sms":false,"media_req":true,"process":"MANAGER_ASSIGNED","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"UNKNOWN_MODEL","source":"NONE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":false,"evidence":{"customer":"안녕하세요 | 린클 사용중인데 관리 못해 내부 미생물이 축축하고 눅눅해진 상태입니다. 어떻게 해야할까요? 미생물만 퍼내고 새 미생물 담으면 될까요? | 이런 상태입니다. 미생물만 교체하면 사용할수 있나요? | 네 연락 기다리겠습니다","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 린클은 내부 바닥 온도 55~60도 유지. 내부 통 바닥면이 따끈한지 온도체크포인트 만져 확인 부탁. | 제품 뒷쪽 린클필터 마지막 교체 시기는? 필터 막히면 냄새·수증기·곰팡이 발생 가능. 필터 탈착 후 배출구 오염 확인 부탁."}},{"id":"6a830c1da088611e049d","userId":"69dd9689e33197299424","channel":"chat","createdAt":"2026-08-17T13:26:53.661Z","managedAt":"2026-08-17T13:26:53.92Z","name_present":true,"tags":[],"summary":"","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"AI_DIRECT","human_req":false,"handoff_q":"UNKNOWN","next_q":"UNKNOWN","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"CLOSED","outcome":"UNKNOWN","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":"제로실버","canonical":"UNKNOWN_MODEL","source":"USER_PROFILE","flags":["PRODUCT_TAXONOMY_GAP"]},"recontact":"AS_FOLLOWUP","recontact_reasons":["as_followup_evidence"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"포장해서 내놨습니다 빠른 수거 부탁드려요. 오늘 미생물 빼면서 보니 미생물이 차디차네요... 언능 가져가주셔요","manager":""}},{"id":"6a82e5f828fb10b4bdfc","userId":"6a82e5f819325c401555","channel":"chat","createdAt":"2026-08-17T10:44:08.174Z","managedAt":"2026-08-17T10:44:08.552Z","name_present":true,"tags":[],"summary":"","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"AI_DIRECT","human_req":false,"handoff_q":"UNKNOWN","next_q":"UNKNOWN","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":true,"sms":false,"media_req":false,"process":"MEDIA_RECEIVED","outcome":"UNKNOWN","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"UNKNOWN_MODEL","source":"NONE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":false,"evidence":{"customer":"탈취 에러가 떠요","manager":""}},{"id":"6a82ce95c963ee753e0f","userId":"6a82cd6e8d271d3530bf","channel":"chat","createdAt":"2026-08-17T09:04:21.83Z","managedAt":"2026-08-17T09:04:22.742Z","name_present":true,"tags":[],"summary":"","primary_intent":"PURCHASE","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":"UNKNOWN","cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"AI_DIRECT","human_req":false,"handoff_q":"UNKNOWN","next_q":"UNKNOWN","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":true,"sms":false,"media_req":false,"process":"MEDIA_RECEIVED","outcome":"UNKNOWN","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"PRIME","source":"CUSTOMER_UTTERANCE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":false,"evidence":{"customer":"안녕하세요? 린클프라임을 구매해서 몇년째 잘 사용하고 있습니다. 그런데 집수리를 하다가 뚜껑이 부숴졌습니다. 교체를 해야할것 같은데 어떤 방법이 있을까요?","manager":""}},{"id":"6aaa3a8f9014648e155f","userId":"6aaa3a8f7b9e18982175","channel":"chat","createdAt":"2026-09-16T06:43:27.595Z","managedAt":"2026-09-16T06:43:27.882Z","name_present":true,"tags":[],"summary":"","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":"SHIPPING","requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"UNKNOWN","next_q":"UNKNOWN","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"UNKNOWN_MODEL","source":"NONE","flags":[]},"recontact":"AS_FOLLOWUP","recontact_reasons":["as_followup_evidence"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":false,"evidence":{"customer":"오늘 내놨습니다 내일 회수예정입니다! | [NAME] [PHONE] 입니다 | 점검후 택배받는데 보통 몇일걸릴까요? | 네감사합니다! | 네 없습니다","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 고객님 성함과 연락처 말씀해 주시면 확인 도와드리겠습니다. | 연락 감사드립니다. 제품 본사 입고되는대로 순차적으로 점검 후 안내드리겠습니다. | 접수일로부터 평일기준 10일정도 안내드립니다. | 늘 린클을 믿고 이용해 주셔서 감사합니다. 좋은 하루 보내세요!"}},{"id":"6aaa3e54d8eebe46399d","userId":"6aaa3d890de2491bc649","channel":"chat","createdAt":"2026-09-16T06:59:32.894Z","managedAt":"2026-09-16T06:59:33.247Z","name_present":true,"tags":[],"summary":"","primary_intent":"PRODUCT_ISSUE","secondary":["AS_STATUS"],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":"AS","as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"MANAGER_ASSIGNED","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"EASY","source":"CUSTOMER_UTTERANCE","flags":[]},"recontact":"AS_FOLLOWUP","recontact_reasons":["as_followup_evidence"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":false,"evidence":{"customer":"제품 잘 받았습니다. 문제점에 탑커버힌지/백 교체라 되어있는데 1)백은 무엇인가요? 2)린클이지에서 이 부분이 자주 고장나나요? 3)무상이 아닐 경우 수리비 총 얼마? 4)제품상자를 제가 보관하면 나중에 수리시 총 비용이 달라지나요? | 네 | 2번 답변이 납득이 안되네요. 과도한 힘이나 충격을 준 일이 없는데 일년이 안되어 고장난거라.. | 네 알겠습니다~ | 네 없습니다.","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 1)백=제품 뒷면 후면커버(Back Cover), 탑커버 힌지와 맞닿아 지지하는 뒷면 외관 부품 2)정상 사용 환경에선 쉽게 고장 안 나나 과도한 개폐 힘·외부 충격시 파손 가능 3)유상시 왕복택배+공임+부품비 합산, 기본 공임 45,000원+부품비 해서 8~15만원 내외(점검 후 개별 안내) 4)박스 비용은 별도 청구 없어 총비용 동일, 다만 빈 박스 발송 생략되어 수리기간 단축. | 해당 안내는 부품의 일반적 파손 원인 설명으로, 고객님이 부주의하게 사용하셨다는 취지는 아닙니다. 부품 자체 결함이나 수동 개폐 과정 등 다른 요인으로도 발생 가능. 평소 자주 고장나는 부위는 아니며 일반적 사례를 예로 안내드린 점 양해 부탁. | 안내가 도움 되었기를 바랍니다. 좋은 하루 보내세요!"}},{"id":"6aaa487f28e9d40b17a6","userId":"6a97c9b882b9d492a52a","channel":"chat","createdAt":"2026-09-16T07:42:55.172Z","managedAt":"2026-09-16T07:42:55.504Z","name_present":true,"tags":[],"summary":"","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":"AS","as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"UNKNOWN","next_q":"UNKNOWN","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"MANAGER_ASSIGNED","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":"그래비티W","canonical":"GRAVITY_W","source":"USER_PROFILE","flags":[]},"recontact":"AS_FOLLOWUP","recontact_reasons":["as_followup_evidence"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"문제점 어떤거였는지 비용이나 as내역 미리 알수있을까요? | 네 감사합니다 as종료하겠습니다","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 메인PCB 부품의 교체가 필요한 상황이어서 해당 부품 수리 후 금일 출고되었으며, 이번 건은 무상수리 도와드렸습니다. | 늘 린클을 믿고 이용해 주셔서 감사합니다. 좋은 하루 보내세요!"}},{"id":"6aaa4363a6ac97a4f27e","userId":"6aaa435bbeb72dcaa29f","channel":"chat","createdAt":"2026-09-16T07:21:07.69Z","managedAt":"2026-09-16T07:22:06.219Z","name_present":true,"tags":[],"summary":"","primary_intent":"UNKNOWN","secondary":[],"symptom":"LLM_REVIEW_REQUIRED","symptom_code":"-.-","symptom_c":"CONFLICT","attrs":{"purchase_object":null,"cost_context":"AS","as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"UNKNOWN","safety":"NONE","human_review":true,"cust_video":false,"cust_image":true,"sms":false,"media_req":true,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"UNKNOWN_MODEL","source":"NONE","flags":[]},"recontact":"SAME_SYMPTOM_CANDIDATE","recontact_reasons":["continuity_evidence","current_symptom_present"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":true,"evidence":{"customer":"누유로 인해 부품 AS 받은지 얼마 지나지 않아, 교반봉이 부러져 소음이 심하게 발생하고 있습니다. | 첨부와 같은 상태이며 부러진 교반봉끼리 회전을 방해해 부하가 심해지다가 엄청 큰 소리가 발생합니다 | 주소지 변동사항 없으며, 박스는 따로 보관하고 있지 않습니다. | 비용이 발생하나요? 유상 AS 받은지 얼마 되지 않아 다시 수리받아야 하는게 상당히 당혹스러워서요 | 네 확인 감사합니다.","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 이전 AS이력 확인되십니다. 주소지 변동 사항 없으실까요? | AS접수 위해 주소지 확인과 박스 보관 여부 말씀해 주시면 추가 안내드리겠습니다. | 린클 그래비티 AS 절차 안내: 박스 발송→미생물 비우고 포장·문앞→로젠 회수→본사 입고·수리(명절 3~4영업일)→미생물 동봉 출고. 어댑터 연결선 동봉·덮개 커버. | 포장용 박스와 AS 접수 모두 완료해 드렸습니다. | 명절 연휴 택배 지연 가능 양해 부탁. 한가위 잘 보내세요. | 이전 수리받으신 이력 있으셔서 이번 접수건은 무상수리로 진행 도와드릴 예정입니다. | 추가 궁금한 점 있으시면 말씀해 주세요. 감사합니다. 좋은 하루 보내세요!"}},{"id":"6aaa4f89512135106069","userId":"6aa9e8010944ff188cf2","channel":"voice","createdAt":"2026-09-16T08:12:57.337Z","managedAt":"2026-09-16T08:12:57.824Z","name_present":true,"tags":[],"summary":"","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"UNKNOWN","human_req":false,"handoff_q":"UNKNOWN","next_q":"UNKNOWN","ai_understanding":"UNKNOWN","safety":"UNKNOWN","human_review":false,"cust_video":false,"cust_image":false,"sms":true,"media_req":false,"process":"CLOSED","outcome":"UNKNOWN","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":"이지","canonical":"EASY","source":"USER_PROFILE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":false,"evidence":{"customer":"","manager":""}},{"id":"6aaa3fd45eee6c9c4be5","userId":"6930f0427449a6d85b6f","channel":"chat","createdAt":"2026-09-16T07:05:56.395Z","managedAt":"2026-09-16T07:06:21.019Z","name_present":true,"tags":[],"summary":"","primary_intent":"PRODUCT_ISSUE","secondary":[],"symptom":"교반 파손","symptom_code":"STIRRING.BROKEN","symptom_c":"CONSISTENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":true,"handoff_q":"APPROPRIATE","next_q":"APPROPRIATE","ai_understanding":"CORRECT","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"AS_IN_PROGRESS","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"PRIME","source":"CUSTOMER_UTTERANCE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"상담원 연결 | 삽 부러짐 | 프라임 내부 흙 돌리는 삽 부러짐 | 수거 배송비가 드나요? | 제품 철거비는 어떻게 되나요?","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 내부 점검 및 A/S 필요 판단. 택배 회수→본사 점검·수리. 회수부터 수령까지 평일 약 7~10일. | 회전하는 교반봉 날개가 파손되었다면 수리가 필요합니다. | 주소지는 [ADDRESS]로 변동사항 없으실까요? | 무상보증 구입 1년. 유상시 택배+공임 8~15만원 내외(입고 점검 후 문자). 미수리 반환시 45,000원. | 폐기를 말씀하실까요? 제품 폐기 원하실 경우 비용은 발생되지 않습니다."}},{"id":"6aaa4d729326700161d2","userId":"6aaa4d72869c9dab022e","channel":"voice","createdAt":"2026-09-16T08:04:02.608Z","managedAt":"2026-09-16T08:04:03.145Z","name_present":true,"tags":[],"summary":"","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"UNKNOWN","human_req":false,"handoff_q":"UNKNOWN","next_q":"UNKNOWN","ai_understanding":"UNKNOWN","safety":"UNKNOWN","human_review":false,"cust_video":false,"cust_image":false,"sms":true,"media_req":false,"process":"CLOSED","outcome":"UNKNOWN","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":null,"canonical":"UNKNOWN_MODEL","source":"NONE","flags":[]},"recontact":"NO_PRIOR_CONSULTATION","recontact_reasons":["no_prior_detected"],"previous_consultation":null,"profile_model_present":false,"profile_content_present":false,"evidence":{"customer":"","manager":""}},{"id":"6aaa3f45af8951cb209e","userId":"6aa8a20f022e0673f14e","channel":"chat","createdAt":"2026-09-16T07:03:33.724Z","managedAt":"2026-09-16T07:03:42.213Z","name_present":true,"tags":[],"summary":"","primary_intent":"UNKNOWN","secondary":[],"symptom":"UNKNOWN","symptom_code":"-.-","symptom_c":"INSUFFICIENT","attrs":{"purchase_object":null,"cost_context":null,"as_subtopic":null,"requested_contact":null,"error_code":null,"desired_service":null},"handoff":"HANDOFF","human_req":false,"handoff_q":"UNKNOWN","next_q":"UNKNOWN","ai_understanding":"UNKNOWN","safety":"NONE","human_review":false,"cust_video":false,"cust_image":false,"sms":false,"media_req":false,"process":"MANAGER_ASSIGNED","outcome":"FOLLOWUP_REQUIRED","policy_ctx":"POLICY_CONTEXT_REQUIRED","policy_review":true,"avoidable":"UNKNOWN","product":{"raw":"프라임화이트","canonical":"PRIME","source":"USER_PROFILE","flags":[]},"recontact":"AS_FOLLOWUP","recontact_reasons":["as_followup_evidence"],"previous_consultation":null,"profile_model_present":true,"profile_content_present":true,"evidence":{"customer":"이체완료했습니다","manager":"상담사 연결 완료. 산업안전보건법 응대근로자 보호 안내. | 고객님 입금 확인되었으며, 현금영수증 발행 필요하시면 말씀 부탁드립니다."}}]};
+</script>
+<script>
+/* ================= AI 상담 Intelligence View (aii) =================
+ * 소스: window.AII_FEED (results3 ∪ journey, userChatId 병합, 주간 fixture)
+ * 원칙: 종합 AI Score 없음 · cxScore 미사용 · Handoff≠실패 · AI_DIRECT≠완결
+ *       Recontact≠미해결 · UNKNOWN/Policy부족 ≠ AI Error · Product/AIexp VOC 분리
+ * 기존 dashboard 로직과 격리(전역 이름 aii / AII 접두).
+ * ================================================================== */
+(function(){
+  'use strict';
+  function feed(){ return (window.AII_FEED && window.AII_FEED.cases) || []; }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function cnt(arr, fn){ const m={}; arr.forEach(x=>{ const k=fn(x); m[k]=(m[k]||0)+1; }); return m; }
+  function pct(n,d){ return d? Math.round(n/d*100):0; }
+
+  // ---- 상태 판정 (observed / inferred / candidate / unknown) ----
+  function productState(p){
+    if(!p) return 'unknown';
+    if(p.source==='CUSTOMER_UTTERANCE' && p.canonical && p.canonical!=='UNKNOWN_MODEL') return 'observed';
+    if(p.source==='USER_PROFILE' && p.canonical && p.canonical!=='UNKNOWN_MODEL') return 'inferred';
+    return 'unknown';
+  }
+  function recontactState(r){
+    if(r==='SAME_SYMPTOM_CANDIDATE') return 'candidate';
+    if(r==='AS_FOLLOWUP'||r==='NEW_ISSUE'||r==='NO_PRIOR_CONSULTATION') return 'observed';
+    return 'unknown';
+  }
+  function badge(text, cls){ return `<span class="aii-badge ${cls}">${esc(text)}</span>`; }
+  function stBadge(state){ const L={observed:'관측',inferred:'추정',candidate:'후보',unknown:'판단불가'}; return badge(L[state]||state, state); }
+
+  // ---- 라벨(가드레일 준수 문구) ----
+  const RECON_LABEL={ NO_PRIOR_CONSULTATION:'이전 상담 미검출', AS_FOLLOWUP:'AS/주문 후속', SAME_SYMPTOM_CANDIDATE:'동일증상 재접촉 후보', NEW_ISSUE:'신규 이슈', UNKNOWN:'판단 불가' };
+  const HANDOFF_LABEL={ HANDOFF:'상담사 인계', AI_DIRECT:'AI 단독 진행', UNKNOWN:'미상' };
+  const UNDERSTAND_LABEL={ CORRECT:'이해 확정', PARTIAL:'부분 이해', UNKNOWN:'Needs Review(불명)' };
+
+  // ================= 메인 렌더 =================
+  window.renderAIIntel = function(){
+    const root=document.getElementById('aii-root'); if(!root) return;
+    const C=feed(); const N=C.length;
+    if(!N){ root.innerHTML='<div class="aii-empty">주간 데이터 feed(AII_FEED)가 없습니다.</div>'; return; }
+    root.innerHTML =
+      aiiCoverage(C,N) +
+      aiiBrief(C,N) +
+      aiiOverview(C,N) +
+      aiiQuality(C,N) +
+      aiiHandoffJourney(C,N) +
+      aiiCX(C,N) +
+      aiiVOC(C,N) +
+      aiiInsights(C,N);
+    ensurePanel();
+    if(window.lucide) lucide.createIcons();
+  };
+
+  // ---- Analysis Coverage ----
+  function aiiCoverage(C,N){
+    const policyOk = C.filter(c=>c.policy_ctx && c.policy_ctx!=='POLICY_CONTEXT_REQUIRED').length;
+    const prodId = C.filter(c=>c.product && c.product.canonical && c.product.canonical!=='UNKNOWN_MODEL').length;
+    const gap = C.filter(c=>c.product && (c.product.flags||[]).includes('PRODUCT_TAXONOMY_GAP')).length;
+    const userLinked = C.filter(c=>c.userId).length;
+    const prevLinked = C.filter(c=>c.previous_consultation).length;
+    const reviewed = C.filter(c=>c.human_review).length;
+    const g=(l,v,note,p,gray)=>`<div class="aii-cov-card" onclick="aiiOpenCoverage('${l}')">
+      <div class="aii-cov-l"><i data-lucide="gauge" class="icon"></i>${l}</div>
+      <div class="aii-cov-v">${v}</div><div class="aii-cov-note">${note}</div>
+      <div class="aii-bar ${gray?'gray':''}"><i style="width:${p}%"></i></div></div>`;
+    return `<div class="aii-sec"><div class="aii-sec-hd"><span class="aii-sec-tag">보조</span>
+      <span class="aii-sec-title">Analysis Coverage</span>
+      <span class="aii-sec-sub">분석 신뢰도·데이터 한계 (품질 점수 아님)</span></div>
+      <div class="aii-cov">
+        ${g('Policy 판정 가능', pct(policyOk,N)+'%', `POLICY_CONTEXT_REQUIRED ${N-policyOk}/${N}`, pct(policyOk,N), true)}
+        ${g('제품 식별', pct(prodId,N)+'%', `식별 ${prodId}/${N} · GAP ${gap}`, pct(prodId,N))}
+        ${g('과거상담 실링크', pct(prevLinked,N)+'%', `user.id 연결 ${pct(userLinked,N)}% · previous ${prevLinked}`, pct(prevLinked,N), true)}
+        ${g('사람 검토', pct(reviewed,N)+'%', `human_review ${reviewed}/${N}`, pct(reviewed,N), true)}
+      </div></div>`;
+  }
+
+  // ---- Weekly Brief ----
+  function aiiBrief(C,N){
+    const u=cnt(C,c=>c.ai_understanding);
+    const h=cnt(C,c=>c.handoff);
+    const hq=cnt(C,c=>c.handoff_q);
+    const rc=cnt(C,c=>c.recontact);
+    const gap=C.filter(c=>(c.product.flags||[]).includes('PRODUCT_TAXONOMY_GAP')).length;
+    const policyReq=C.filter(c=>c.policy_ctx==='POLICY_CONTEXT_REQUIRED').length;
+    const prodId=C.filter(c=>c.product.canonical && c.product.canonical!=='UNKNOWN_MODEL').length;
+    const asf=rc.AS_FOLLOWUP||0, same=rc.SAME_SYMPTOM_CANDIDATE||0;
+    const lines=[
+      `이번 주 ${N}건 진입 중 AI 이해 확정 ${u.CORRECT||0}건(${pct(u.CORRECT||0,N)}%), 나머지 ${u.UNKNOWN||0}건은 판단 근거 부족으로 Needs Review로 분류됐다(오류 아님).`,
+      `상담사 인계 ${h.HANDOFF||0}건이 관측됐으며, 인계 적절성은 APPROPRIATE ${hq.APPROPRIATE||0}건, 판단보류 ${hq.UNKNOWN||0}건으로 분석됐다.`,
+      `재접촉 ${asf+same}건이 관측됐고 유형은 AS/주문 후속 ${asf}·동일증상 재접촉 후보 ${same}로, 미해결이 아니라 진행/후속 성격이다.`,
+      `제품 식별률 ${pct(prodId,N)}%로 낮고, 특히 제로 라인 ${gap}건이 taxonomy 미등재(GAP)로 확인됐다.`,
+      `Policy 판정 가능률 ${pct(N-policyReq,N)}%(Registry EMPTY)는 Analysis Coverage의 최대 제약이며, AI 품질 저하가 아니라 판단 기준 부재다.`
+    ];
+    return `<div class="aii-brief"><div class="aii-sec-hd" style="margin-bottom:10px"><span class="aii-sec-tag">Weekly Brief</span>
+      <span class="aii-sec-title">이번 주 관측 요약</span><span class="aii-sec-sub">${(window.AII_FEED&&window.AII_FEED.period)||''}</span></div>
+      <ol>${lines.map(l=>`<li>${l}</li>`).join('')}</ol></div>`;
+  }
+
+  // ---- A. Overview ----
+  function aiiOverview(C,N){
+    const h=cnt(C,c=>c.handoff);
+    const rc=cnt(C,c=>c.recontact);
+    const u=cnt(C,c=>c.ai_understanding);
+    const proc=cnt(C,c=>c.process);
+    const out=cnt(C,c=>c.outcome);
+    const recon=(rc.AS_FOLLOWUP||0)+(rc.SAME_SYMPTOM_CANDIDATE||0);
+    const kpi=(v,l,metric)=>`<div class="aii-kpi" ${metric?`onclick="aiiDrill('${metric}')" style="cursor:pointer"`:''}><div class="aii-kpi-v">${v}</div><div class="aii-kpi-l">${l}</div></div>`;
+    const fn=(lab,v,cls)=>`<div class="aii-fn-row"><div class="aii-fn-lab">${lab}</div><div class="aii-fn-track"><div class="aii-fn-fill ${cls||''}" style="width:${Math.max(pct(v,N),8)}%">${v}</div></div></div>`;
+    return `<div class="aii-sec"><div class="aii-sec-hd"><span class="aii-sec-tag">A</span><span class="aii-sec-title">Overview</span>
+      <span class="aii-sec-sub">진입 → 이해 → 인계 → 진행 → 후속</span></div>
+      <div class="aii-kpis" style="margin-bottom:16px">
+        ${kpi(N,'진입 (chat '+(cnt(C,c=>c.channel).chat||0)+'/voice '+(cnt(C,c=>c.channel).voice||0)+')','channel')}
+        ${kpi(h.AI_DIRECT||0,'AI 단독 진행','handoff')}
+        ${kpi(h.HANDOFF||0,'상담사 인계','handoff')}
+        ${kpi(recon,'재접촉 관측','recontact')}
+      </div>
+      <div class="aii-funnel">
+        ${fn('진입',N)}
+        ${fn('AI 이해 확정',u.CORRECT||0)}
+        ${fn('상담사 인계 / AI 단독', (h.HANDOFF||0), 'soft')}
+        ${fn('진행중(AS/배정/미디어)', (proc.AS_IN_PROGRESS||0)+(proc.MANAGER_ASSIGNED||0)+(proc.MEDIA_RECEIVED||0))}
+        ${fn('후속 필요', out.FOLLOWUP_REQUIRED||0, 'soft')}
+      </div>
+      <div class="aii-voc-note" style="margin-top:8px">※ Handoff/AI_DIRECT는 관측값이며 성공·실패·완결 판정이 아니다.</div>
+    </div>`;
+  }
+
+  // ---- B. AI Quality (Understanding / Needs Review / Error 분리) ----
+  function aiiQuality(C,N){
+    const u=cnt(C,c=>c.ai_understanding);
+    const nq=cnt(C,c=>c.next_q), hq=cnt(C,c=>c.handoff_q), sf=cnt(C,c=>c.safety);
+    const err = C.filter(c=>c.human_review===true).length; // 엄격: 사람검토로 확정된 판정 모순만
+    const needsReview = (u.UNKNOWN||0);
+    const dist=[
+      {k:'CORRECT',n:u.CORRECT||0,st:'observed'},
+      {k:'PARTIAL',n:u.PARTIAL||0,st:'inferred'},
+      {k:'UNKNOWN',n:u.UNKNOWN||0,st:'unknown'}
+    ];
+    const bar=dist.map(d=>`<div class="aii-dist-row" onclick="aiiDrill('understanding:${d.k}')">
+      <div class="aii-dist-lab">${stBadge(d.st)} ${UNDERSTAND_LABEL[d.k]}</div>
+      <div class="aii-dist-track"><div class="aii-dist-fill aii-fill-${d.st}" style="width:${pct(d.n,N)}%"></div></div>
+      <div class="aii-dist-n">${d.n}</div></div>`).join('');
+    return `<div class="aii-sec"><div class="aii-sec-hd"><span class="aii-sec-tag">B</span><span class="aii-sec-title">AI Quality</span>
+      <span class="aii-sec-sub">UNKNOWN·Policy부족·evidence부족은 AI Error가 아니다 · 종합 점수 없음</span></div>
+      <div class="aii-grid2">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text-secondary);margin-bottom:10px">AI Understanding</div>
+          <div class="aii-dist">${bar}</div>
+        </div>
+        <div>
+          <div class="aii-kpis" style="grid-template-columns:1fr 1fr">
+            <div class="aii-kpi" onclick="aiiDrill('error')" style="cursor:pointer"><div class="aii-kpi-v" style="color:var(--danger-text)">${err}</div><div class="aii-kpi-l">확인된 AI Error<br><span style="color:var(--text-tertiary);font-size:11px">관측 evidence와 모순된 판정만</span></div></div>
+            <div class="aii-kpi" onclick="aiiDrill('needsreview')" style="cursor:pointer"><div class="aii-kpi-v" style="color:var(--text-tertiary)">${needsReview}</div><div class="aii-kpi-l">Needs Review<br><span style="color:var(--text-tertiary);font-size:11px">불명 — 오류 아님</span></div></div>
+          </div>
+          <div class="aii-voc-note" style="margin-top:12px">응대 흐름 판단보류: 재질문 UNKNOWN ${nq.UNKNOWN||0} · 인계 적절성 UNKNOWN ${hq.UNKNOWN||0} · safety 미상 ${sf.UNKNOWN||0} → 모두 <b>Needs Review</b>(Error 아님).</div>
+          <div class="aii-voc-note">종합 AI Score는 생성하지 않는다. 각 지표를 병렬로 본다.</div>
+        </div>
+      </div></div>`;
+  }
+
+  // ---- C. Handoff & Journey ----
+  function aiiHandoffJourney(C,N){
+    const h=cnt(C,c=>c.handoff), hq=cnt(C,c=>c.handoff_q), hr=C.filter(c=>c.human_req).length;
+    const rc=cnt(C,c=>c.recontact);
+    const recRows=['NO_PRIOR_CONSULTATION','AS_FOLLOWUP','SAME_SYMPTOM_CANDIDATE','NEW_ISSUE','UNKNOWN']
+      .filter(k=>rc[k]).map(k=>{ const st=recontactState(k); return `<div class="aii-dist-row" onclick="aiiDrill('recontact:${k}')">
+        <div class="aii-dist-lab">${stBadge(st)} ${RECON_LABEL[k]}</div>
+        <div class="aii-dist-track"><div class="aii-dist-fill aii-fill-${st}" style="width:${pct(rc[k],N)}%"></div></div>
+        <div class="aii-dist-n">${rc[k]}</div></div>`;}).join('');
+    const hRows=['HANDOFF','AI_DIRECT','UNKNOWN'].filter(k=>h[k]).map(k=>`<div class="aii-dist-row" onclick="aiiDrill('handoff:${k}')">
+        <div class="aii-dist-lab">${HANDOFF_LABEL[k]}</div>
+        <div class="aii-dist-track"><div class="aii-dist-fill ${k==='HANDOFF'?'aii-fill-neutral':k==='AI_DIRECT'?'aii-fill-observed':'aii-fill-unknown'}" style="width:${pct(h[k],N)}%"></div></div>
+        <div class="aii-dist-n">${h[k]}</div></div>`).join('');
+    const recovered=C.filter(c=>c.product.source==='USER_PROFILE' && c.product.canonical!=='UNKNOWN_MODEL').length;
+    const gap=C.filter(c=>(c.product.flags||[]).includes('PRODUCT_TAXONOMY_GAP')).length;
+    return `<div class="aii-sec"><div class="aii-sec-hd"><span class="aii-sec-tag">C</span><span class="aii-sec-title">Handoff & Journey</span>
+      <span class="aii-sec-sub">인계=정상 관측 · 재접촉=관측(미해결 아님)</span></div>
+      <div class="aii-grid2">
+        <div><div style="font-size:13px;font-weight:700;color:var(--text-secondary);margin-bottom:10px">Handoff (관측 · 실패 아님)</div>
+          <div class="aii-dist">${hRows}</div>
+          <div class="aii-voc-note" style="margin-top:10px">고객 상담원 요청 ${hr} · 인계 적절성 APPROPRIATE ${hq.APPROPRIATE||0}/판단보류 ${hq.UNKNOWN||0}</div>
+        </div>
+        <div><div style="font-size:13px;font-weight:700;color:var(--text-secondary);margin-bottom:10px">Recontact / Journey (관측)</div>
+          <div class="aii-dist">${recRows}</div>
+          <div class="aii-voc-note" style="margin-top:10px">Journey product 보강: profile 복원 ${recovered} · TAXONOMY_GAP ${gap} · user.id 연결 ${pct(C.filter(c=>c.userId).length,N)}% · previous 실링크 ${C.filter(c=>c.previous_consultation).length}</div>
+        </div>
+      </div></div>`;
+  }
+
+  // ---- D. Customer Experience (Signals) ----
+  function aiiCX(C,N){
+    const mediaReq=C.filter(c=>c.media_req).length, vid=C.filter(c=>c.cust_video).length, img=C.filter(c=>c.cust_image).length, sms=C.filter(c=>c.sms).length, ho=C.filter(c=>c.handoff==='HANDOFF').length;
+    const sig=(v,l,metric)=>`<div class="aii-kpi" onclick="aiiDrill('${metric}')" style="cursor:pointer"><div class="aii-kpi-v">${v}</div><div class="aii-kpi-l">${l}</div></div>`;
+    return `<div class="aii-sec"><div class="aii-sec-hd"><span class="aii-sec-tag">D</span><span class="aii-sec-title">Customer Experience</span>
+      <span class="aii-sec-sub">Customer Effort Signals — 확정 평가 아님</span></div>
+      <div class="aii-kpis">
+        ${sig(mediaReq,'매체 요청','mediareq')}
+        ${sig(vid,'영상 제출','video')}
+        ${sig(img,'이미지 제출','image')}
+        ${sig(sms,'SMS Follow-up','sms')}
+      </div>
+      <div class="aii-voc-note" style="margin-top:10px">매체 요청 ${mediaReq} 중 영상 ${vid}·이미지 ${img} 제출 관측 · 상담사 인계 동반 ${ho} · SMS는 운영시간 외 voice→SMS 포함(해결 아님).</div>
+      <div class="aii-voc-note">※ 턴 수/소요시간 기반 정량 Effort는 현재 미산출 → Signals로만 표시.</div>
+    </div>`;
+  }
+
+  // ---- E. VOC Intelligence (Product / AI Experience 탭 분리) ----
+  function aiiVOC(C,N){
+    return `<div class="aii-sec"><div class="aii-sec-hd"><span class="aii-sec-tag">E</span><span class="aii-sec-title">VOC Intelligence</span>
+      <span class="aii-sec-sub">Product VOC와 AI Experience VOC는 합산하지 않는다</span></div>
+      <div class="aii-tabs">
+        <button class="aii-tab on" id="aii-voc-tab-prod" onclick="aiiVocTab('prod')">Product VOC (제품 신호)</button>
+        <button class="aii-tab" id="aii-voc-tab-aix" onclick="aiiVocTab('aix')">AI Experience VOC (응대 신호)</button>
+      </div>
+      <div id="aii-voc-body">${aiiVocProd(C,N)}</div>
+    </div>`;
+  }
+  function aiiVocProd(C,N){
+    const prod=cnt(C,c=>c.product.canonical||'UNKNOWN_MODEL');
+    const sym=cnt(C.filter(c=>c.symptom_code && c.symptom_code!=='-.-'), c=>c.symptom_code.split('.')[0]);
+    const prodRows=Object.entries(prod).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{ const st=k==='UNKNOWN_MODEL'?'unknown':'observed';
+      return `<div class="aii-dist-row" onclick="aiiDrill('product:${k}')"><div class="aii-dist-lab">${k==='UNKNOWN_MODEL'?stBadge('unknown'):''} ${esc(k)}</div>
+      <div class="aii-dist-track"><div class="aii-dist-fill aii-fill-${st}" style="width:${pct(v,N)}%"></div></div><div class="aii-dist-n">${v}</div></div>`;}).join('');
+    const symRows=Object.entries(sym).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="aii-dist-row" onclick="aiiDrill('symptom:${k}')">
+      <div class="aii-dist-lab">${esc(k)}</div><div class="aii-dist-track"><div class="aii-dist-fill aii-fill-neutral" style="width:${pct(v,N*0.5)}%"></div></div><div class="aii-dist-n">${v}</div></div>`).join('');
+    return `<div class="aii-grid2">
+      <div><div style="font-size:13px;font-weight:700;color:var(--text-secondary);margin-bottom:10px">제품 분포 (모델 미상 = 판단불가)</div><div class="aii-dist">${prodRows}</div></div>
+      <div><div style="font-size:13px;font-weight:700;color:var(--text-secondary);margin-bottom:10px">증상 대분류 분포 (고객 발화 관측)</div><div class="aii-dist">${symRows||'<div class="aii-empty">—</div>'}</div></div>
+    </div><div class="aii-voc-note" style="margin-top:10px">제품 결함 신호. AI 응대 품질과 무관.</div>`;
+  }
+  function aiiVocAix(C,N){
+    const hr=C.filter(c=>c.human_req).length, unk=C.filter(c=>c.ai_understanding==='UNKNOWN').length;
+    const nq=C.filter(c=>c.next_q==='UNKNOWN').length, hq=C.filter(c=>c.handoff_q==='UNKNOWN').length;
+    const row=(v,l,st,metric)=>`<div class="aii-dist-row" onclick="aiiDrill('${metric}')"><div class="aii-dist-lab">${stBadge(st)} ${l}</div>
+      <div class="aii-dist-track"><div class="aii-dist-fill aii-fill-${st}" style="width:${pct(v,N)}%"></div></div><div class="aii-dist-n">${v}</div></div>`;
+    return `<div><div style="font-size:13px;font-weight:700;color:var(--text-secondary);margin-bottom:10px">응대 경험 신호 (제품과 분리)</div>
+      <div class="aii-dist">
+        ${row(hr,'고객 상담원 요청','observed','humanreq')}
+        ${row(unk,'AI 이해 불명','unknown','understanding:UNKNOWN')}
+        ${row(nq,'재질문 판단보류','unknown','nq')}
+        ${row(hq,'인계 적절성 판단보류','unknown','hq')}
+      </div>
+      <div class="aii-voc-note" style="margin-top:10px">응대 경험 신호. 제품 VOC와 절대 합산하지 않는다.</div></div>`;
+  }
+  window.aiiVocTab=function(t){
+    document.getElementById('aii-voc-tab-prod').classList.toggle('on',t==='prod');
+    document.getElementById('aii-voc-tab-aix').classList.toggle('on',t==='aix');
+    const C=feed(), N=C.length;
+    document.getElementById('aii-voc-body').innerHTML = t==='prod'?aiiVocProd(C,N):aiiVocAix(C,N);
+    if(window.lucide) lucide.createIcons();
+  };
+
+  // ---- F. Insights & Actions ----
+  function aiiInsights(C,N){
+    const gap=C.filter(c=>(c.product.flags||[]).includes('PRODUCT_TAXONOMY_GAP')).length;
+    const policyReq=C.filter(c=>c.policy_ctx==='POLICY_CONTEXT_REQUIRED').length;
+    const same=C.filter(c=>c.recontact==='SAME_SYMPTOM_CANDIDATE').length;
+    const unid=C.filter(c=>!c.product.canonical || c.product.canonical==='UNKNOWN_MODEL').length;
+    const ins=[
+      {t:'판단 기준(Policy) 필요',chip:'policy',d:`Policy 판정 가능 0% — ${policyReq}건 모두 POLICY_CONTEXT_REQUIRED. AS_INTAKE·PRODUCT_ISSUE 반복 intent에 판단 기준 정의가 필요.`,m:'policyreq'},
+      {t:'제로 라인 taxonomy 미등재',chip:'taxo',d:`제로실버/제로베이지/W제로베이지 ${gap}건이 GAP으로 관측. 정식 등재 검토 후보.`,m:'gap'},
+      {t:'모델 식별 흐름 개선 후보',chip:'flow',d:`제품 미상 ${unid}건(${pct(unid,N)}%). 초기 모델 확인 스텝 점검 후보.`,m:'product:UNKNOWN_MODEL'},
+      {t:'동일증상 재접촉 관찰',chip:'data',d:`SAME_SYMPTOM_CANDIDATE ${same}건 — 확정 재발 아님(후보). 관찰 대상.`,m:'recontact:SAME_SYMPTOM_CANDIDATE'},
+      {t:'과거상담 실링크 데이터 확보',chip:'data',d:`previous 실링크 0 — lst-usr-chats date-range join 등 데이터 파이프라인 후보.`,m:null}
+    ];
+    const acts=[
+      ['Policy','AS_INTAKE·PRODUCT_ISSUE 판단 기준 정의','policy'],
+      ['Taxonomy','제로 라인 정식 등재 검토','taxo'],
+      ['흐름','모델 미상 초기 확인 스텝 점검','flow'],
+      ['데이터','previous 상담 실링크 방법 확보','data']
+    ];
+    return `<div class="aii-sec"><div class="aii-sec-hd"><span class="aii-sec-tag">F</span><span class="aii-sec-title">Insights & Actions</span>
+      <span class="aii-sec-sub">관찰+근거 · 실행은 승인 후</span></div>
+      <div class="aii-grid2">
+        <div><div style="font-size:13px;font-weight:700;color:var(--text-secondary);margin-bottom:10px">Improvement Cases</div>
+          <div class="aii-ins">${ins.map(x=>`<div class="aii-ins-card" ${x.m?`onclick="aiiDrill('${x.m}')" style="cursor:pointer"`:''}>
+            <div class="aii-ins-t"><span class="aii-chip ${x.chip}">${x.chip.toUpperCase()}</span>${esc(x.t)}</div>
+            <div class="aii-ins-d">${esc(x.d)}</div></div>`).join('')}</div>
+        </div>
+        <div><div style="font-size:13px;font-weight:700;color:var(--text-secondary);margin-bottom:10px">Action Items (제안)</div>
+          <div class="aii-ins">${acts.map(([ty,t,ch])=>`<div class="aii-ins-card"><div class="aii-ins-t"><span class="aii-chip ${ch}">${ty}</span>${esc(t)}</div>
+            <div class="aii-ins-d">상태: 제안 · 담당: 미지정</div></div>`).join('')}</div>
+          <div class="aii-voc-note" style="margin-top:10px">Action Item은 코드/Policy를 자동 반영하지 않는다(제안·추적까지).</div>
+        </div>
+      </div></div>`;
+  }
+
+  // ================= Drill-down =================
+  function ensurePanel(){
+    if(document.getElementById('aiiDD')) return;
+    const d=document.createElement('div'); d.className='aii-dd'; d.id='aiiDD';
+    d.innerHTML=`<div class="aii-dd-mask" onclick="aiiCloseDD()"></div>
+      <div class="aii-dd-panel"><div class="aii-dd-hd"><i data-lucide="search" class="icon"></i><span class="t" id="aiiDDTitle">Drill-down</span><button class="aii-dd-x" onclick="aiiCloseDD()">×</button></div>
+      <div class="aii-dd-body" id="aiiDDBody"></div></div>`;
+    document.body.appendChild(d);
+  }
+  window.aiiCloseDD=function(){ const d=document.getElementById('aiiDD'); if(d) d.classList.remove('on'); };
+
+  // metric → {title, filter, group?}
+  function metricSpec(metric){
+    const C=feed();
+    const eq=(f,v)=>C.filter(c=>String(f(c))===v);
+    const [key,val]=metric.split(':');
+    const M={
+      channel:{t:'채널',cases:C,grp:c=>c.channel},
+      handoff:{t:'Handoff (관측)',cases:C,grp:c=>HANDOFF_LABEL[c.handoff]||c.handoff},
+      recontact:{t:'Recontact (관측)',cases:C.filter(c=>['AS_FOLLOWUP','SAME_SYMPTOM_CANDIDATE'].includes(c.recontact)),grp:c=>RECON_LABEL[c.recontact]},
+      error:{t:'확인된 AI Error (evidence 모순)',cases:C.filter(c=>c.human_review===true),grp:c=>'human_review'},
+      needsreview:{t:'Needs Review (불명 — 오류 아님)',cases:C.filter(c=>c.ai_understanding==='UNKNOWN'),grp:c=>'AI 이해 불명'},
+      mediareq:{t:'매체 요청',cases:C.filter(c=>c.media_req),grp:c=>c.cust_video?'영상 포함':(c.cust_image?'이미지 포함':'요청')},
+      video:{t:'영상 제출',cases:C.filter(c=>c.cust_video),grp:c=>'영상'},
+      image:{t:'이미지 제출',cases:C.filter(c=>c.cust_image),grp:c=>'이미지'},
+      sms:{t:'SMS Follow-up',cases:C.filter(c=>c.sms),grp:c=>'SMS'},
+      humanreq:{t:'고객 상담원 요청',cases:C.filter(c=>c.human_req),grp:c=>'요청'},
+      nq:{t:'재질문 판단보류',cases:C.filter(c=>c.next_q==='UNKNOWN'),grp:c=>'판단보류'},
+      hq:{t:'인계 적절성 판단보류',cases:C.filter(c=>c.handoff_q==='UNKNOWN'),grp:c=>'판단보류'},
+      policyreq:{t:'Policy 판단 불가',cases:C.filter(c=>c.policy_ctx==='POLICY_CONTEXT_REQUIRED'),grp:c=>c.primary_intent||'UNKNOWN'},
+      gap:{t:'제품 TAXONOMY_GAP',cases:C.filter(c=>(c.product.flags||[]).includes('PRODUCT_TAXONOMY_GAP')),grp:c=>c.product.raw||'GAP'}
+    };
+    if(M[key] && !val) return M[key];
+    if(key==='understanding') return {t:'AI Understanding: '+(UNDERSTAND_LABEL[val]||val),cases:eq(c=>c.ai_understanding,val),grp:c=>c.primary_intent||'UNKNOWN'};
+    if(key==='recontact') return {t:'Recontact: '+(RECON_LABEL[val]||val),cases:eq(c=>c.recontact,val),grp:c=>c.recontact_reasons.join(', ')||'—'};
+    if(key==='handoff') return {t:'Handoff: '+(HANDOFF_LABEL[val]||val),cases:eq(c=>c.handoff,val),grp:c=>c.primary_intent||'UNKNOWN'};
+    if(key==='product') return {t:'제품: '+val,cases:C.filter(c=>(c.product.canonical||'UNKNOWN_MODEL')===val),grp:c=>c.symptom_code&&c.symptom_code!=='-.-'?c.symptom_code.split('.')[0]:'증상 미상'};
+    if(key==='symptom') return {t:'증상 대분류: '+val,cases:C.filter(c=>c.symptom_code&&c.symptom_code.split('.')[0]===val),grp:c=>c.product.canonical||'UNKNOWN_MODEL'};
+    return {t:metric,cases:C,grp:c=>'전체'};
+  }
+
+  window.aiiDrill=function(metric){
+    ensurePanel();
+    const spec=metricSpec(metric);
+    const groups=cnt(spec.cases, spec.grp);
+    document.getElementById('aiiDDTitle').textContent=spec.t;
+    const gEntries=Object.entries(groups).sort((a,b)=>b[1]-a[1]);
+    const maxN=Math.max(1,...gEntries.map(e=>e[1]));
+    const patt=gEntries.map(([k,v])=>`<div class="aii-dist-row" onclick="aiiDrillCases('${encodeURIComponent(metric)}','${encodeURIComponent(k)}')">
+        <div class="aii-dist-lab">${esc(k)}</div><div class="aii-dist-track"><div class="aii-dist-fill aii-fill-observed" style="width:${pct(v,maxN)}%"></div></div><div class="aii-dist-n">${v}</div></div>`).join('');
+    document.getElementById('aiiDDBody').innerHTML=`
+      <div class="aii-crumbs"><span class="on">Metric</span> › <span>Pattern</span> › Case › Evidence › Decision Trace</div>
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px">${spec.cases.length}건 · Pattern별 분포 (클릭 → Case 목록)</div>
+      <div class="aii-dist">${patt||'<div class="aii-empty">해당 Case 없음</div>'}</div>
+      <div style="margin-top:14px"><button class="aii-tab" onclick="aiiDrillCases('${encodeURIComponent(metric)}','__all__')">전체 Case 목록 보기 (${spec.cases.length})</button></div>`;
+    document.getElementById('aiiDD').classList.add('on');
+    if(window.lucide) lucide.createIcons();
+  };
+
+  window.aiiDrillCases=function(metricEnc, groupEnc){
+    const metric=decodeURIComponent(metricEnc), group=decodeURIComponent(groupEnc);
+    const spec=metricSpec(metric);
+    let cases=spec.cases;
+    if(group!=='__all__') cases=cases.filter(c=>String(spec.grp(c))===group);
+    const rows=cases.map(c=>caseRow(c)).join('');
+    document.getElementById('aiiDDBody').innerHTML=`
+      <div class="aii-crumbs"><span onclick="aiiDrill('${metric}')" style="cursor:pointer">Metric</span> › <span onclick="aiiDrill('${metric}')" style="cursor:pointer">Pattern</span> › <span class="on">Case (${group==='__all__'?'전체':esc(group)})</span> › Evidence › Decision Trace</div>
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px">${cases.length}건 (클릭 → Evidence + Decision Trace)</div>
+      ${rows||'<div class="aii-empty">Case 없음</div>'}`;
+    if(window.lucide) lucide.createIcons();
+  };
+
+  function caseRow(c){
+    const pst=productState(c.product), rst=recontactState(c.recontact);
+    return `<div class="aii-case-row" onclick="aiiCase('${c.id}')">
+      <i data-lucide="${c.channel==='voice'?'phone':'message-square'}" class="icon" style="margin-top:2px;color:var(--text-tertiary)"></i>
+      <div style="flex:1;min-width:0">
+        <div class="aii-case-id">${c.id}${c.tags&&c.tags.length?' · '+esc(c.tags.join(',')):''}</div>
+        <div class="aii-case-sum">${esc(c.summary||c.primary_intent||'—')}</div>
+        <div class="aii-case-meta">
+          ${badge((c.product.canonical||'UNKNOWN_MODEL'), pst)}
+          ${c.symptom_code&&c.symptom_code!=='-.-'?badge(c.symptom_code,'observed'):badge('증상미상','unknown')}
+          ${c.recontact?badge(RECON_LABEL[c.recontact], rst):''}
+        </div>
+      </div></div>`;
+  }
+
+  // ---- Case Detail : Decision Trace ----
+  window.aiiCase=function(id){
+    const c=feed().find(x=>x.id===id); if(!c) return;
+    const pst=productState(c.product), rst=recontactState(c.recontact);
+    const symObs = c.symptom_code && c.symptom_code!=='-.-';
+    const tr=(n,k,v)=>`<div class="aii-tr"><div class="aii-tr-step">${n}</div><div><div class="aii-tr-k">${k}</div><div class="aii-tr-v">${v}</div></div></div>`;
+    const trace=
+      tr(1,'Normalize', `${badge('관측','observed')} 채널 ${c.channel}`) +
+      tr(2,'Context', `${badge('관측','observed')} primary intent 판정 근거`) +
+      tr(3,'Symptom', symObs? `${stBadge('observed')} ${esc(c.symptom)} <span style="color:var(--text-tertiary);font-weight:400">(${c.symptom_code})</span>` : `${stBadge('unknown')} 증상 canonical 미확정`) +
+      tr(4,'Intent', c.primary_intent&&c.primary_intent!=='UNKNOWN'? `${stBadge('observed')} ${esc(c.primary_intent)}${c.secondary&&c.secondary.length?' <span style="color:var(--text-tertiary);font-weight:400">+ '+esc(c.secondary.join(', '))+'</span>':''}` : `${stBadge('unknown')} intent 미확정`) +
+      tr(5,'Product', `${stBadge(pst)} ${esc(c.product.canonical||'UNKNOWN_MODEL')} <span style="color:var(--text-tertiary);font-weight:400">(source ${c.product.source})</span>${(c.product.flags||[]).map(f=>' '+badge(f,'candidate')).join('')}${c.product.raw?` <span style="color:var(--text-tertiary);font-weight:400">raw:${esc(c.product.raw)}</span>`:''}`) +
+      tr(6,'Handoff & Policy', `${badge('관측','observed')} ${HANDOFF_LABEL[c.handoff]||c.handoff} · ${stBadge('unknown')} ${esc(c.policy_ctx)}`) +
+      tr(7,'Journey', c.recontact? `${stBadge(rst)} ${RECON_LABEL[c.recontact]}${c.recontact_reasons&&c.recontact_reasons.length?` <span style="color:var(--text-tertiary);font-weight:400">[${esc(c.recontact_reasons.join(', '))}]</span>`:''} · previous ${c.previous_consultation?'링크':stBadge('unknown')}` : stBadge('unknown'));
+    const judge=[['ai_understanding',c.ai_understanding],['next_q',c.next_q],['handoff_q',c.handoff_q],['safety',c.safety],['human_review',String(c.human_review)]]
+      .map(([k,v])=>badge(k+': '+v, (v==='UNKNOWN'||v==='false')?'unknown':'observed')).join(' ');
+    document.getElementById('aiiDDTitle').textContent='Case Detail · '+id;
+    document.getElementById('aiiDDBody').innerHTML=`
+      <div class="aii-crumbs">Metric › Pattern › Case › <span class="on">Evidence & Decision Trace</span></div>
+      <div class="aii-legend">${stBadge('observed')} 관측 ${stBadge('inferred')} 추정(프로필) ${stBadge('candidate')} 후보 ${stBadge('unknown')} 판단불가</div>
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px">${esc(c.summary||'')}</div>
+      <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:10px">user.id ${c.userId||'—'} · ${c.channel} · tags ${c.tags&&c.tags.length?esc(c.tags.join(', ')):'—'}</div>
+      <div class="aii-evi"><b>고객 발화</b>\n${esc(c.evidence&&c.evidence.customer||'—')}</div>
+      <div class="aii-evi"><b>매니저 발화</b>\n${esc(c.evidence&&c.evidence.manager||'—')}</div>
+      <div style="font-size:13px;font-weight:700;color:var(--text-secondary);margin:16px 0 6px">Decision Trace</div>
+      <div class="aii-trace">${trace}</div>
+      <div style="font-size:13px;font-weight:700;color:var(--text-secondary);margin:16px 0 6px">판정 배지 (병렬 · 합산 없음)</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${judge}</div>
+      <div class="aii-voc-note" style="margin-top:12px">cxScore는 AI Quality에 사용하지 않는다(CX 운영 참고 지표).</div>`;
+    if(window.lucide) lucide.createIcons();
+  };
+
+  window.aiiOpenCoverage=function(l){
+    const map={'Policy 판정 가능':'policyreq','제품 식별':'product:UNKNOWN_MODEL','과거상담 실링크':'recontact','사람 검토':'error'};
+    aiiDrill(map[l]||'channel');
+  };
+})();
+
 </script>
 </body>
 </html>
