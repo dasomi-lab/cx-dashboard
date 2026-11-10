@@ -1304,7 +1304,8 @@ function updateDerivedPeriod(){
     const first = new Date(d.getFullYear(), d.getMonth(), 1);
     const firstSundayDay = 1 + ((7 - first.getDay()) % 7);
     if (d.getDate() < firstSundayDay) return 1;
-    return Math.floor((d.getDate() - firstSundayDay) / 7) + 2;
+    const base = (firstSundayDay === 1) ? 1 : 2;
+    return Math.floor((d.getDate() - firstSundayDay) / 7) + base;
   }
 
   const startObj = toDateObj(ds[0].date);
@@ -1344,9 +1345,10 @@ function onPeriodDateChange(v){
 
   const first = new Date(start.getFullYear(), start.getMonth(), 1);
   const firstSundayDay = 1 + ((7 - first.getDay()) % 7);
+  const weekBase = (firstSundayDay === 1) ? 1 : 2;
   const week = start.getDate() < firstSundayDay
     ? 1
-    : Math.floor((start.getDate() - firstSundayDay) / 7) + 2;
+    : Math.floor((start.getDate() - firstSundayDay) / 7) + weekBase;
   const month = start.getMonth() + 1;
   const ymd = dt => `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
 
